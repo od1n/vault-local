@@ -3,12 +3,16 @@
 
 use std::path::PathBuf;
 
-/// Valida que una ruta de archivo sea segura (sin traversal de directorios,
-/// dentro de directorios accesibles al usuario).
+/// Valida que una ruta de archivo sea segura.
 ///
-/// # Errores
-/// Retorna error si la ruta contiene "..", si el directorio padre no existe,
-/// o si la ruta está fuera del directorio home del usuario.
+/// Protecciones:
+/// - Rechaza rutas con ".." (path traversal)
+/// - Verifica que el directorio padre exista
+/// - Canonicaliza la ruta para resolver symlinks
+///
+/// La ruta proviene del diálogo de archivos del OS (que el usuario eligió explícitamente),
+/// por lo que no se restringe a un directorio específico — el usuario puede guardar
+/// en cualquier ubicación a la que tenga acceso.
 pub fn validate_file_path(path: &str) -> Result<PathBuf, String> {
     let path = PathBuf::from(path);
 
@@ -18,45 +22,34 @@ pub fn validate_file_path(path: &str) -> Result<PathBuf, String> {
         return Err("Ruta no permitida: contiene '..'".to_string());
     }
 
-    // Canonicalizar para resolver enlaces simbólicos.
-    // Para archivos nuevos (exportar/guardar), verificar el directorio padre.
-    let check_path = if path.exists() {
-        path.canonicalize()
-            .map_err(|e| format!("Ruta inválida: {}", e))?
-    } else {
-        let parent = path
-            .parent()
-            .ok_or_else(|| "Ruta inválida: sin directorio padre".to_string())?;
-        if !parent.exists() {
-            return Err("El directorio destino no existe".to_string());
-        }
-        parent
-            .canonicalize()
-            .map_err(|e| format!("Ruta inválida: {}", e))?
-            .join(
-                path.file_name()
-                    .ok_or("Nombre de archivo inválido")?,
-            )
-    };
-
-    // Obtener el directorio home del usuario
-    let home = dirs_or_home();
-
-    // Solo permitir rutas dentro del directorio del usuario
-    if !check_path.starts_with(&home) {
-        return Err("Solo se permiten rutas dentro del directorio del usuario".to_string());
+    // Rechazar rutas vacías
+    if path_str.trim().is_empty() {
+        return Err("Ruta vacía".to_string());
     }
 
-    Ok(check_path)
-}
-
-/// Obtiene el directorio home del usuario.
-/// Intenta USERPROFILE (Windows) y HOME (Unix) como variables de entorno.
-fn dirs_or_home() -> PathBuf {
-    if let Some(home) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
-        PathBuf::from(home)
-    } else {
-        // Fallback muy restrictivo
-        PathBuf::from(".")
+    // Para archivos existentes, canonicalizar
+    if path.exists() {
+        let canonical = path.canonicalize()
+            .map_err(|e| format!("Ruta inválida: {}", e))?;
+        return Ok(canonical);
     }
+
+    // Para archivos nuevos, verificar que el directorio padre exista
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Ruta inválida: sin directorio padre".to_string())?;
+
+    if !parent.exists() {
+        return Err("El directorio destino no existe".to_string());
+    }
+
+    let canonical_parent = parent
+        .canonicalize()
+        .map_err(|e| format!("Ruta inválida: {}", e))?;
+
+    let filename = path
+        .file_name()
+        .ok_or("Nombre de archivo inválido")?;
+
+    Ok(canonical_parent.join(filename))
 }

@@ -153,7 +153,7 @@ pub fn run_password_audit(state: tauri::State<'_, AppState>) -> Result<AuditResu
         // Filtrar campos de tipo contraseña (excluyendo seed_phrase y security_qa)
         for field in &entry_data.fields {
             let es_password = field.field_type == "password"
-                || (field.sensitive && field.field_type != "seed_phrase" && field.field_type != "security_qa");
+                || (field.sensitive && field.field_type != "seed_phrase" && field.field_type != "security_qa" && field.field_type != "totp");
 
             if !es_password || field.value.is_empty() {
                 continue;
@@ -329,7 +329,7 @@ pub fn check_hibp(state: tauri::State<'_, AppState>) -> Result<Vec<HibpResult>, 
         // Verificar cada campo de tipo contraseña
         for field in &entry_data.fields {
             let es_password = field.field_type == "password"
-                || (field.sensitive && field.field_type != "seed_phrase" && field.field_type != "security_qa");
+                || (field.sensitive && field.field_type != "seed_phrase" && field.field_type != "security_qa" && field.field_type != "totp");
 
             if !es_password || field.value.is_empty() {
                 continue;

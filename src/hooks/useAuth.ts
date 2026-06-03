@@ -13,7 +13,7 @@ export function useAuth() {
       try {
         const created = await invoke<boolean>('is_vault_created');
         setAuthState(created ? 'locked' : 'setup');
-      } catch (e) {
+      } catch {
         setError('No se pudo verificar el estado de la bóveda.');
         setAuthState('setup');
       }

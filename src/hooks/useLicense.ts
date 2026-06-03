@@ -30,7 +30,7 @@ export function useLicense() {
 
   const activate = useCallback(async (key: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      await invoke('activate_license', { key });
+      await invoke('activate_license', { licenseKey: key });
       await checkLicense();
       return { success: true };
     } catch (e) {

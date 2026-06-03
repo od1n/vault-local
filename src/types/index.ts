@@ -45,8 +45,8 @@ export interface HibpResult {
 // --- License Types ---
 export interface LicenseInfo {
   is_premium: boolean;
-  license_key?: string;
-  activated_at?: string;
+  license_key: string | null;
+  activated_at: string | null;
 }
 
 export interface AttachmentMeta {
