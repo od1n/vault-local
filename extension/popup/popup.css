@@ -1,0 +1,364 @@
+/* ============================================================
+   Vault Local — Extension Popup Styles
+   Tema oscuro coherente con la aplicación de escritorio.
+   ============================================================ */
+
+/* --- Reset y base --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 340px;
+  min-height: 200px;
+  max-height: 520px;
+  overflow-y: auto;
+  background: #0f1117;
+  color: #e8eaed;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Scrollbar personalizada */
+body::-webkit-scrollbar {
+  width: 6px;
+}
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+body::-webkit-scrollbar-thumb {
+  background: #2a2d35;
+  border-radius: 3px;
+}
+body::-webkit-scrollbar-thumb:hover {
+  background: #3a3d45;
+}
+
+/* --- Cabecera --- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid #1e2028;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f0f2f5;
+  letter-spacing: -0.01em;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555;
+  transition: background 0.3s ease;
+}
+
+.status-dot.connected {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+}
+
+.status-dot.locked {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
+}
+
+.status-dot.disconnected {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.status-text {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* --- Paneles de estado (desconectado, bloqueado) --- */
+.state-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.state-panel-small {
+  padding: 20px;
+}
+
+.state-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+  opacity: 0.7;
+}
+
+.state-message {
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+.state-message strong {
+  color: #e8eaed;
+}
+
+.state-message-small {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* --- Botones --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.btn-primary {
+  margin-top: 16px;
+  background: #4c8dff;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #3b7be8;
+}
+
+.btn-primary:active {
+  background: #2d6ad4;
+  transform: scale(0.98);
+}
+
+/* --- Búsqueda --- */
+.search-container {
+  position: relative;
+  padding: 10px 14px 6px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  background: #1a1c24;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  color: #e8eaed;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.search-input::placeholder {
+  color: #4b5563;
+}
+
+.search-input:focus {
+  border-color: #4c8dff;
+  box-shadow: 0 0 0 2px rgba(76, 141, 255, 0.15);
+}
+
+/* --- Etiquetas de sección --- */
+.section-label {
+  padding: 6px 14px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --- Lista de entradas --- */
+.entries-list {
+  padding: 0 8px;
+}
+
+.entry-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.entry-card:hover {
+  background: #1a1c24;
+}
+
+.entry-card:active {
+  background: #22242e;
+}
+
+.entry-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #1e2028;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4c8dff;
+  text-transform: uppercase;
+}
+
+.entry-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e8eaed;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-category {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.entry-card:hover .entry-actions {
+  opacity: 1;
+}
+
+.entry-action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.entry-action-btn:hover {
+  background: #2a2d35;
+  color: #e8eaed;
+}
+
+.entry-action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* --- Toast de notificación --- */
+.toast {
+  position: fixed;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  background: #22242e;
+  border: 1px solid #2a2d35;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #34d399;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  animation: toastIn 0.2s ease;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* --- Pie de página --- */
+.footer {
+  padding: 8px 14px 10px;
+  border-top: 1px solid #1e2028;
+  text-align: center;
+}
+
+.footer-text {
+  font-size: 10px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+/* --- Animación de carga --- */
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #2a2d35;
+  border-top-color: #4c8dff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "com.vaultlocal.app",
+  "description": "Vault Local Native Messaging Host — puente entre extensión y aplicación de escritorio",
+  "path": "host.js",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://EXTENSION_ID_HERE/"
+  ]
+}

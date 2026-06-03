@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=340">
+  <title>Vault Local</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Cabecera con logo y nombre -->
+  <header class="header">
+    <div class="header-brand">
+      <img src="../icons/icon48.png" alt="Vault Local" class="header-icon">
+      <h1 class="header-title">Vault Local</h1>
+    </div>
+    <div class="header-status" id="statusIndicator">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-text" id="statusText">Conectando...</span>
+    </div>
+  </header>
+
+  <!-- Estado: desconectado -->
+  <section class="state-panel" id="stateDisconnected" style="display:none;">
+    <div class="state-icon">&#x1F50C;</div>
+    <p class="state-message">
+      No se pudo conectar con <strong>Vault Local</strong>.<br>
+      Abre la aplicación de escritorio.
+    </p>
+    <button class="btn btn-primary" id="btnRetry">Reintentar</button>
+  </section>
+
+  <!-- Estado: bloqueado -->
+  <section class="state-panel" id="stateLocked" style="display:none;">
+    <div class="state-icon">&#x1F512;</div>
+    <p class="state-message">
+      <strong>Vault Local</strong> está bloqueado.<br>
+      Desbloquéalo con tu contraseña maestra.
+    </p>
+  </section>
+
+  <!-- Estado: desbloqueado (funcional) -->
+  <section id="stateUnlocked" style="display:none;">
+    <!-- Barra de búsqueda -->
+    <div class="search-container">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input
+        type="text"
+        id="searchInput"
+        class="search-input"
+        placeholder="Buscar credenciales..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+    </div>
+
+    <!-- Coincidencias automáticas por URL -->
+    <div id="autoMatchSection" style="display:none;">
+      <div class="section-label">Coincidencias para este sitio</div>
+      <div id="autoMatchList" class="entries-list"></div>
+    </div>
+
+    <!-- Resultados de búsqueda -->
+    <div id="searchResultsSection" style="display:none;">
+      <div class="section-label">Resultados de búsqueda</div>
+      <div id="searchResultsList" class="entries-list"></div>
+    </div>
+
+    <!-- Estado vacío -->
+    <div id="emptyState" class="state-panel state-panel-small" style="display:none;">
+      <p class="state-message-small">No se encontraron credenciales.</p>
+    </div>
+  </section>
+
+  <!-- Notificación toast -->
+  <div class="toast" id="toast" style="display:none;">
+    <span id="toastMessage"></span>
+  </div>
+
+  <!-- Pie de página -->
+  <footer class="footer">
+    <span class="footer-text">Compatible con Chrome, Edge, Brave, Opera, Vivaldi, Arc y Firefox</span>
+  </footer>
+</body>
+<script src="popup.js"></script>
+</html>

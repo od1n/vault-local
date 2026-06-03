@@ -1,0 +1,40 @@
+{
+  "manifest_version": 2,
+  "name": "Vault Local",
+  "version": "0.1.0",
+  "description": "Autocompletado seguro para Vault Local — gestor de contraseñas local y zero-knowledge",
+  "permissions": [
+    "nativeMessaging",
+    "activeTab",
+    "<all_urls>"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "vault-local@vaultlocal.com",
+      "strict_min_version": "91.0"
+    }
+  },
+  "browser_action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "scripts": ["background/service-worker.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/autofill.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

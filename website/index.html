@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Vault Local — Gestor de contraseñas local, cifrado de grado militar, cero nubes, cero rastreo. Tus secretos, solo en tu computadora.">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Vault Local — Gestor de contraseñas local y seguro">
+  <meta property="og:description" content="Cifrado de grado militar. Cero nubes. Cero rastreo. Tus contraseñas nunca salen de tu computadora.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_ES">
+  <title>Vault Local — Gestor de contraseñas local y seguro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- PayPal SDK: reemplazar YOUR_CLIENT_ID con tu PayPal Client ID -->
+  <!-- <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script> -->
+
+  <style>
+    /* ========================================================
+       CSS Custom Properties
+       ======================================================== */
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #161822;
+      --bg-card: #1a1d2e;
+      --bg-card-hover: #1f2337;
+      --accent: #4c8dff;
+      --accent-hover: #6ba1ff;
+      --accent-glow: rgba(76, 141, 255, 0.15);
+      --accent-glow-strong: rgba(76, 141, 255, 0.3);
+      --text-primary: #e8eaf0;
+      --text-secondary: #9da3b4;
+      --text-muted: #6b7280;
+      --border: #2a2d3e;
+      --border-accent: #4c8dff;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --gradient-accent: linear-gradient(135deg, #4c8dff 0%, #6366f1 100%);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+      --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.4);
+      --shadow-glow: 0 0 40px rgba(76, 141, 255, 0.1);
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --max-width: 1200px;
+    }
+
+    /* ========================================================
+       Reset & Base
+       ======================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+
+    a:hover {
+      color: var(--accent-hover);
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* ========================================================
+       Scroll-triggered Animations
+       ======================================================== */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ========================================================
+       Layout
+       ======================================================== */
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 100px 0;
+    }
+
+    .section-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-subtitle {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 60px;
+      line-height: 1.7;
+    }
+
+    /* ========================================================
+       Navigation
+       ======================================================== */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(15, 17, 23, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--text-primary);
+    }
+
+    .nav-logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff !important;
+      padding: 8px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: background var(--transition), transform var(--transition);
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .nav-mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    .nav-mobile-toggle svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* ========================================================
+       Hero
+       ======================================================== */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding-top: 64px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      padding: 0 24px;
+    }
+
+    .hero-logo {
+      margin-bottom: 32px;
+    }
+
+    .hero-logo svg {
+      width: 80px;
+      height: 80px;
+      filter: drop-shadow(0 0 30px rgba(76, 141, 255, 0.3));
+    }
+
+    .hero-title {
+      font-size: 4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-tagline {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--gradient-accent);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(76, 141, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(76, 141, 255, 0.4);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .trust-badges {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .trust-badge svg {
+      width: 18px;
+      height: 18px;
+      color: var(--success);
+    }
+
+    /* ========================================================
+       Features
+       ======================================================== */
+    .features {
+      background: var(--bg-secondary);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: all var(--transition);
+    }
+
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(76, 141, 255, 0.3);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card-hover);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .feature-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+    }
+
+    .feature-card h3 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ========================================================
+       Security
+       ======================================================== */
+    .security-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .security-visual {
+      position: relative;
+    }
+
+    .security-layers {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .security-layer {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      transition: all var(--transition);
+    }
+
+    .security-layer:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .layer-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .layer-text h4 {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .layer-text p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .security-points {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .security-points h2 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+
+    .security-points > p {
+      color: var(--text-secondary);
+      font-size: 1.0625rem;
+      line-height: 1.7;
+    }
+
+    .security-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .security-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .security-item svg {
+      width: 20px;
+      height: 20px;
+      color: var(--success);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .security-item span {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+
+    .security-item strong {
+      color: var(--text-primary);
+    }
+
+    /* ========================================================
+       Pricing
+       ======================================================== */
+    .pricing {
+      background: var(--bg-secondary);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      transition: all var(--transition);
+      position: relative;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card-hover);
+    }
+
+    .pricing-card.highlighted {
+      border-color: var(--accent);
+      box-shadow: 0 0 50px rgba(76, 141, 255, 0.1);
+      transform: scale(1.03);
+    }
+
+    .pricing-card.highlighted:hover {
+      transform: scale(1.03) translateY(-4px);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gradient-accent);
+      color: #fff;
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pricing-tier {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .pricing-price {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+      letter-spacing: -0.03em;
+    }
+
+    .pricing-price span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .pricing-desc {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 28px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+
+    .pricing-features li svg {
+      width: 18px;
+      height: 18px;
+      color: var(--success);
+      flex-shrink: 0;
+    }
+
+    .pricing-card .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* ========================================================
+       Payment
+       ======================================================== */
+    .payment-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .payment-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      text-align: center;
+      transition: all var(--transition);
+    }
+
+    .payment-card:hover {
+      border-color: rgba(76, 141, 255, 0.3);
+      box-shadow: var(--shadow-card);
+    }
+
+    .payment-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-md);
+      background: var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .payment-icon svg {
+      width: 28px;
+      height: 28px;
+      color: var(--accent);
+    }
+
+    .payment-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .payment-card p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    #paypal-button-container {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .paypal-placeholder-btn,
+    .crypto-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition);
+      width: 100%;
+    }
+
+    .paypal-placeholder-btn {
+      background: #ffc439;
+      color: #003087;
+    }
+
+    .paypal-placeholder-btn:hover {
+      background: #f0b72a;
+      transform: translateY(-2px);
+    }
+
+    .crypto-btn {
+      background: var(--gradient-accent);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .crypto-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(76, 141, 255, 0.3);
+      color: #fff;
+    }
+
+    .payment-note {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-top: 32px;
+    }
+
+    .payment-note svg {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      margin-right: 4px;
+      color: var(--success);
+    }
+
+    /* ========================================================
+       FAQ
+       ======================================================== */
+    .faq-list {
+      max-width: 768px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: border-color var(--transition);
+    }
+
+    .faq-item.active {
+      border-color: rgba(76, 141, 255, 0.3);
+    }
+
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      padding: 20px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-family: inherit;
+      transition: color var(--transition);
+    }
+
+    .faq-question:hover {
+      color: var(--accent);
+    }
+
+    .faq-question svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      transition: transform var(--transition);
+      color: var(--text-muted);
+    }
+
+    .faq-item.active .faq-question svg {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 300px;
+    }
+
+    .faq-answer-inner {
+      padding: 0 24px 20px;
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+      line-height: 1.7;
+    }
+
+    /* ========================================================
+       Footer
+       ======================================================== */
+    .footer {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 48px 0;
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .footer-tagline {
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    .footer-copyright {
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    /* ========================================================
+       Responsive
+       ======================================================== */
+    @media (max-width: 1024px) {
+      .hero-title {
+        font-size: 3rem;
+      }
+
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .security-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .security-points h2 {
+        text-align: center;
+      }
+
+      .security-points > p {
+        text-align: center;
+      }
+
+      .pricing-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pricing-card.highlighted {
+        transform: scale(1);
+      }
+
+      .pricing-card.highlighted:hover {
+        transform: translateY(-4px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      section {
+        padding: 72px 0;
+      }
+
+      .section-title {
+        font-size: 1.75rem;
+      }
+
+      .section-subtitle {
+        font-size: 1rem;
+        margin-bottom: 40px;
+      }
+
+      /* Nav mobile */
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: rgba(15, 17, 23, 0.98);
+        backdrop-filter: blur(20px);
+        flex-direction: column;
+        padding: 24px;
+        gap: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .nav-mobile-toggle {
+        display: block;
+      }
+
+      /* Hero */
+      .hero-title {
+        font-size: 2.25rem;
+      }
+
+      .hero-tagline {
+        font-size: 1.0625rem;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn {
+        width: 100%;
+        max-width: 320px;
+        justify-content: center;
+      }
+
+      .trust-badges {
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+
+      /* Features */
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      /* Security */
+      .security-points h2 {
+        font-size: 1.625rem;
+      }
+
+      /* Pricing */
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+
+      .pricing-card.highlighted {
+        order: -1;
+      }
+
+      /* Payment */
+      .payment-grid {
+        grid-template-columns: 1fr;
+      }
+
+      /* Footer */
+      .footer-links {
+        flex-direction: column;
+        gap: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======================================================
+       Navigation
+       ====================================================== -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo" aria-label="Vault Local inicio">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2L4 10v12c0 9.6 6.8 18.4 16 20 9.2-1.6 16-10.4 16-20V10L20 2z" fill="#4c8dff" fill-opacity="0.15" stroke="#4c8dff" stroke-width="2" stroke-linejoin="round"/>
+          <rect x="14" y="16" width="12" height="10" rx="2" fill="none" stroke="#4c8dff" stroke-width="2"/>
+          <circle cx="20" cy="21" r="2" fill="#4c8dff"/>
+          <path d="M16 16v-3a4 4 0 118 0v3" fill="none" stroke="#4c8dff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Vault Local
+      </a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#features">Funciones</a></li>
+        <li><a href="#security">Seguridad</a></li>
+        <li><a href="#pricing">Precios</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#" class="nav-cta">Descargar</a></li>
+      </ul>
+      <button class="nav-mobile-toggle" id="navToggle" aria-label="Abrir menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ======================================================
+       Hero
+       ====================================================== -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <div class="hero-logo">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M40 4L8 20v24c0 19.2 13.6 36.8 32 40 18.4-3.2 32-20.8 32-40V20L40 4z" fill="#4c8dff" fill-opacity="0.1" stroke="#4c8dff" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M40 12L14 24v18c0 15.2 11 29.2 26 32 15-2.8 26-16.8 26-32V24L40 12z" fill="#4c8dff" fill-opacity="0.06" stroke="#4c8dff" stroke-width="1.5" stroke-linejoin="round" stroke-opacity="0.4"/>
+          <rect x="28" y="34" width="24" height="18" rx="3" fill="none" stroke="#4c8dff" stroke-width="2.5"/>
+          <circle cx="40" cy="43" r="3" fill="#4c8dff"/>
+          <path d="M40 46v3" stroke="#4c8dff" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M32 34v-6a8 8 0 1116 0v6" fill="none" stroke="#4c8dff" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1 class="hero-title">Vault Local</h1>
+      <p class="hero-tagline">Tus secretos, solo en tu computadora. Cifrado de grado militar, cero nubes, cero rastreo.</p>
+      <div class="hero-buttons">
+        <a href="#" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Descargar gratis
+        </a>
+        <a href="#" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          Ver en GitHub
+        </a>
+      </div>
+      <div class="trust-badges">
+        <div class="trust-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Zero-knowledge
+        </div>
+        <div class="trust-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"/>
+            <polyline points="8 6 2 12 8 18"/>
+          </svg>
+          Codigo abierto
+        </div>
+        <div class="trust-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="1" y1="1" x2="23" y2="23"/>
+            <path d="M16.72 11.06A10.94 10.94 0 0119 12.55"/>
+            <path d="M5 12.55a10.94 10.94 0 015.17-2.39"/>
+            <path d="M10.71 5.05A16 16 0 0122.56 9"/>
+            <path d="M1.42 9a15.91 15.91 0 014.7-2.88"/>
+            <path d="M8.53 16.11a6 6 0 016.95 0"/>
+            <line x1="12" y1="20" x2="12.01" y2="20"/>
+          </svg>
+          Sin conexion a internet
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Features
+       ====================================================== -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-title fade-in">Todo lo que necesitas, nada que no</h2>
+      <p class="section-subtitle fade-in">Seguridad sin compromisos con las funciones que esperas de un gestor de contraseñas moderno.</p>
+      <div class="features-grid">
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3>Cifrado de grado militar</h3>
+          <p>Argon2id para derivacion de claves, XChaCha20-Poly1305 para cifrado de datos y SQLCipher con AES-256 para la base de datos.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h3>100% local y offline</h3>
+          <p>Tus datos nunca salen de tu computadora. Sin servidores, sin nubes, sin sorpresas. Tu informacion es solo tuya.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </div>
+          <h3>Extension de navegador</h3>
+          <p>Autocompletado inteligente en Chrome, Edge, Firefox, Brave, Opera, Vivaldi y Arc. Un clic y listo.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <h3>Importa de cualquier gestor</h3>
+          <p>Migra desde Chrome, Firefox, Bitwarden, 1Password, LastPass o KeePass en segundos. Sin fricciones.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <h3>Generador TOTP</h3>
+          <p>Codigos 2FA integrados directamente en la app. Elimina la necesidad de Google Authenticator o Authy.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 16 12 12 8 16"/>
+              <line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
+            </svg>
+          </div>
+          <h3>Sync cifrado</h3>
+          <p>Transfiere tus datos entre dispositivos con un archivo cifrado. Sin servidores intermediarios, tu controlas la sincronizacion.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Security
+       ====================================================== -->
+  <section class="security" id="security">
+    <div class="container">
+      <div class="security-content">
+
+        <div class="security-visual fade-in">
+          <div class="security-layers">
+            <div class="security-layer">
+              <div class="layer-number">1</div>
+              <div class="layer-text">
+                <h4>Contraseña maestra</h4>
+                <p>Argon2id con sal unica por boveda</p>
+              </div>
+            </div>
+            <div class="security-layer">
+              <div class="layer-number">2</div>
+              <div class="layer-text">
+                <h4>Cifrado de datos</h4>
+                <p>XChaCha20-Poly1305 autenticado</p>
+              </div>
+            </div>
+            <div class="security-layer">
+              <div class="layer-number">3</div>
+              <div class="layer-text">
+                <h4>Base de datos</h4>
+                <p>SQLCipher con AES-256-CBC</p>
+              </div>
+            </div>
+            <div class="security-layer">
+              <div class="layer-number">4</div>
+              <div class="layer-text">
+                <h4>Proteccion de memoria</h4>
+                <p>Zeroizacion automatica con zeroize</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="security-points fade-in">
+          <h2>Diseñado para no confiar en nadie — ni siquiera en nosotros</h2>
+          <p>Cada capa de Vault Local esta construida con un principio: la seguridad no depende de la confianza. Tu contraseña maestra nunca se almacena, tus datos tienen doble cifrado, y el codigo es completamente auditable.</p>
+          <div class="security-list">
+            <div class="security-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span><strong>Contraseña maestra nunca almacenada</strong> — solo se deriva una clave con Argon2id</span>
+            </div>
+            <div class="security-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span><strong>Doble cifrado</strong> — XChaCha20-Poly1305 + SQLCipher AES-256</span>
+            </div>
+            <div class="security-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span><strong>Codigo abierto auditable</strong> — cada linea esta disponible en GitHub</span>
+            </div>
+            <div class="security-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span><strong>Zeroizacion de memoria</strong> — los secretos se borran de RAM al cerrar</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Pricing
+       ====================================================== -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <h2 class="section-title fade-in">Elige tu plan</h2>
+      <p class="section-subtitle fade-in">Empieza gratis con todas las funciones esenciales. Actualiza cuando quieras, sin suscripciones sorpresa.</p>
+      <div class="pricing-grid">
+
+        <!-- Free -->
+        <div class="pricing-card fade-in">
+          <div class="pricing-tier">Free</div>
+          <div class="pricing-price">$0</div>
+          <p class="pricing-desc">Para siempre. Sin trucos.</p>
+          <ul class="pricing-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Almacenamiento ilimitado
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Generador de contraseñas
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Importar / exportar
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Busqueda y categorias
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Auto-lock por inactividad
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              100% offline
+            </li>
+          </ul>
+          <a href="#" class="btn btn-secondary">Descargar gratis</a>
+        </div>
+
+        <!-- Premium -->
+        <div class="pricing-card highlighted fade-in">
+          <div class="pricing-badge">Mas popular</div>
+          <div class="pricing-tier">Premium</div>
+          <div class="pricing-price">$15 <span>/ año</span></div>
+          <p class="pricing-desc">Todo lo de Free, y mucho mas.</p>
+          <ul class="pricing-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Adjuntos cifrados
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Auditoria de contraseñas
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Verificacion HIBP
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Codigos TOTP
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Temas personalizables
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Soporte prioritario
+            </li>
+          </ul>
+          <a href="#payment" class="btn btn-primary">Comprar Premium</a>
+        </div>
+
+        <!-- Vault Pro -->
+        <div class="pricing-card fade-in">
+          <div class="pricing-tier">Vault Pro</div>
+          <div class="pricing-price">$39 <span>pago unico</span></div>
+          <p class="pricing-desc">Todo Premium. Para siempre tuyo.</p>
+          <ul class="pricing-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Licencia perpetua
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              1 año de actualizaciones
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Sync cifrado
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Bovedas multiples
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Todas las funciones Premium
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Sin suscripcion
+            </li>
+          </ul>
+          <a href="#payment" class="btn btn-secondary">Comprar Vault Pro</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Payment
+       ====================================================== -->
+  <section class="payment" id="payment">
+    <div class="container">
+      <h2 class="section-title fade-in">Metodos de pago</h2>
+      <p class="section-subtitle fade-in">Elige como prefieres pagar. Seguro, rapido y sin complicaciones.</p>
+      <div class="payment-grid">
+
+        <!-- PayPal -->
+        <div class="payment-card fade-in">
+          <div class="payment-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 00-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 00-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 00.554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.816-5.09a.932.932 0 01.92-.766h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.774-4.493z"/>
+            </svg>
+          </div>
+          <h3>PayPal</h3>
+          <p>Paga de forma segura con tu cuenta de PayPal o tarjeta de credito/debito.</p>
+          <div id="paypal-button-container">
+            <!-- El boton de PayPal se renderiza aqui cuando el SDK esta activo -->
+            <button class="paypal-placeholder-btn" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 00-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 00-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 00.554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.816-5.09a.932.932 0 01.92-.766h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.774-4.493z"/>
+              </svg>
+              PayPal Checkout
+            </button>
+          </div>
+        </div>
+
+        <!-- Crypto / Binance Pay -->
+        <div class="payment-card fade-in">
+          <div class="payment-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v2m0 8v2m-4.24-9.24l1.42 1.42m5.64 5.64l1.42 1.42M6 12h2m8 0h2m-9.24 4.24l1.42-1.42m5.64-5.64l1.42-1.42"/>
+            </svg>
+          </div>
+          <h3>Criptomonedas</h3>
+          <p>Paga con Bitcoin, Ethereum, BNB u otras criptomonedas a traves de Binance Pay.</p>
+          <a href="#" class="crypto-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v2m0 8v2"/>
+              <path d="M8.5 8.5L12 12l3.5-3.5"/>
+              <path d="M8.5 15.5L12 12l3.5 3.5"/>
+            </svg>
+            Pagar con criptomonedas
+          </a>
+        </div>
+
+      </div>
+      <p class="payment-note fade-in">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Recibiras tu clave de licencia por email despues del pago
+      </p>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       FAQ
+       ====================================================== -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <h2 class="section-title fade-in">Preguntas frecuentes</h2>
+      <p class="section-subtitle fade-in">Respuestas claras a las dudas mas comunes sobre Vault Local.</p>
+      <div class="faq-list">
+
+        <div class="faq-item fade-in">
+          <button class="faq-question" aria-expanded="false">
+            <span>¿Es realmente gratis?</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Si, el tier gratuito es completamente funcional sin limites de contraseñas almacenadas. Puedes usar Vault Local indefinidamente sin pagar un centavo. Los planes Premium y Vault Pro añaden funciones avanzadas como adjuntos cifrados, auditoria de contraseñas y verificacion HIBP, pero el nucleo del gestor es totalmente gratuito.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question" aria-expanded="false">
+            <span>¿Mis datos estan seguros?</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Vault Local usa cifrado de grado militar con multiples capas: Argon2id para derivacion de claves, XChaCha20-Poly1305 para cifrado de datos, y SQLCipher con AES-256 para proteger la base de datos. Tus datos nunca salen de tu computadora y la contraseña maestra jamas se almacena. Ademas, el codigo es completamente abierto y auditable.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question" aria-expanded="false">
+            <span>¿Que pasa si olvido mi contraseña maestra?</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              No podemos recuperarla. Por diseño, tu contraseña maestra nunca se almacena ni se transmite a ningun servidor. Esto es lo que garantiza la seguridad zero-knowledge. Te recomendamos guardar tu contraseña maestra en un lugar fisico seguro, como una caja fuerte. Si la pierdes, no hay forma de acceder a tu boveda.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question" aria-expanded="false">
+            <span>¿Funciona sin internet?</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Si, la app funciona 100% offline. Vault Local esta diseñado como una aplicacion local-first. No necesita conexion a internet para funcionar. La unica funcion que requiere conexion es la verificacion HIBP (Have I Been Pwned), que comprueba si tus contraseñas han aparecido en filtraciones conocidas, y es completamente opcional.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question" aria-expanded="false">
+            <span>¿Como recibo mi licencia Premium?</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Despues del pago, recibes un email con la clave de licencia en cuestion de minutos. Simplemente ingresa la clave en la seccion de ajustes de Vault Local y las funciones Premium se activan instantaneamente. La clave es personal e intransferible.
+            </div>
+          </div>
+        </div>
+
+        <div class="faq-item fade-in">
+          <button class="faq-question" aria-expanded="false">
+            <span>¿Puedo importar mis contraseñas actuales?</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="faq-answer">
+            <div class="faq-answer-inner">
+              Si, desde Chrome, Firefox, Bitwarden, 1Password, LastPass y KeePass. El proceso es simple: exporta tus contraseñas desde tu gestor actual en formato CSV, y Vault Local las importa automaticamente, cifrando cada entrada con tu nueva contraseña maestra. Despues de verificar la importacion, te recomendamos eliminar el archivo CSV.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Footer
+       ====================================================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-links">
+          <a href="#">GitHub</a>
+          <a href="#">Documentacion</a>
+          <a href="#">Politica de privacidad</a>
+          <a href="#">Contacto</a>
+        </div>
+        <p class="footer-tagline">Hecho con Rust y obsesion por la seguridad</p>
+        <p class="footer-copyright">&copy; 2026 Vault Local. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ======================================================
+       JavaScript
+       ====================================================== -->
+  <script>
+    /* ==========================================================
+       Mobile Navigation Toggle
+       ========================================================== */
+    (function() {
+      var toggle = document.getElementById('navToggle');
+      var links = document.getElementById('navLinks');
+
+      toggle.addEventListener('click', function() {
+        links.classList.toggle('open');
+        var isOpen = links.classList.contains('open');
+        toggle.setAttribute('aria-label', isOpen ? 'Cerrar menu' : 'Abrir menu');
+      });
+
+      // Close mobile menu when a link is clicked
+      var navAnchors = links.querySelectorAll('a');
+      for (var i = 0; i < navAnchors.length; i++) {
+        navAnchors[i].addEventListener('click', function() {
+          links.classList.remove('open');
+        });
+      }
+    })();
+
+    /* ==========================================================
+       Scroll-triggered Fade-in Animations (Intersection Observer)
+       ========================================================== */
+    (function() {
+      var fadeElements = document.querySelectorAll('.fade-in');
+
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.1,
+          rootMargin: '0px 0px -50px 0px'
+        });
+
+        fadeElements.forEach(function(el) {
+          observer.observe(el);
+        });
+      } else {
+        // Fallback: show everything immediately
+        fadeElements.forEach(function(el) {
+          el.classList.add('visible');
+        });
+      }
+    })();
+
+    /* ==========================================================
+       FAQ Accordion
+       ========================================================== */
+    (function() {
+      var faqItems = document.querySelectorAll('.faq-item');
+
+      faqItems.forEach(function(item) {
+        var question = item.querySelector('.faq-question');
+
+        question.addEventListener('click', function() {
+          var isActive = item.classList.contains('active');
+
+          // Close all other items
+          faqItems.forEach(function(otherItem) {
+            otherItem.classList.remove('active');
+            otherItem.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+          });
+
+          // Toggle current item
+          if (!isActive) {
+            item.classList.add('active');
+            question.setAttribute('aria-expanded', 'true');
+          }
+        });
+      });
+    })();
+
+    /* ==========================================================
+       PayPal SDK Integration (commented out — activate when ready)
+       ==========================================================
+
+       Instrucciones:
+       1. Crea una app en https://developer.paypal.com/
+       2. Obtén tu Client ID
+       3. Descomenta la etiqueta <script> del SDK en el <head>
+       4. Descomenta y ajusta el código de abajo
+
+       paypal.Buttons({
+         createOrder: function(data, actions) {
+           return actions.order.create({
+             purchase_units: [{
+               amount: { value: '15.00' },
+               description: 'Vault Local Premium - 1 año'
+             }]
+           });
+         },
+         onApprove: function(data, actions) {
+           return actions.order.capture().then(function(details) {
+             // Aquí enviar email con la clave de licencia
+             alert('Pago completado. Recibirás tu clave por email.');
+           });
+         },
+         onError: function(err) {
+           console.error('Error en el pago:', err);
+           alert('Hubo un error con el pago. Intenta de nuevo.');
+         }
+       }).render('#paypal-button-container');
+
+       ========================================================== */
+  </script>
+
+</body>
+</html>

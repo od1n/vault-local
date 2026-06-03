@@ -1,0 +1,33 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias de Node
+        run: npm ci
+
+      - name: Verificar formato de Rust
+        run: cargo fmt --check
+        working-directory: src-tauri
+
+      - name: Ejecutar Clippy
+        run: cargo clippy -- -D warnings
+        working-directory: src-tauri
+
+      - name: Auditar dependencias de Rust
+        run: cargo audit
+        working-directory: src-tauri
+
+      - name: Verificar tipos de TypeScript
+        run: npx tsc --noEmit

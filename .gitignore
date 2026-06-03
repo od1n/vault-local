@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+src-tauri/target/
+
+# Build outputs
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tauri
+src-tauri/target/
+src-tauri/WixTools/
+src-tauri/icons/*.ico.bak
+
+# Environment
+.env
+.env.local
+
+# App data (never commit user data)
+vault.db
+vault.salt
+vault.lock
+ipc.token
+license.json
+window-state.json
+
+# Logs
+*.log
+npm-debug.log*
