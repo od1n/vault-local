@@ -114,10 +114,22 @@ fn verify_license_key(license_key: &str) -> Result<bool, String> {
     Ok(hmac_prefijo.to_lowercase() == hmac_calculado_prefijo.to_lowercase())
 }
 
+/// Códigos promocionales válidos (código → descripción).
+/// Se verifican antes de la validación HMAC estándar.
+const PROMO_CODES: &[(&str, &str)] = &[
+    ("PRODUCTHUNT2026", "Product Hunt Launch 2026"),
+];
+
+/// Verifica si un código es un código promocional válido.
+fn is_valid_promo_code(code: &str) -> bool {
+    let code_upper = code.to_uppercase();
+    PROMO_CODES.iter().any(|(promo, _)| *promo == code_upper)
+}
+
 /// Activa una licencia premium en la aplicación.
 ///
-/// Verifica la validez de la clave de licencia usando HMAC-SHA256 y,
-/// si es válida, la persiste en el archivo license.json del directorio de datos.
+/// Acepta tanto claves de licencia HMAC-firmadas (VL-...) como códigos promocionales.
+/// Si es válida, la persiste en el archivo license.json del directorio de datos.
 ///
 /// Retorna la información de la licencia activada.
 #[tauri::command]
@@ -128,10 +140,15 @@ pub fn activate_license(
     // Limpiar espacios en la clave
     let clave_limpia = license_key.trim().to_string();
 
-    // Verificar la validez de la clave
-    let es_valida = verify_license_key(&clave_limpia)?;
-    if !es_valida {
-        return Err("Clave de licencia inválida: la verificación HMAC falló".to_string());
+    // Verificar si es un código promocional válido
+    let es_promo = is_valid_promo_code(&clave_limpia);
+
+    // Si no es promo, verificar como clave HMAC estándar
+    if !es_promo {
+        let es_valida = verify_license_key(&clave_limpia)?;
+        if !es_valida {
+            return Err("Clave de licencia inválida".to_string());
+        }
     }
 
     // Preparar los datos de la licencia
@@ -186,7 +203,7 @@ pub fn check_license(app: tauri::AppHandle) -> Result<LicenseInfo, String> {
         .map_err(|e| format!("Error al parsear archivo de licencia: {}", e))?;
 
     // Re-verificar la clave almacenada para detectar manipulación
-    let es_valida = verify_license_key(&datos.key).unwrap_or(false);
+    let es_valida = is_valid_promo_code(&datos.key) || verify_license_key(&datos.key).unwrap_or(false);
 
     if es_valida {
         Ok(LicenseInfo {
