@@ -14,14 +14,14 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bundle_ext: "{exe,msi}"
+            rust_targets: x86_64-pc-windows-msvc
+            args: ""
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            bundle_ext: "{deb,AppImage}"
+            rust_targets: x86_64-unknown-linux-gnu
+            args: ""
           - os: macos-latest
-            target: aarch64-apple-darwin
-            bundle_ext: "dmg"
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: "--target universal-apple-darwin"
 
     runs-on: ${{ matrix.os }}
 
@@ -30,20 +30,37 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.rust_targets }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Linux: dependencias de sistema
+      # Linux: dependencias de sistema (set oficial Tauri 2 para Ubuntu 24.04)
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf perl
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            perl
 
-      # macOS: Perl ya viene instalado
+      # macOS: Perl ya viene instalado; build universal (Apple Silicon + Intel)
 
       - name: Install Node dependencies
         run: npm ci
@@ -53,6 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
           releaseName: "Vault Local ${{ github.ref_name }}"
           releaseBody: "See the [full changelog](https://github.com/od1n/vault-local/commits/${{ github.ref_name }})"
