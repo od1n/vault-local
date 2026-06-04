@@ -83,7 +83,7 @@ pub fn create_vault(
 
     // Guardar el salt en archivo separado (necesario para desbloquear)
     let salt_path = get_salt_path(&app)?;
-    fs::write(&salt_path, &salt).map_err(|e| format!("Error al guardar salt: {}", e))?;
+    fs::write(&salt_path, salt).map_err(|e| format!("Error al guardar salt: {}", e))?;
 
     // Abrir la base de datos SQLCipher con la clave derivada
     let conn = repository::open_db(&db_path, &db_key)?;
@@ -367,7 +367,7 @@ pub fn change_master_password(
         .map_err(|e| format!("Error al re-cifrar la base de datos: {}", e))?;
 
     // 7. Guardar el nuevo salt en disco
-    fs::write(&salt_path, &new_salt).map_err(|e| format!("Error al guardar nuevo salt: {}", e))?;
+    fs::write(&salt_path, new_salt).map_err(|e| format!("Error al guardar nuevo salt: {}", e))?;
 
     // 8. Actualizar el estado del vault con la nueva clave de cifrado
     let db_path = vault.db_path.clone();

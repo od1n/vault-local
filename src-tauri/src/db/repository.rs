@@ -96,6 +96,7 @@ pub fn get_config(conn: &Connection, key: &str) -> Result<Option<Vec<u8>>, Strin
 }
 
 /// Inserta una nueva entrada cifrada en la base de datos.
+#[allow(clippy::too_many_arguments)]
 pub fn insert_entry(
     conn: &Connection,
     id: &str,
@@ -177,6 +178,7 @@ pub fn list_entries(
 
 /// Obtiene los datos raw de una entrada por su ID.
 /// Retorna (category, title, encrypted_data, favorite, created_at, updated_at).
+#[allow(clippy::type_complexity)]
 pub fn get_entry_raw(
     conn: &Connection,
     id: &str,
@@ -272,6 +274,7 @@ pub fn toggle_favorite(conn: &Connection, id: &str) -> Result<bool, String> {
 // --- Funciones CRUD para archivos adjuntos ---
 
 /// Inserta un nuevo archivo adjunto cifrado en la base de datos.
+#[allow(clippy::too_many_arguments)]
 pub fn insert_attachment(
     conn: &Connection,
     id: &str,
@@ -382,6 +385,7 @@ pub fn delete_attachment(conn: &Connection, id: &str) -> Result<(), String> {
 }
 
 /// Cuenta el numero de adjuntos asociados a una entrada.
+#[allow(dead_code)]
 pub fn count_attachments(conn: &Connection, entry_id: &str) -> Result<u32, String> {
     let count: i64 = conn
         .query_row(

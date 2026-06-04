@@ -92,7 +92,7 @@ pub fn generate_totp(
     let periodo = period.unwrap_or(30);
 
     // Validar parámetros
-    if digitos < 6 || digitos > 8 {
+    if !(6..=8).contains(&digitos) {
         return Err("El número de dígitos debe estar entre 6 y 8".to_string());
     }
     if periodo == 0 {
