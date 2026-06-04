@@ -39,11 +39,7 @@ pub fn get_entries(
     let guard = with_vault!(state);
     let vault = guard.as_ref().unwrap();
 
-    repository::list_entries(
-        &vault.connection,
-        category.as_deref(),
-        search.as_deref(),
-    )
+    repository::list_entries(&vault.connection, category.as_deref(), search.as_deref())
 }
 
 /// Obtiene una entrada completa por su ID, descifrando los datos sensibles.
@@ -80,10 +76,7 @@ pub fn get_entry(state: tauri::State<'_, AppState>, id: String) -> Result<Entry,
 /// Genera un UUID v4 como identificador y cifra los datos sensibles.
 /// Retorna el ID de la nueva entrada.
 #[tauri::command]
-pub fn create_entry(
-    state: tauri::State<'_, AppState>,
-    entry: NewEntry,
-) -> Result<String, String> {
+pub fn create_entry(state: tauri::State<'_, AppState>, entry: NewEntry) -> Result<String, String> {
     let guard = with_vault!(state);
     let vault = guard.as_ref().unwrap();
 

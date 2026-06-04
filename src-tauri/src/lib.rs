@@ -35,7 +35,10 @@ struct WindowState {
 
 /// Obtiene la ruta del archivo de estado de la ventana.
 fn window_state_path(app: &tauri::AppHandle) -> Option<PathBuf> {
-    app.path().app_data_dir().ok().map(|p| p.join("window-state.json"))
+    app.path()
+        .app_data_dir()
+        .ok()
+        .map(|p| p.join("window-state.json"))
 }
 
 /// Carga el estado guardado de la ventana desde disco.
@@ -88,10 +91,8 @@ pub fn run() {
                     let w = state.width.max(MIN_WIDTH);
                     let h = state.height.max(MIN_HEIGHT);
                     let _ = window.set_size(tauri::LogicalSize::new(w, h));
-                    let _ = window.set_position(tauri::LogicalPosition::new(
-                        state.x as f64,
-                        state.y as f64,
-                    ));
+                    let _ = window
+                        .set_position(tauri::LogicalPosition::new(state.x as f64, state.y as f64));
                     if state.maximized {
                         let _ = window.maximize();
                     }

@@ -12,8 +12,8 @@ use super::models::{AttachmentMeta, EntryMeta};
 /// La clave se proporciona como bytes raw de 32 bytes y se convierte a formato hex
 /// para el PRAGMA key de SQLCipher.
 pub fn open_db(db_path: &Path, db_key: &[u8; 32]) -> Result<Connection, String> {
-    let conn = Connection::open(db_path)
-        .map_err(|e| format!("Error al abrir la base de datos: {}", e))?;
+    let conn =
+        Connection::open(db_path).map_err(|e| format!("Error al abrir la base de datos: {}", e))?;
 
     // Configurar la clave de SQLCipher en formato hex raw
     let hex_key = hex::encode(db_key);
@@ -294,10 +294,7 @@ pub fn insert_attachment(
 
 /// Lista los metadatos de los adjuntos de una entrada (sin datos binarios).
 /// Útil para mostrar la lista de adjuntos en la UI sin cargar archivos grandes.
-pub fn list_attachments(
-    conn: &Connection,
-    entry_id: &str,
-) -> Result<Vec<AttachmentMeta>, String> {
+pub fn list_attachments(conn: &Connection, entry_id: &str) -> Result<Vec<AttachmentMeta>, String> {
     let mut stmt = conn
         .prepare(
             "SELECT id, entry_id, filename, mime_type, size, created_at
@@ -352,7 +349,11 @@ pub fn get_attachment_data(
 }
 
 /// Actualiza solo los datos cifrados de un adjunto (para re-cifrado al cambiar contraseña).
-pub fn update_attachment_data(conn: &Connection, id: &str, encrypted_data: &[u8]) -> Result<(), String> {
+pub fn update_attachment_data(
+    conn: &Connection,
+    id: &str,
+    encrypted_data: &[u8],
+) -> Result<(), String> {
     let rows = conn
         .execute(
             "UPDATE attachments SET encrypted_data = ?1 WHERE id = ?2",

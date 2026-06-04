@@ -29,7 +29,8 @@ pub fn validate_file_path(path: &str) -> Result<PathBuf, String> {
 
     // Para archivos existentes, canonicalizar
     if path.exists() {
-        let canonical = path.canonicalize()
+        let canonical = path
+            .canonicalize()
             .map_err(|e| format!("Ruta inválida: {}", e))?;
         return Ok(canonical);
     }
@@ -47,9 +48,7 @@ pub fn validate_file_path(path: &str) -> Result<PathBuf, String> {
         .canonicalize()
         .map_err(|e| format!("Ruta inválida: {}", e))?;
 
-    let filename = path
-        .file_name()
-        .ok_or("Nombre de archivo inválido")?;
+    let filename = path.file_name().ok_or("Nombre de archivo inválido")?;
 
     Ok(canonical_parent.join(filename))
 }

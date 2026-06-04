@@ -83,8 +83,7 @@ pub fn create_vault(
 
     // Guardar el salt en archivo separado (necesario para desbloquear)
     let salt_path = get_salt_path(&app)?;
-    fs::write(&salt_path, &salt)
-        .map_err(|e| format!("Error al guardar salt: {}", e))?;
+    fs::write(&salt_path, &salt).map_err(|e| format!("Error al guardar salt: {}", e))?;
 
     // Abrir la base de datos SQLCipher con la clave derivada
     let conn = repository::open_db(&db_path, &db_key)?;
@@ -154,8 +153,7 @@ pub fn unlock_vault(
     }
 
     // Leer el salt del archivo
-    let salt = fs::read(&salt_path)
-        .map_err(|e| format!("Error al leer salt: {}", e))?;
+    let salt = fs::read(&salt_path).map_err(|e| format!("Error al leer salt: {}", e))?;
 
     if salt.len() != 32 {
         return Err("Archivo de salt corrupto (tamaño incorrecto)".to_string());
@@ -254,10 +252,7 @@ pub fn get_lockout_status(app: tauri::AppHandle) -> Result<Option<u64>, String> 
 /// Bloquea el vault eliminando la conexión y las claves de la memoria.
 /// El VaultState se destruye y las claves se zeroizan automáticamente (ZeroizeOnDrop).
 #[tauri::command]
-pub fn lock_vault(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub fn lock_vault(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let mut vault_guard = state
         .vault
         .lock()
@@ -301,8 +296,7 @@ pub fn change_master_password(
 ) -> Result<(), String> {
     // 1. Verificar la contraseña actual
     let salt_path = get_salt_path(&app)?;
-    let old_salt = fs::read(&salt_path)
-        .map_err(|e| format!("Error al leer salt: {}", e))?;
+    let old_salt = fs::read(&salt_path).map_err(|e| format!("Error al leer salt: {}", e))?;
     let (mut old_db_key, old_enc_key) =
         kdf::derive_keys_from_password(current_password.as_bytes(), &old_salt)?;
     old_db_key.zeroize();
@@ -354,8 +348,7 @@ pub fn change_master_password(
     for entry_meta in &entries_meta {
         let attachments = repository::list_attachments(&vault.connection, &entry_meta.id)?;
         for att in &attachments {
-            let (_, encrypted_blob) =
-                repository::get_attachment_data(&vault.connection, &att.id)?;
+            let (_, encrypted_blob) = repository::get_attachment_data(&vault.connection, &att.id)?;
             let plaintext = cipher::decrypt(current_enc_key, &encrypted_blob)?;
             let new_encrypted = cipher::encrypt(&new_enc_key, &plaintext)?;
             repository::update_attachment_data(&vault.connection, &att.id, &new_encrypted)?;
@@ -374,8 +367,7 @@ pub fn change_master_password(
         .map_err(|e| format!("Error al re-cifrar la base de datos: {}", e))?;
 
     // 7. Guardar el nuevo salt en disco
-    fs::write(&salt_path, &new_salt)
-        .map_err(|e| format!("Error al guardar nuevo salt: {}", e))?;
+    fs::write(&salt_path, &new_salt).map_err(|e| format!("Error al guardar nuevo salt: {}", e))?;
 
     // 8. Actualizar el estado del vault con la nueva clave de cifrado
     let db_path = vault.db_path.clone();

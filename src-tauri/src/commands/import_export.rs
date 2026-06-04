@@ -727,11 +727,7 @@ pub fn import_entries(
         let json_data = match serde_json::to_vec(&entry_data) {
             Ok(data) => data,
             Err(e) => {
-                errors.push(format!(
-                    "Fila {}: error al serializar datos - {}",
-                    i + 1,
-                    e
-                ));
+                errors.push(format!("Fila {}: error al serializar datos - {}", i + 1, e));
                 continue;
             }
         };
@@ -808,10 +804,8 @@ pub fn export_entries(
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("vault.salt");
-    let salt = fs::read(&salt_path)
-        .map_err(|e| format!("Error al leer salt: {}", e))?;
-    let (mut db_key, enc_key_verify) =
-        kdf::derive_keys_from_password(password.as_bytes(), &salt)?;
+    let salt = fs::read(&salt_path).map_err(|e| format!("Error al leer salt: {}", e))?;
+    let (mut db_key, enc_key_verify) = kdf::derive_keys_from_password(password.as_bytes(), &salt)?;
 
     // No necesitamos db_key para la verificación, solo verificamos enc_key
     db_key.zeroize();
@@ -903,7 +897,14 @@ fn export_csv(file_path: &str, entries: &[ExportEntry]) -> Result<(), String> {
 
     // Escribir encabezados
     writer
-        .write_record(["nombre", "categoria", "usuario", "contraseña", "url", "notas"])
+        .write_record([
+            "nombre",
+            "categoria",
+            "usuario",
+            "contraseña",
+            "url",
+            "notas",
+        ])
         .map_err(|e| format!("Error al escribir encabezados CSV: {}", e))?;
 
     // Escribir cada entrada
@@ -1087,11 +1088,8 @@ pub fn import_kdbx(
     let vault = guard.as_ref().unwrap();
 
     // Exportar el .kdbx a CSV mediante keepassxc-cli
-    let csv_content = export_kdbx_to_csv(
-        &cli_path,
-        &validated_path.to_string_lossy(),
-        &kdbx_password,
-    )?;
+    let csv_content =
+        export_kdbx_to_csv(&cli_path, &validated_path.to_string_lossy(), &kdbx_password)?;
 
     // Zeroizar la contraseña del archivo KDBX
     let mut kdbx_password = kdbx_password;
@@ -1126,11 +1124,7 @@ pub fn import_kdbx(
         let json_data = match serde_json::to_vec(&entry_data) {
             Ok(data) => data,
             Err(e) => {
-                errors.push(format!(
-                    "Fila {}: error al serializar datos - {}",
-                    i + 1,
-                    e
-                ));
+                errors.push(format!("Fila {}: error al serializar datos - {}", i + 1, e));
                 continue;
             }
         };

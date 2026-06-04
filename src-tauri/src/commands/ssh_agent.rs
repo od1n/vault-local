@@ -130,11 +130,7 @@ fn find_ssh_add() -> Result<PathBuf, String> {
     }
 
     // Intentar ejecutar directamente desde PATH como último recurso
-    if Command::new("ssh-add")
-        .arg("--help")
-        .output()
-        .is_ok()
-    {
+    if Command::new("ssh-add").arg("--help").output().is_ok() {
         return Ok(PathBuf::from("ssh-add"));
     }
 
@@ -316,7 +312,10 @@ pub fn add_key_to_agent(
     let output = result?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Error al agregar clave al agente SSH: {}", stderr.trim()));
+        return Err(format!(
+            "Error al agregar clave al agente SSH: {}",
+            stderr.trim()
+        ));
     }
 
     Ok(())

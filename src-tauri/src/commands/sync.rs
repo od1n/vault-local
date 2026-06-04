@@ -315,9 +315,12 @@ pub fn import_sync_file(
     // Importar adjuntos
     for sync_att in &package.attachments {
         // Decodificar los datos de base64
-        let att_data = BASE64
-            .decode(&sync_att.data_base64)
-            .map_err(|e| format!("Error al decodificar adjunto '{}': {}", sync_att.filename, e))?;
+        let att_data = BASE64.decode(&sync_att.data_base64).map_err(|e| {
+            format!(
+                "Error al decodificar adjunto '{}': {}",
+                sync_att.filename, e
+            )
+        })?;
 
         // Cifrar con la clave del vault
         let encrypted_att = cipher::encrypt(enc_key, &att_data)?;

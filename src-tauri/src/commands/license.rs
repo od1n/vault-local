@@ -116,9 +116,7 @@ fn verify_license_key(license_key: &str) -> Result<bool, String> {
 
 /// Códigos promocionales válidos (código → descripción).
 /// Se verifican antes de la validación HMAC estándar.
-const PROMO_CODES: &[(&str, &str)] = &[
-    ("PRODUCTHUNT2026", "Product Hunt Launch 2026"),
-];
+const PROMO_CODES: &[(&str, &str)] = &[("PRODUCTHUNT2026", "Product Hunt Launch 2026")];
 
 /// Verifica si un código es un código promocional válido.
 fn is_valid_promo_code(code: &str) -> bool {
@@ -133,10 +131,7 @@ fn is_valid_promo_code(code: &str) -> bool {
 ///
 /// Retorna la información de la licencia activada.
 #[tauri::command]
-pub fn activate_license(
-    app: tauri::AppHandle,
-    license_key: String,
-) -> Result<LicenseInfo, String> {
+pub fn activate_license(app: tauri::AppHandle, license_key: String) -> Result<LicenseInfo, String> {
     // Limpiar espacios en la clave
     let clave_limpia = license_key.trim().to_string();
 
@@ -169,8 +164,7 @@ pub fn activate_license(
 
     let json = serde_json::to_string_pretty(&datos_licencia)
         .map_err(|e| format!("Error al serializar datos de licencia: {}", e))?;
-    fs::write(&ruta_licencia, json)
-        .map_err(|e| format!("Error al guardar licencia: {}", e))?;
+    fs::write(&ruta_licencia, json).map_err(|e| format!("Error al guardar licencia: {}", e))?;
 
     Ok(LicenseInfo {
         is_premium: true,
@@ -203,7 +197,8 @@ pub fn check_license(app: tauri::AppHandle) -> Result<LicenseInfo, String> {
         .map_err(|e| format!("Error al parsear archivo de licencia: {}", e))?;
 
     // Re-verificar la clave almacenada para detectar manipulación
-    let es_valida = is_valid_promo_code(&datos.key) || verify_license_key(&datos.key).unwrap_or(false);
+    let es_valida =
+        is_valid_promo_code(&datos.key) || verify_license_key(&datos.key).unwrap_or(false);
 
     if es_valida {
         Ok(LicenseInfo {

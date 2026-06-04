@@ -26,10 +26,10 @@ pub fn generate_salt() -> [u8; 32] {
 pub fn derive_master_key(password: &[u8], salt: &[u8]) -> Result<[u8; 32], String> {
     // Configurar parámetros de Argon2id: 19MiB memoria, 2 iteraciones, 1 hilo
     let params = Params::new(
-        19456,  // m_cost en KiB (~19 MiB)
-        2,      // t_cost (iteraciones)
-        1,      // p_cost (paralelismo)
-        Some(32) // longitud de salida en bytes
+        19456,    // m_cost en KiB (~19 MiB)
+        2,        // t_cost (iteraciones)
+        1,        // p_cost (paralelismo)
+        Some(32), // longitud de salida en bytes
     )
     .map_err(|e| format!("Error en parámetros Argon2: {}", e))?;
 

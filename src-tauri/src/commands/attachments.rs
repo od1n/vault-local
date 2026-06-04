@@ -55,8 +55,8 @@ pub fn add_attachment(
     repository::get_entry_raw(&vault.connection, &entry_id)?;
 
     // Leer metadatos del archivo para validar tamaño
-    let metadata = fs::metadata(&validated_path)
-        .map_err(|e| format!("Error al leer archivo: {}", e))?;
+    let metadata =
+        fs::metadata(&validated_path).map_err(|e| format!("Error al leer archivo: {}", e))?;
     if metadata.len() > MAX_FILE_SIZE {
         return Err(format!(
             "El archivo excede el límite de {} MB",
@@ -65,8 +65,8 @@ pub fn add_attachment(
     }
 
     // Leer el contenido del archivo usando la ruta validada
-    let file_data = fs::read(&validated_path)
-        .map_err(|e| format!("Error al leer archivo: {}", e))?;
+    let file_data =
+        fs::read(&validated_path).map_err(|e| format!("Error al leer archivo: {}", e))?;
 
     // Extraer el nombre del archivo desde la ruta validada
     let filename = std::path::Path::new(&validated_path)

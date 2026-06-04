@@ -24,8 +24,8 @@ const DEFAULT_CLEAR_SECS: u64 = 15;
 #[tauri::command]
 pub fn copy_to_clipboard(text: String, clear_after_secs: Option<u64>) -> Result<(), String> {
     // Crear instancia del portapapeles
-    let mut clipboard =
-        arboard::Clipboard::new().map_err(|e| format!("Error al acceder al portapapeles: {}", e))?;
+    let mut clipboard = arboard::Clipboard::new()
+        .map_err(|e| format!("Error al acceder al portapapeles: {}", e))?;
 
     // Copiar el texto
     clipboard
@@ -80,12 +80,11 @@ pub fn copy_field_to_clipboard(
     let vault = guard.as_ref().ok_or("El vault está bloqueado")?;
 
     // Obtener la entrada cifrada y descifrarla
-    let (_, _, encrypted_data, _, _, _) =
-        repository::get_entry_raw(&vault.connection, &entry_id)?;
+    let (_, _, encrypted_data, _, _, _) = repository::get_entry_raw(&vault.connection, &entry_id)?;
     let enc_key = &vault.enc_key.expose_secret().0;
     let decrypted = cipher::decrypt(enc_key, &encrypted_data)?;
-    let entry_data: EntryData = serde_json::from_slice(&decrypted)
-        .map_err(|e| format!("Error al deserializar: {}", e))?;
+    let entry_data: EntryData =
+        serde_json::from_slice(&decrypted).map_err(|e| format!("Error al deserializar: {}", e))?;
 
     // Obtener el campo por índice
     let field = entry_data

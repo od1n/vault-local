@@ -186,7 +186,10 @@ fn run_server(state: Arc<Mutex<IpcInternalState>>, shutdown: Arc<AtomicBool>) {
     let listener = match TcpListener::bind(format!("127.0.0.1:{}", IPC_PORT)) {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("[IPC] Error al iniciar servidor en puerto {}: {}", IPC_PORT, e);
+            eprintln!(
+                "[IPC] Error al iniciar servidor en puerto {}: {}",
+                IPC_PORT, e
+            );
             return;
         }
     };
@@ -297,10 +300,7 @@ fn write_response(stream: &mut TcpStream, response: &IpcResponse) -> Result<(), 
 }
 
 /// Procesa una solicitud IPC y retorna la respuesta.
-fn process_request(
-    request: &IpcRequest,
-    state: &Arc<Mutex<IpcInternalState>>,
-) -> IpcResponse {
+fn process_request(request: &IpcRequest, state: &Arc<Mutex<IpcInternalState>>) -> IpcResponse {
     // El método "ping" no requiere autenticación
     if request.method == "ping" {
         return IpcResponse {
@@ -387,10 +387,7 @@ fn handle_search(params: &serde_json::Value, state: &IpcInternalState) -> IpcRes
 
 /// Maneja el método "get_credentials": obtiene usuario y contraseña de una entrada.
 /// Descifra la entrada y extrae los campos relevantes.
-fn handle_get_credentials(
-    params: &serde_json::Value,
-    state: &IpcInternalState,
-) -> IpcResponse {
+fn handle_get_credentials(params: &serde_json::Value, state: &IpcInternalState) -> IpcResponse {
     let id = match params.get("id").and_then(|v| v.as_str()) {
         Some(i) => i,
         None => {
@@ -447,17 +444,29 @@ fn handle_get_credentials(
 
     // Nombres comunes para campos de usuario
     let user_names = [
-        "usuario", "user", "username", "email", "correo", "e-mail",
-        "nombre de usuario", "login", "cuenta",
+        "usuario",
+        "user",
+        "username",
+        "email",
+        "correo",
+        "e-mail",
+        "nombre de usuario",
+        "login",
+        "cuenta",
     ];
     // Nombres comunes para campos de contraseña
-    let pass_names = [
-        "contraseña", "password", "pass", "clave", "pin", "secret",
-    ];
+    let pass_names = ["contraseña", "password", "pass", "clave", "pin", "secret"];
     // Nombres comunes para campos de URL
     let url_names = [
-        "url", "sitio", "website", "web", "dirección", "enlace", "link",
-        "sitio web", "página",
+        "url",
+        "sitio",
+        "website",
+        "web",
+        "dirección",
+        "enlace",
+        "link",
+        "sitio web",
+        "página",
     ];
 
     for field in &entry_data.fields {
@@ -505,7 +514,8 @@ fn handle_get_credentials(
     // Fallback: si no encontramos usuario por nombre, usar el primer campo no-sensible
     if username.is_empty() {
         for field in &entry_data.fields {
-            if !field.sensitive && field.field_type != "password" && field.field_type != "textarea" {
+            if !field.sensitive && field.field_type != "password" && field.field_type != "textarea"
+            {
                 username = field.value.clone();
                 break;
             }
@@ -535,10 +545,7 @@ fn handle_get_credentials(
 }
 
 /// Maneja el método "list_for_url": busca entradas cuyo campo URL coincida con el dominio.
-fn handle_list_for_url(
-    params: &serde_json::Value,
-    state: &IpcInternalState,
-) -> IpcResponse {
+fn handle_list_for_url(params: &serde_json::Value, state: &IpcInternalState) -> IpcResponse {
     let url = match params.get("url").and_then(|v| v.as_str()) {
         Some(u) => u,
         None => {
@@ -577,8 +584,15 @@ fn handle_list_for_url(
 
     // Nombres comunes para campos de URL
     let url_names = [
-        "url", "sitio", "website", "web", "dirección", "enlace", "link",
-        "sitio web", "página",
+        "url",
+        "sitio",
+        "website",
+        "web",
+        "dirección",
+        "enlace",
+        "link",
+        "sitio web",
+        "página",
     ];
 
     // Para cada entrada, descifrar y buscar campos de URL que coincidan
@@ -621,10 +635,7 @@ fn handle_list_for_url(
             let title_lower = entry.title.to_lowercase();
             let domain_lower = target_domain.to_lowercase();
             // Extraer nombre base del dominio (sin TLD)
-            let domain_base = domain_lower
-                .split('.')
-                .next()
-                .unwrap_or(&domain_lower);
+            let domain_base = domain_lower.split('.').next().unwrap_or(&domain_lower);
             if !domain_base.is_empty() && title_lower.contains(domain_base) {
                 found = true;
             }
