@@ -15,8 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- PayPal SDK: reemplazar YOUR_CLIENT_ID con tu PayPal Client ID -->
-  <!-- <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD"></script> -->
+  <script src="https://www.paypal.com/sdk/js?client-id=AaH8etDvoxk-UY4FBN7dPojI6cdWrJr-cJzru6ojIpO2yN-DP8jds16ZSNccS5PpvO-o6yuq4MPkxV9W&currency=USD"></script>
 
   <style>
     /* ========================================================
@@ -1389,15 +1388,8 @@
           </div>
           <h3>PayPal</h3>
           <p>Paga de forma segura con tu cuenta de PayPal o tarjeta de credito/debito.</p>
-          <div id="paypal-button-container">
-            <!-- El boton de PayPal se renderiza aqui cuando el SDK esta activo -->
-            <button class="paypal-placeholder-btn" disabled>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 00-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 00-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 00.554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.816-5.09a.932.932 0 01.92-.766h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.774-4.493z"/>
-              </svg>
-              PayPal Checkout
-            </button>
-          </div>
+          <div id="paypal-button-container-premium" style="margin-bottom:12px"></div>
+          <div id="paypal-button-container-pro"></div>
         </div>
 
         <!-- Crypto / Binance Pay -->
@@ -1629,38 +1621,62 @@
       });
     })();
 
-    /* ==========================================================
-       PayPal SDK Integration (commented out — activate when ready)
-       ==========================================================
+    /* PayPal Checkout — Premium y Vault Pro */
+    (function() {
+      if (typeof paypal === 'undefined') return;
 
-       Instrucciones:
-       1. Crea una app en https://developer.paypal.com/
-       2. Obtén tu Client ID
-       3. Descomenta la etiqueta <script> del SDK en el <head>
-       4. Descomenta y ajusta el código de abajo
+      paypal.Buttons({
+        style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay', height: 40 },
+        createOrder: function(data, actions) {
+          return actions.order.create({
+            purchase_units: [{
+              amount: { value: '15.00', currency_code: 'USD' },
+              description: 'Vault Local Premium - 1 año'
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
+            var email = details.payer.email_address || 'tu email de PayPal';
+            var orderId = details.id;
+            document.getElementById('paypal-button-container-premium').innerHTML =
+              '<div style="padding:16px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:8px;text-align:center;">' +
+              '<p style="color:#4caf50;font-weight:600;margin:0 0 8px;">Pago completado</p>' +
+              '<p style="color:#9aa0a6;font-size:13px;margin:0;">Tu clave de licencia sera enviada a <strong>' + email + '</strong></p>' +
+              '<p style="color:#5f6368;font-size:11px;margin:8px 0 0;">Orden: ' + orderId + '</p></div>';
+          });
+        },
+        onError: function(err) {
+          alert('Error en el pago. Intenta de nuevo.');
+        }
+      }).render('#paypal-button-container-premium');
 
-       paypal.Buttons({
-         createOrder: function(data, actions) {
-           return actions.order.create({
-             purchase_units: [{
-               amount: { value: '15.00' },
-               description: 'Vault Local Premium - 1 año'
-             }]
-           });
-         },
-         onApprove: function(data, actions) {
-           return actions.order.capture().then(function(details) {
-             // Aquí enviar email con la clave de licencia
-             alert('Pago completado. Recibirás tu clave por email.');
-           });
-         },
-         onError: function(err) {
-           console.error('Error en el pago:', err);
-           alert('Hubo un error con el pago. Intenta de nuevo.');
-         }
-       }).render('#paypal-button-container');
-
-       ========================================================== */
+      paypal.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay', height: 40 },
+        createOrder: function(data, actions) {
+          return actions.order.create({
+            purchase_units: [{
+              amount: { value: '39.00', currency_code: 'USD' },
+              description: 'Vault Local Pro - Licencia perpetua'
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
+            var email = details.payer.email_address || 'tu email de PayPal';
+            var orderId = details.id;
+            document.getElementById('paypal-button-container-pro').innerHTML =
+              '<div style="padding:16px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.3);border-radius:8px;text-align:center;">' +
+              '<p style="color:#4caf50;font-weight:600;margin:0 0 8px;">Pago completado</p>' +
+              '<p style="color:#9aa0a6;font-size:13px;margin:0;">Tu clave Vault Pro sera enviada a <strong>' + email + '</strong></p>' +
+              '<p style="color:#5f6368;font-size:11px;margin:8px 0 0;">Orden: ' + orderId + '</p></div>';
+          });
+        },
+        onError: function(err) {
+          alert('Error en el pago. Intenta de nuevo.');
+        }
+      }).render('#paypal-button-container-pro');
+    })();
   </script>
 
 </body>
