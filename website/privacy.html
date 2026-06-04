@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Politica de privacidad de Vault Local — Gestor de contrasenas local y zero-knowledge.">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="robots" content="index, follow">
+  <title>Politica de Privacidad — Vault Local</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #161822;
+      --bg-card: #1a1d2e;
+      --accent: #4c8dff;
+      --accent-hover: #6ba1ff;
+      --text-primary: #e8eaf0;
+      --text-secondary: #9da3b4;
+      --text-muted: #6b7280;
+      --border: #2a2d3e;
+      --success: #34d399;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --max-width: 1200px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+
+    a:hover {
+      color: var(--accent-hover);
+    }
+
+    /* Navigation */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(15, 17, 23, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--text-primary);
+    }
+
+    .nav-logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff !important;
+      padding: 8px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: background var(--transition), transform var(--transition);
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Content */
+    .privacy-content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+    }
+
+    .privacy-content h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .privacy-date {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 48px;
+    }
+
+    .privacy-content h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .privacy-content h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .privacy-content p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .privacy-content ul {
+      list-style: none;
+      margin-bottom: 16px;
+      padding-left: 0;
+    }
+
+    .privacy-content ul li {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.8;
+      padding-left: 24px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .privacy-content ul li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.6;
+    }
+
+    .privacy-content strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .highlight-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin: 24px 0;
+    }
+
+    .highlight-box p {
+      margin-bottom: 0;
+    }
+
+    .highlight-box .icon-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .highlight-box .icon-row svg {
+      width: 24px;
+      height: 24px;
+      color: var(--success);
+      flex-shrink: 0;
+    }
+
+    .highlight-box .icon-row span {
+      font-weight: 700;
+      font-size: 1.0625rem;
+      color: var(--text-primary);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 48px 0;
+    }
+
+    .footer-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .footer-tagline {
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    .footer-copyright {
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .privacy-content h1 {
+        font-size: 1.75rem;
+      }
+
+      .privacy-content h2 {
+        font-size: 1.25rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .footer-links {
+        flex-direction: column;
+        gap: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo" aria-label="Vault Local inicio">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2L4 10v12c0 9.6 6.8 18.4 16 20 9.2-1.6 16-10.4 16-20V10L20 2z" fill="#4c8dff" fill-opacity="0.15" stroke="#4c8dff" stroke-width="2" stroke-linejoin="round"/>
+          <rect x="14" y="16" width="12" height="10" rx="2" fill="none" stroke="#4c8dff" stroke-width="2"/>
+          <circle cx="20" cy="21" r="2" fill="#4c8dff"/>
+          <path d="M16 16v-3a4 4 0 118 0v3" fill="none" stroke="#4c8dff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Vault Local
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="index.html#features">Funciones</a></li>
+        <li><a href="index.html#pricing">Precios</a></li>
+        <li><a href="https://github.com/od1n/vault-local/releases/download/v0.1.0/Vault.Local_0.1.0_x64-setup.exe" class="nav-cta">Descargar</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Privacy Policy Content -->
+  <main class="privacy-content">
+    <h1>Politica de Privacidad</h1>
+    <p class="privacy-date">Ultima actualizacion: 3 de junio de 2026</p>
+
+    <div class="highlight-box">
+      <div class="icon-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span>Vault Local es zero-knowledge por diseño</span>
+      </div>
+      <p>No recopilamos, almacenamos ni transmitimos tus contrasenas, datos personales ni informacion de tu boveda. Todo permanece exclusivamente en tu computadora. No tenemos acceso a tus datos y no podemos verlos aunque quisieramos.</p>
+    </div>
+
+    <h2>1. Informacion que NO recopilamos</h2>
+    <p>Vault Local esta diseñado con el principio de conocimiento cero (zero-knowledge). Esto significa que:</p>
+    <ul>
+      <li><strong>No recopilamos contrasenas</strong> — Todas tus credenciales se almacenan exclusivamente en tu dispositivo, cifradas con tu contrasena maestra.</li>
+      <li><strong>No recopilamos datos personales</strong> — No hay cuentas de usuario, no pedimos nombre, email ni ningun dato personal para usar la aplicacion.</li>
+      <li><strong>No recopilamos telemetria</strong> — La aplicacion no envia estadisticas de uso, reportes de errores automaticos ni datos de comportamiento.</li>
+      <li><strong>No recopilamos tu contrasena maestra</strong> — Tu contrasena maestra nunca se almacena ni se transmite. Solo se usa localmente para derivar la clave de cifrado mediante Argon2id.</li>
+      <li><strong>No usamos cookies en la aplicacion</strong> — La aplicacion de escritorio no usa cookies ni tecnologias de rastreo.</li>
+    </ul>
+
+    <h2>2. Almacenamiento local de datos</h2>
+    <p>Todos los datos de Vault Local se almacenan exclusivamente en tu dispositivo:</p>
+    <ul>
+      <li><strong>Archivo de boveda</strong> — Tu boveda cifrada se guarda como un archivo local en el directorio de datos de la aplicacion en tu computadora.</li>
+      <li><strong>Cifrado</strong> — Los datos estan protegidos con multiples capas de cifrado: Argon2id para derivacion de claves, XChaCha20-Poly1305 para cifrado de datos y SQLCipher con AES-256 para la base de datos.</li>
+      <li><strong>Control total</strong> — Tu tienes control absoluto sobre tus datos. Puedes exportar, respaldar o eliminar tu boveda en cualquier momento.</li>
+    </ul>
+
+    <h2>3. Extension de navegador</h2>
+    <p>La extension de navegador de Vault Local se comunica exclusivamente con la aplicacion de escritorio instalada en tu computadora:</p>
+    <ul>
+      <li>La comunicacion se realiza unicamente a traves de localhost (127.0.0.1) mediante el protocolo Native Messaging del navegador.</li>
+      <li>La extension <strong>no almacena ninguna contrasena</strong> — solo actua como puente entre el navegador y la aplicacion local.</li>
+      <li>El token de autenticacion entre la extension y la app se regenera en cada sesion.</li>
+      <li>La extension no envia datos a servidores externos.</li>
+    </ul>
+
+    <h2>4. Servicios de terceros</h2>
+
+    <h3>4.1 Have I Been Pwned (HIBP)</h3>
+    <p>Vault Local ofrece una funcion opcional para verificar si tus contrasenas han aparecido en filtraciones de datos conocidas. Esta funcion:</p>
+    <ul>
+      <li>Es <strong>completamente opcional</strong> y solo se activa cuando tu lo solicitas explicitamente.</li>
+      <li>Usa el protocolo k-anonymity: solo se envia un prefijo de 5 caracteres del hash SHA-1 de tu contrasena. Tu contrasena completa <strong>nunca se transmite</strong>.</li>
+      <li>La API de HIBP no puede determinar tu contrasena a partir del prefijo enviado.</li>
+      <li>Puedes consultar la politica de privacidad de HIBP en <a href="https://haveibeenpwned.com/Privacy" target="_blank" rel="noopener">haveibeenpwned.com/Privacy</a>.</li>
+    </ul>
+
+    <h3>4.2 PayPal (procesamiento de pagos)</h3>
+    <p>Si decides comprar una licencia Premium o Pro, el pago se procesa a traves de PayPal:</p>
+    <ul>
+      <li>No almacenamos datos de tarjetas de credito ni informacion financiera.</li>
+      <li>PayPal nos proporciona unicamente tu email y el identificador de la transaccion para entregar tu clave de licencia.</li>
+      <li>Consulta la politica de privacidad de PayPal en <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" rel="noopener">paypal.com/privacy</a>.</li>
+    </ul>
+
+    <h3>4.3 Sitio web y Vercel</h3>
+    <p>Nuestro sitio web (vault-local.vercel.app) esta alojado en Vercel. Vercel puede recopilar informacion anonima y agregada sobre el trafico del sitio web, como:</p>
+    <ul>
+      <li>Paginas visitadas (sin identificacion personal)</li>
+      <li>Pais de origen (basado en IP, sin almacenar la IP)</li>
+      <li>Tipo de navegador y dispositivo</li>
+    </ul>
+    <p>Esta informacion es anonima y se usa unicamente para entender el trafico general del sitio. No se vincula a usuarios individuales. El sitio web <strong>no usa cookies de rastreo ni de terceros</strong>.</p>
+
+    <h2>5. Claves de licencia</h2>
+    <p>Cuando compras una licencia Premium o Pro:</p>
+    <ul>
+      <li>Generamos una clave de licencia unica que se envia a tu email.</li>
+      <li>La verificacion de la licencia es <strong>completamente offline</strong> — la aplicacion valida la clave localmente usando firmas criptograficas, sin contactar ningun servidor.</li>
+      <li>La clave de licencia se almacena localmente en tu dispositivo.</li>
+    </ul>
+
+    <h2>6. Codigo abierto</h2>
+    <p>Vault Local es software de codigo abierto. Esto significa que:</p>
+    <ul>
+      <li>Todo el codigo fuente esta disponible publicamente en <a href="https://github.com/od1n/vault-local" target="_blank" rel="noopener">GitHub</a>.</li>
+      <li>Cualquier persona puede auditar el codigo para verificar que cumplimos con esta politica de privacidad.</li>
+      <li>No hay funcionalidad oculta — lo que ves en el codigo es exactamente lo que la aplicacion hace.</li>
+    </ul>
+
+    <h2>7. Privacidad de menores</h2>
+    <p>Vault Local no esta dirigido a menores de 13 años. No recopilamos conscientemente informacion personal de menores. Dado que la aplicacion no recopila datos personales de ningun usuario, este punto es meramente informativo.</p>
+
+    <h2>8. Retencion de datos</h2>
+    <p>Dado que no recopilamos datos personales:</p>
+    <ul>
+      <li><strong>En la aplicacion</strong> — Todos tus datos existen solo en tu dispositivo. Si desinstalas la aplicacion o eliminas tu boveda, los datos desaparecen por completo.</li>
+      <li><strong>En el sitio web</strong> — Los datos anonimos de trafico se retienen segun la politica de Vercel.</li>
+      <li><strong>Pagos</strong> — Los registros de transacciones se mantienen segun las obligaciones legales y la politica de PayPal.</li>
+    </ul>
+
+    <h2>9. Tus derechos</h2>
+    <p>Aunque no recopilamos datos personales, reconocemos tus derechos bajo las leyes de proteccion de datos aplicables (GDPR, CCPA, etc.):</p>
+    <ul>
+      <li><strong>Acceso</strong> — Todos tus datos estan en tu dispositivo, accesibles en cualquier momento.</li>
+      <li><strong>Portabilidad</strong> — Puedes exportar tus datos en cualquier momento desde la aplicacion.</li>
+      <li><strong>Eliminacion</strong> — Puedes eliminar tu boveda y todos los datos asociados en cualquier momento.</li>
+      <li><strong>Objecion</strong> — No hay procesamiento de datos del cual objetar.</li>
+    </ul>
+
+    <h2>10. Cambios a esta politica</h2>
+    <p>Podemos actualizar esta politica de privacidad periodicamente. Los cambios se publicaran en esta pagina con la fecha de actualizacion revisada. Dado que no recopilamos emails ni datos de contacto, te recomendamos revisar esta pagina ocasionalmente.</p>
+
+    <h2>11. Contacto</h2>
+    <p>Si tienes preguntas sobre esta politica de privacidad o sobre las practicas de privacidad de Vault Local, puedes contactarnos a traves de:</p>
+    <ul>
+      <li><a href="https://github.com/od1n/vault-local/issues" target="_blank" rel="noopener">GitHub Issues</a> — para preguntas publicas</li>
+      <li>Email: disponible en el perfil de GitHub del proyecto</li>
+    </ul>
+
+    <div class="highlight-box" style="margin-top: 48px;">
+      <div class="icon-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+        </svg>
+        <span>Verificalo tu mismo</span>
+      </div>
+      <p>No tienes que confiar en nuestra palabra. Todo el codigo fuente de Vault Local esta disponible en <a href="https://github.com/od1n/vault-local" target="_blank" rel="noopener">GitHub</a>. Puedes auditar exactamente que hace la aplicacion con tus datos (spoiler: nada sale de tu computadora).</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="https://github.com/od1n/vault-local" target="_blank" rel="noopener">GitHub</a>
+        <a href="index.html">Inicio</a>
+        <a href="privacy.html">Politica de privacidad</a>
+      </div>
+      <p class="footer-tagline">Hecho con Rust y obsesion por la seguridad</p>
+      <p class="footer-copyright">&copy; 2026 Vault Local. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+</body>
+</html>
