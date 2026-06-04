@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
-import type { Entry, EntryCategory, AttachmentMeta } from '../types';
+import type { Entry, EntryCategory, AttachmentMeta, SshKeyInfo } from '../types';
 import { CATEGORY_LABELS } from '../types';
 import { useClipboard } from '../hooks/useClipboard';
 import { TotpDisplay } from './TotpDisplay';
@@ -111,6 +111,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
   const [deleteAttachmentId, setDeleteAttachmentId] = useState<string | null>(null);
+  const [sshKeyInfoMap, setSshKeyInfoMap] = useState<Record<number, { key_type: string; fingerprint: string; added_to_agent: boolean }>>({});
   const { copiedField, countdown, copyToClipboard, copyFieldToClipboard } = useClipboard();
 
   useEffect(() => {
@@ -118,6 +119,29 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
       .then(setAttachments)
       .catch(() => setAttachments([]));
   }, [entry.id]);
+
+  // Cargar info de claves SSH
+  useEffect(() => {
+    const sshFields = entry.fields
+      .map((f, i) => ({ field: f, index: i }))
+      .filter((item) => item.field.field_type === 'ssh_key' && item.field.value);
+    if (sshFields.length === 0) {
+      setSshKeyInfoMap({});
+      return;
+    }
+    invoke<SshKeyInfo[]>('list_ssh_keys')
+      .then((keys) => {
+        const map: Record<number, { key_type: string; fingerprint: string; added_to_agent: boolean }> = {};
+        for (const sf of sshFields) {
+          const match = keys.find((k) => k.entry_id === entry.id);
+          if (match) {
+            map[sf.index] = { key_type: match.key_type, fingerprint: match.fingerprint, added_to_agent: match.added_to_agent };
+          }
+        }
+        setSshKeyInfoMap(map);
+      })
+      .catch(() => setSshKeyInfoMap({}));
+  }, [entry.id, entry.fields]);
 
   const toggleReveal = useCallback((index: number) => {
     setRevealedFields((prev) => {
@@ -156,6 +180,22 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
       console.error('Error deleting attachment:', err);
     }
   }, []);
+
+  const handleSshAgentToggle = useCallback(async (fieldIndex: number, currentlyAdded: boolean) => {
+    try {
+      if (currentlyAdded) {
+        await invoke('remove_key_from_agent', { entryId: entry.id, fieldIndex });
+      } else {
+        await invoke('add_key_to_agent', { entryId: entry.id, fieldIndex });
+      }
+      setSshKeyInfoMap((prev) => ({
+        ...prev,
+        [fieldIndex]: { ...prev[fieldIndex], added_to_agent: !currentlyAdded },
+      }));
+    } catch (err) {
+      console.error('Error toggling SSH agent:', err);
+    }
+  }, [entry.id]);
 
   const renderField = (field: Entry['fields'][0], index: number) => {
     const fieldType = getEffectiveFieldType(field);
@@ -345,6 +385,88 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 onCopy={(code) => copyToClipboard(code, fieldId)}
               />
             </div>
+          </div>
+        );
+      }
+
+      case 'ssh_key': {
+        const showMasked = !isRevealed;
+        const sshInfo = sshKeyInfoMap[index];
+        const keyType = sshInfo?.key_type || 'unknown';
+        const fingerprint = sshInfo?.fingerprint || '';
+        const addedToAgent = sshInfo?.added_to_agent || false;
+        const typeClass = `ssh-key-type ssh-key-type-${keyType.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
+        return (
+          <div className="field-row" key={index} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div className="field-info" style={{ flex: 1 }}>
+                <div className="field-name">{field.name}</div>
+              </div>
+              <div className="field-actions">
+                {copiedField === fieldId ? (
+                  <span className="copied-badge">Copiado{countdown > 0 ? ` (${countdown}s)` : ''}</span>
+                ) : (
+                  <button
+                    className="btn-icon"
+                    onClick={() => copyFieldToClipboard(entry.id, index, fieldId)}
+                    aria-label="Copiar clave"
+                    title="Copiar clave"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                    </svg>
+                  </button>
+                )}
+                <button
+                  className="btn-icon"
+                  onClick={() => toggleReveal(index)}
+                  aria-label={isRevealed ? 'Ocultar' : 'Mostrar'}
+                >
+                  {isRevealed ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+                      <path d="M14.12 14.12a3 3 0 11-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+            {/* Metadatos de la clave SSH */}
+            <div className="ssh-key-field-meta">
+              <span className={typeClass}>{keyType.toUpperCase()}</span>
+              {fingerprint && (
+                <span style={{ fontSize: '11px', fontFamily: "'Courier New', monospace", color: 'var(--text-muted)' }}>
+                  {fingerprint.length > 30 ? fingerprint.substring(0, 30) + '...' : fingerprint}
+                </span>
+              )}
+              <button
+                className={`ssh-key-agent-btn ${addedToAgent ? 'added' : ''}`}
+                onClick={() => handleSshAgentToggle(index, addedToAgent)}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="M7 15h0M2 8h20" />
+                </svg>
+                {addedToAgent ? 'Remover del agente' : 'Agregar al agente'}
+              </button>
+            </div>
+            {/* Valor de la clave */}
+            {showMasked ? (
+              <div className="field-value masked" style={{ fontFamily: "'Courier New', monospace" }}>{'••••••••••••••••••••'}</div>
+            ) : (
+              <div className="field-value-textarea" style={{ fontFamily: "'Courier New', monospace", fontSize: '11px' }}>
+                {field.value || ' '}
+              </div>
+            )}
           </div>
         );
       }

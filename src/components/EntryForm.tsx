@@ -22,6 +22,7 @@ const FIELD_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'seed_phrase', label: 'Frase semilla' },
   { value: 'security_qa', label: 'Pregunta de seguridad' },
   { value: 'totp', label: 'TOTP' },
+  { value: 'ssh_key', label: 'Clave SSH' },
 ];
 
 function getEffectiveFieldType(field: EntryField): string {
@@ -76,7 +77,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
     setFields((prev) =>
       prev.map((f, i) => {
         if (i !== index) return f;
-        const sensitive = newType === 'password' || newType === 'seed_phrase' || newType === 'security_qa' || newType === 'totp'
+        const sensitive = newType === 'password' || newType === 'seed_phrase' || newType === 'security_qa' || newType === 'totp' || newType === 'ssh_key'
           ? true
           : f.sensitive;
         return { ...f, field_type: newType, sensitive };
@@ -241,6 +242,23 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
           />
         );
 
+      case 'ssh_key':
+        return (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <textarea
+              className="field-textarea"
+              placeholder="Pega tu clave privada SSH (PEM o OpenSSH format)"
+              value={field.value}
+              onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
+              rows={5}
+              style={{ fontFamily: "'Courier New', monospace", fontSize: '12px' }}
+            />
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              La clave se cifrara y podra ser enviada al SSH Agent del sistema.
+            </div>
+          </div>
+        );
+
       case 'password':
         return (
           <input
@@ -370,7 +388,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                           </button>
                         </div>
                       </div>
-                    ) : fieldType === 'textarea' || fieldType === 'seed_phrase' ? (
+                    ) : fieldType === 'textarea' || fieldType === 'seed_phrase' || fieldType === 'ssh_key' ? (
                       /* Textarea / Seed phrase: name on top, value below */
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div className="field-editor-row">

@@ -4,6 +4,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io::Read;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 use chrono::Utc;
 use csv::ReaderBuilder;
@@ -973,4 +975,204 @@ fn export_json(file_path: &str, entries: &[ExportEntry]) -> Result<(), String> {
         .map_err(|e| format!("Error al escribir archivo JSON '{}': {}", file_path, e))?;
 
     Ok(())
+}
+
+// ─── Importación directa de archivos KDBX ─────────────────────────────────────
+
+/// Configura un Command para no mostrar ventana de consola en Windows.
+#[cfg(windows)]
+fn spawn_hidden(cmd: &mut Command) -> &mut Command {
+    use std::os::windows::process::CommandExt;
+    cmd.creation_flags(0x08000000) // CREATE_NO_WINDOW
+}
+
+/// En plataformas no-Windows, no se necesita configuración especial.
+#[cfg(not(windows))]
+fn spawn_hidden(cmd: &mut Command) -> &mut Command {
+    cmd
+}
+
+/// Busca el ejecutable keepassxc-cli en el sistema.
+/// Verifica primero el PATH del sistema y luego ubicaciones comunes en Windows.
+fn find_keepassxc_cli() -> Option<PathBuf> {
+    // Verificar si está en el PATH del sistema
+    let mut check_cmd = Command::new("keepassxc-cli");
+    check_cmd.arg("--version");
+    if let Ok(output) = spawn_hidden(&mut check_cmd).output() {
+        if output.status.success() {
+            return Some(PathBuf::from("keepassxc-cli"));
+        }
+    }
+
+    // Ubicaciones comunes en Windows
+    #[cfg(windows)]
+    {
+        let paths = [
+            r"C:\Program Files\KeePassXC\keepassxc-cli.exe",
+            r"C:\Program Files (x86)\KeePassXC\keepassxc-cli.exe",
+        ];
+
+        for p in &paths {
+            let path = PathBuf::from(p);
+            if path.exists() {
+                return Some(path);
+            }
+        }
+    }
+
+    None
+}
+
+/// Ejecuta keepassxc-cli para exportar un archivo .kdbx a formato CSV.
+/// La contraseña se envía a través de stdin para evitar exposición en la línea de comandos.
+fn export_kdbx_to_csv(cli_path: &Path, kdbx_path: &str, password: &str) -> Result<String, String> {
+    use std::io::Write as IoWrite;
+
+    let mut cmd = Command::new(cli_path);
+    cmd.args(["export", "--format", "csv", kdbx_path])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let mut child = spawn_hidden(&mut cmd)
+        .spawn()
+        .map_err(|e| format!("Error al ejecutar keepassxc-cli: {}", e))?;
+
+    // Enviar la contraseña a través de stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(password.as_bytes()).ok();
+        stdin.write_all(b"\n").ok();
+    }
+
+    let output = child
+        .wait_with_output()
+        .map_err(|e| format!("Error al esperar keepassxc-cli: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Error de KeePassXC: {}", stderr.trim()));
+    }
+
+    String::from_utf8(output.stdout)
+        .map_err(|e| format!("Error al leer salida de keepassxc-cli: {}", e))
+}
+
+/// Importa directamente un archivo .kdbx usando keepassxc-cli.
+/// Requiere que KeePassXC esté instalado en el sistema.
+///
+/// # Proceso
+/// 1. Busca keepassxc-cli en el sistema
+/// 2. Exporta el .kdbx a CSV usando keepassxc-cli
+/// 3. Parsea el CSV resultante con el parser de KeePass existente
+/// 4. Cifra e inserta cada entrada en el vault
+///
+/// Si KeePassXC no está instalado, sugiere al usuario exportar manualmente como CSV.
+#[tauri::command]
+pub fn import_kdbx(
+    state: tauri::State<'_, AppState>,
+    file_path: String,
+    kdbx_password: String,
+) -> Result<ImportResult, String> {
+    // Validar la ruta del archivo
+    let validated_path = validate_file_path(&file_path)?;
+
+    // Buscar keepassxc-cli en el sistema
+    let cli_path = find_keepassxc_cli().ok_or_else(|| {
+        "KeePassXC no está instalado. Exporta tu bóveda como CSV desde KeePassXC \
+         e impórtala usando el formato 'KeePass (CSV)'."
+            .to_string()
+    })?;
+
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+
+    // Exportar el .kdbx a CSV mediante keepassxc-cli
+    let csv_content = export_kdbx_to_csv(
+        &cli_path,
+        &validated_path.to_string_lossy(),
+        &kdbx_password,
+    )?;
+
+    // Zeroizar la contraseña del archivo KDBX
+    let mut kdbx_password = kdbx_password;
+    kdbx_password.zeroize();
+
+    // Parsear el CSV resultante usando el parser de KeePass existente
+    let parsed_entries = parse_keepass(&csv_content).map_err(|errs| errs.join("; "))?;
+
+    // Obtener la clave de cifrado
+    let enc_key = &vault.enc_key.expose_secret().0;
+    let now = Utc::now().to_rfc3339();
+
+    let mut imported: u32 = 0;
+    let mut skipped: u32 = 0;
+    let mut errors: Vec<String> = Vec::new();
+
+    // Procesar cada entrada parseada
+    for (i, entry) in parsed_entries.into_iter().enumerate() {
+        // Omitir entradas vacías
+        if should_skip(&entry) {
+            skipped += 1;
+            continue;
+        }
+
+        // Construir los datos a cifrar
+        let entry_data = EntryData {
+            fields: entry.fields,
+            notes: entry.notes,
+        };
+
+        // Serializar a JSON
+        let json_data = match serde_json::to_vec(&entry_data) {
+            Ok(data) => data,
+            Err(e) => {
+                errors.push(format!(
+                    "Fila {}: error al serializar datos - {}",
+                    i + 1,
+                    e
+                ));
+                continue;
+            }
+        };
+
+        // Cifrar con XChaCha20-Poly1305
+        let encrypted_data = match cipher::encrypt(enc_key, &json_data) {
+            Ok(data) => data,
+            Err(e) => {
+                errors.push(format!("Fila {}: error al cifrar datos - {}", i + 1, e));
+                continue;
+            }
+        };
+
+        // Generar ID único
+        let id = Uuid::new_v4().to_string();
+
+        // Insertar en la base de datos
+        match repository::insert_entry(
+            &vault.connection,
+            &id,
+            &entry.category,
+            &entry.title,
+            &encrypted_data,
+            entry.favorite,
+            &now,
+            &now,
+        ) {
+            Ok(()) => imported += 1,
+            Err(e) => {
+                errors.push(format!(
+                    "Fila {}: error al insertar '{}' - {}",
+                    i + 1,
+                    entry.title,
+                    e
+                ));
+            }
+        }
+    }
+
+    Ok(ImportResult {
+        imported,
+        skipped,
+        errors,
+    })
 }

@@ -142,6 +142,12 @@ pub fn run() {
             // Importar/Exportar
             commands::import_export::import_entries,
             commands::import_export::export_entries,
+            commands::import_export::import_kdbx,
+            // Agente SSH
+            commands::ssh_agent::list_ssh_keys,
+            commands::ssh_agent::add_key_to_agent,
+            commands::ssh_agent::remove_key_from_agent,
+            commands::ssh_agent::add_all_ssh_keys,
             // Archivos adjuntos
             commands::attachments::add_attachment,
             commands::attachments::list_attachments,

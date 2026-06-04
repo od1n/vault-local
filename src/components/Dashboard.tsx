@@ -11,6 +11,7 @@ import { ImportExportDialog } from './ImportExportDialog';
 import { SyncDialog } from './SyncDialog';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { AuditPanel } from './AuditPanel';
+import { SshAgentPanel } from './SshAgentPanel';
 import { LicenseDialog } from './LicenseDialog';
 import { Onboarding } from './Onboarding';
 import type { EntryCategory, EntryMeta, NewEntry, UpdateEntry } from '../types';
@@ -49,6 +50,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
   const [showSync, setShowSync] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
+  const [showSshAgent, setShowSshAgent] = useState(false);
   const [showLicense, setShowLicense] = useState(false);
   const [sidebarFilter, setSidebarFilter] = useState<SidebarFilter>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -218,6 +220,8 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           setShowLicense(false);
         } else if (showAudit) {
           setShowAudit(false);
+        } else if (showSshAgent) {
+          setShowSshAgent(false);
         } else if (selectedEntry) {
           clearSelected();
         }
@@ -225,7 +229,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showAudit, selectedEntry, clearSelected]);
+  }, [handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showAudit, showSshAgent, selectedEntry, clearSelected]);
 
   return (
     <div className="dashboard">
@@ -328,6 +332,17 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             </svg>
             Sincronizar
           </button>
+          <button
+            className="sidebar-lock-btn"
+            onClick={() => { setShowSshAgent(!showSshAgent); setShowAudit(false); }}
+            style={showSshAgent ? { color: 'var(--accent)' } : undefined}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M7 15h0M2 8h20" />
+            </svg>
+            SSH Agent
+          </button>
           <button className="sidebar-lock-btn" onClick={() => setShowChangePassword(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -352,7 +367,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           <SearchBar value={searchTerm} onChange={handleSearch} inputRef={searchInputRef} />
           <button
             className={`btn btn-secondary btn-sm ${showAudit ? 'active' : ''}`}
-            onClick={() => setShowAudit(!showAudit)}
+            onClick={() => { setShowAudit(!showAudit); setShowSshAgent(false); }}
             style={showAudit ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -381,6 +396,14 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               }}
               isPremium={isPremium}
               onUpgrade={() => setShowLicense(true)}
+            />
+          ) : showSshAgent ? (
+            <SshAgentPanel
+              onClose={() => setShowSshAgent(false)}
+              onViewEntry={(entryId) => {
+                setShowSshAgent(false);
+                getEntry(entryId);
+              }}
             />
           ) : (
             <>

@@ -14,7 +14,7 @@ interface ImportResult {
   errors: string[];
 }
 
-type ImportFormat = 'chrome' | 'firefox' | 'bitwarden_csv' | 'bitwarden_json' | 'onepassword' | 'lastpass' | 'keepass';
+type ImportFormat = 'chrome' | 'firefox' | 'bitwarden_csv' | 'bitwarden_json' | 'onepassword' | 'lastpass' | 'keepass' | 'kdbx';
 type ExportFormat = 'csv' | 'json';
 
 const IMPORT_FORMATS: { value: ImportFormat; label: string }[] = [
@@ -25,6 +25,7 @@ const IMPORT_FORMATS: { value: ImportFormat; label: string }[] = [
   { value: 'onepassword', label: '1Password (CSV)' },
   { value: 'lastpass', label: 'LastPass (CSV)' },
   { value: 'keepass', label: 'KeePass (CSV)' },
+  { value: 'kdbx', label: 'KeePassXC (.kdbx directo)' },
 ];
 
 const EXPORT_FORMATS: { value: ExportFormat; label: string }[] = [
@@ -40,11 +41,15 @@ const IMPORT_HELP: Record<ImportFormat, string> = {
   onepassword: 'En 1Password, ve a Archivo → Exportar → formato CSV',
   lastpass: 'En LastPass, ve a Opciones avanzadas → Exportar',
   keepass: 'En KeePass, ve a Archivo → Exportar → formato CSV',
+  kdbx: 'Importacion directa de archivos .kdbx. Requiere que KeePassXC este instalado en el sistema.',
 };
 
 function getImportFileFilters(format: ImportFormat): { name: string; extensions: string[] }[] {
   if (format === 'bitwarden_json') {
     return [{ name: 'JSON', extensions: ['json'] }];
+  }
+  if (format === 'kdbx') {
+    return [{ name: 'KeePass Database', extensions: ['kdbx'] }];
   }
   return [{ name: 'CSV', extensions: ['csv'] }];
 }
@@ -58,6 +63,8 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
   const [importFormat, setImportFormat] = useState<ImportFormat>('chrome');
   const [filePath, setFilePath] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [kdbxPassword, setKdbxPassword] = useState('');
+  const [showKdbxPassword, setShowKdbxPassword] = useState(false);
 
   // Export state
   const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
@@ -87,13 +94,25 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
 
   const handleImport = useCallback(async () => {
     if (!filePath) return;
+    if (importFormat === 'kdbx' && !kdbxPassword) {
+      setError('Ingresa la contrasena del archivo KeePassXC.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const result = await invoke<ImportResult>('import_entries', {
-        filePath,
-        format: importFormat,
-      });
+      let result: ImportResult;
+      if (importFormat === 'kdbx') {
+        result = await invoke<ImportResult>('import_kdbx', {
+          filePath,
+          kdbxPassword,
+        });
+      } else {
+        result = await invoke<ImportResult>('import_entries', {
+          filePath,
+          format: importFormat,
+        });
+      }
       setImportResult(result);
       if (result.imported > 0) {
         onComplete();
@@ -103,7 +122,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
     } finally {
       setLoading(false);
     }
-  }, [filePath, importFormat, onComplete]);
+  }, [filePath, importFormat, kdbxPassword, onComplete]);
 
   const handleExport = useCallback(async () => {
     if (!exportPassword) {
@@ -180,6 +199,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                     setFilePath(null);
                     setImportResult(null);
                     setError(null);
+                    setKdbxPassword('');
                   }}
                   disabled={loading}
                 >
@@ -200,6 +220,47 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                 </svg>
                 <span>{IMPORT_HELP[importFormat]}</span>
               </div>
+
+              {/* KDBX password input */}
+              {importFormat === 'kdbx' && !importResult && (
+                <div className="form-group" style={{ marginTop: 16 }}>
+                  <label className="form-label">Contrasena del archivo KeePassXC</label>
+                  <div className="lock-input-group">
+                    <input
+                      className="input"
+                      type={showKdbxPassword ? 'text' : 'password'}
+                      placeholder="Contrasena maestra del archivo .kdbx"
+                      value={kdbxPassword}
+                      onChange={(e) => { setKdbxPassword(e.target.value); setError(null); }}
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      className="lock-toggle-password"
+                      onClick={() => setShowKdbxPassword(!showKdbxPassword)}
+                      tabIndex={-1}
+                      aria-label={showKdbxPassword ? 'Ocultar' : 'Mostrar'}
+                    >
+                      {showKdbxPassword ? (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+                          <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+                          <path d="M14.12 14.12a3 3 0 11-4.24-4.24" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
+                    Esta es la contrasena del archivo KeePassXC, no la contrasena de Vault Local. Si KeePassXC no esta instalado, exporta como CSV desde KeePassXC y usa el formato "KeePass (CSV)".
+                  </div>
+                </div>
+              )}
 
               {/* File selection */}
               {!importResult && (
@@ -387,7 +448,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                 <button
                   className="btn btn-primary"
                   onClick={handleImport}
-                  disabled={!filePath || loading}
+                  disabled={!filePath || loading || (importFormat === 'kdbx' && !kdbxPassword)}
                 >
                   {loading ? 'Importando...' : 'Importar'}
                 </button>

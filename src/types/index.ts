@@ -4,7 +4,7 @@ export interface EntryField {
   name: string;
   value: string;
   sensitive: boolean;
-  field_type?: string; // "text" | "password" | "textarea" | "seed_phrase" | "security_qa" | "totp"
+  field_type?: string; // "text" | "password" | "textarea" | "seed_phrase" | "security_qa" | "totp" | "ssh_key"
 }
 
 // --- Audit Types ---
@@ -33,6 +33,14 @@ export interface AuditDuplicateEntry {
   entry_id: string;
   entry_title: string;
   field_name: string;
+}
+
+export interface SshKeyInfo {
+  entry_id: string;
+  entry_title: string;
+  key_type: string;
+  fingerprint: string;
+  added_to_agent: boolean;
 }
 
 export interface HibpResult {
