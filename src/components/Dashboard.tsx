@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useVault } from '../hooks/useVault';
 import { useLicense } from '../hooks/useLicense';
+import { useI18n } from '../i18n';
 import { CategoryFilter } from './CategoryFilter';
 import { SearchBar } from './SearchBar';
 import { EntryList } from './EntryList';
@@ -41,6 +42,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
   } = useVault();
 
   const { isPremium, licenseKey, activatedAt, activate, deactivate } = useLicense();
+  const { t, locale, setLocale } = useI18n();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -251,7 +253,13 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             />
           </svg>
           <span className="sidebar-header-title">Vault Local</span>
-          <button className="btn-icon theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Tema claro' : 'Tema oscuro'}>
+          <button
+            className="lang-toggle"
+            onClick={() => setLocale(locale === 'es' ? 'en' : 'es')}
+          >
+            {locale === 'es' ? 'EN' : 'ES'}
+          </button>
+          <button className="btn-icon theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? t('dashboard.theme_light') : t('dashboard.theme_dark')}>
             {theme === 'dark' ? (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <circle cx="12" cy="12" r="5"/>
@@ -266,13 +274,13 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           {isPremium ? (
             <span className="premium-badge" onClick={() => setShowLicense(true)} style={{ cursor: 'pointer' }}>Premium</span>
           ) : (
-            <span className="upgrade-link" onClick={() => setShowLicense(true)}>Actualizar</span>
+            <span className="upgrade-link" onClick={() => setShowLicense(true)}>{t('dashboard.upgrade')}</span>
           )}
         </div>
 
         <nav className="sidebar-nav">
           {/* Filtros rapidos */}
-          <div className="sidebar-section-label">Filtros</div>
+          <div className="sidebar-section-label">{t('dashboard.filters')}</div>
           <button
             className={`category-item ${sidebarFilter === 'favorites' ? 'active' : ''}`}
             onClick={() => handleSidebarFilter('favorites')}
@@ -280,7 +288,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             <svg viewBox="0 0 24 24" fill={sidebarFilter === 'favorites' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
             </svg>
-            <span className="category-item-label">Favoritos</span>
+            <span className="category-item-label">{t('dashboard.favorites')}</span>
             <span className="category-item-count">{favoritesCount}</span>
           </button>
           <button
@@ -291,7 +299,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <circle cx="12" cy="12" r="10" />
               <polyline points="12,6 12,12 16,14" />
             </svg>
-            <span className="category-item-label">Recientes</span>
+            <span className="category-item-label">{t('dashboard.recents')}</span>
           </button>
 
           <div className="sidebar-filter-divider" />
@@ -312,7 +320,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Importar
+              {t('dashboard.import')}
             </button>
             <button className="sidebar-ie-btn" onClick={() => setImportExportMode('export')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -320,7 +328,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              Exportar
+              {t('dashboard.export')}
             </button>
           </div>
           <button className="sidebar-lock-btn" onClick={() => setShowSync(true)}>
@@ -330,7 +338,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <path d="M3.51 9a9 9 0 0114.85-3.36L23 10" />
               <path d="M20.49 15a9 9 0 01-14.85 3.36L1 14" />
             </svg>
-            Sincronizar
+            {t('dashboard.sync')}
           </button>
           <button
             className="sidebar-lock-btn"
@@ -341,7 +349,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <rect x="2" y="4" width="20" height="16" rx="2" />
               <path d="M7 15h0M2 8h20" />
             </svg>
-            SSH Agent
+            {t('dashboard.ssh_agent')}
           </button>
           <button className="sidebar-lock-btn" onClick={() => setShowChangePassword(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -349,14 +357,14 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <path d="M7 11V7a5 5 0 0110 0v4" />
               <circle cx="12" cy="16" r="1" />
             </svg>
-            Cambiar contrasena
+            {t('dashboard.change_password')}
           </button>
           <button className="sidebar-lock-btn" onClick={onLock}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
             </svg>
-            Bloquear boveda
+            {t('dashboard.lock')}
           </button>
         </div>
       </div>
@@ -375,14 +383,14 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            Auditoria
+            {t('dashboard.audit')}
           </button>
           <button className="btn btn-primary btn-sm" onClick={handleNewEntry}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Nueva entrada
+            {t('dashboard.new_entry')}
           </button>
         </div>
 
@@ -439,7 +447,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                     <rect x="9.5" y="10" width="5" height="4.5" rx="0.5" />
                     <path d="M10.5 10V8.5a1.5 1.5 0 013 0V10" />
                   </svg>
-                  <p>Selecciona una entrada para ver los detalles</p>
+                  <p>{t('dashboard.select_hint')}</p>
                 </div>
               )}
             </>

@@ -10,32 +10,51 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundle_ext: "{exe,msi}"
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bundle_ext: "{deb,AppImage}"
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bundle_ext: "dmg"
+
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Instalar dependencias de sistema (Linux)
+      # Linux: dependencias de sistema
+      - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf perl
 
-      - name: Instalar dependencias de Node
+      # macOS: Perl ya viene instalado
+
+      - name: Install Node dependencies
         run: npm ci
 
-      - name: Compilar aplicacion Tauri
-        run: npx tauri build
-
-      - name: Subir artefactos al release
-        uses: softprops/action-gh-release@v2
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: |
-            src-tauri/target/release/bundle/**/*
+          tagName: ${{ github.ref_name }}
+          releaseName: "Vault Local ${{ github.ref_name }}"
+          releaseBody: "See the [full changelog](https://github.com/od1n/vault-local/commits/${{ github.ref_name }})"
+          releaseDraft: false
+          prerelease: false

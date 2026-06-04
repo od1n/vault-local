@@ -1,4 +1,5 @@
 import { useState, useCallback, type FormEvent, type KeyboardEvent } from 'react';
+import { useI18n } from '../i18n';
 
 interface LockScreenProps {
   mode: 'setup' | 'unlock';
@@ -19,11 +20,12 @@ function calcStrength(password: string): number {
   return Math.min(4, score);
 }
 
-const strengthLabels = ['', 'Muy débil', 'Débil', 'Buena', 'Muy fuerte'];
 const strengthColors = ['', '#ff4c4c', '#ffb74d', '#ffb74d', '#4caf50'];
 const strengthWidths = ['0%', '25%', '50%', '75%', '100%'];
 
 export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockScreenProps) {
+  const { t, locale, setLocale } = useI18n();
+  const strengthLabels = ['', t('lock.strength.very_weak'), t('lock.strength.weak'), t('lock.strength.acceptable'), t('lock.strength.very_strong')];
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -80,12 +82,20 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockS
             <path d="M10.5 10V8.5a1.5 1.5 0 013 0V10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
             <circle cx="12" cy="12" r="0.7" fill="currentColor" />
           </svg>
-          <span className="lock-logo-title">Vault Local</span>
+          <span className="lock-logo-title">{t('lock.title')}</span>
           <span className="lock-logo-subtitle">
             {mode === 'setup'
-              ? 'Crea una contraseña maestra para proteger tu bóveda'
-              : 'Ingresa tu contraseña para desbloquear'}
+              ? t('lock.subtitle.setup')
+              : t('lock.subtitle.unlock')}
           </span>
+          <button
+            type="button"
+            className="lang-toggle"
+            onClick={() => setLocale(locale === 'es' ? 'en' : 'es')}
+            style={{ marginTop: '8px' }}
+          >
+            {locale === 'es' ? 'EN' : 'ES'}
+          </button>
         </div>
 
         <form className="lock-form" onSubmit={handleSubmit}>
@@ -93,7 +103,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockS
             <input
               className="input"
               type={showPassword ? 'text' : 'password'}
-              placeholder={mode === 'setup' ? 'Contraseña maestra' : 'Contraseña'}
+              placeholder={mode === 'setup' ? t('lock.password_master') : t('lock.password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -105,7 +115,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockS
               className="lock-toggle-password"
               onClick={() => setShowPassword(!showPassword)}
               tabIndex={-1}
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-label={showPassword ? t('lock.hide_password') : t('lock.show_password')}
             >
               {showPassword ? (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -146,7 +156,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockS
                 <input
                   className="input"
                   type={showConfirm ? 'text' : 'password'}
-                  placeholder="Confirmar contraseña"
+                  placeholder={t('lock.confirm')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -157,7 +167,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockS
                   className="lock-toggle-password"
                   onClick={() => setShowConfirm(!showConfirm)}
                   tabIndex={-1}
-                  aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showConfirm ? t('lock.hide_password') : t('lock.show_password')}
                 >
                   {showConfirm ? (
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -187,9 +197,9 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockS
             {processing ? (
               <span className="loading-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
             ) : mode === 'setup' ? (
-              'Crear Bóveda'
+              t('lock.create')
             ) : (
-              'Desbloquear'
+              t('lock.unlock')
             )}
           </button>
         </form>

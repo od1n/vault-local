@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useI18n } from '../i18n';
 
 interface SearchBarProps {
   value: string;
@@ -7,6 +8,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ value, onChange, inputRef }: SearchBarProps) {
+  const { t } = useI18n();
   const [localValue, setLocalValue] = useState(value);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,12 +56,12 @@ export function SearchBar({ value, onChange, inputRef }: SearchBarProps) {
         ref={inputRef}
         className="search-input"
         type="text"
-        placeholder="Buscar en la boveda..."
+        placeholder={t('dashboard.search')}
         value={localValue}
         onChange={(e) => handleChange(e.target.value)}
       />
       {localValue ? (
-        <button className="search-clear" onClick={handleClear} aria-label="Limpiar busqueda">
+        <button className="search-clear" onClick={handleClear} aria-label={t('dashboard.search_clear')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />

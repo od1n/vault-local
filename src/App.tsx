@@ -4,11 +4,14 @@ import { useTheme } from './hooks/useTheme';
 import { LockScreen } from './components/LockScreen';
 import { Dashboard } from './components/Dashboard';
 import { ToastProvider } from './components/Toast';
+import { I18nProvider } from './i18n/I18nProvider';
+import { useI18n } from './i18n';
 import './App.css';
 
-function App() {
+function AppContent() {
   const { authState, error, processing, createVault, unlock, lock } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useI18n();
 
   useInactivity(() => {
     if (authState === 'unlocked') {
@@ -21,7 +24,7 @@ function App() {
       <ToastProvider>
         <div className="loading-screen">
           <div className="loading-spinner" />
-          <p className="loading-text">Iniciando Vault Local...</p>
+          <p className="loading-text">{t('app.loading')}</p>
         </div>
       </ToastProvider>
     );
@@ -59,6 +62,14 @@ function App() {
     <ToastProvider>
       <Dashboard onLock={lock} theme={theme} toggleTheme={toggleTheme} />
     </ToastProvider>
+  );
+}
+
+function App() {
+  return (
+    <I18nProvider>
+      <AppContent />
+    </I18nProvider>
   );
 }
 

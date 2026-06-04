@@ -1,5 +1,6 @@
 import type { EntryCategory } from '../types';
 import { CATEGORY_LABELS } from '../types';
+import { useI18n } from '../i18n';
 
 interface CategoryCount {
   category: EntryCategory | 'all';
@@ -68,18 +69,28 @@ const categoryIcons: Record<string, JSX.Element> = {
   ),
 };
 
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  web: 'category.web',
+  bank: 'category.bank',
+  wallet: 'category.wallet',
+  note: 'category.note',
+  passkey: 'category.passkey',
+  other: 'category.other',
+};
+
 export function CategoryFilter({ categories, selected, onSelect }: CategoryFilterProps) {
   const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
+  const { t } = useI18n();
 
   return (
     <div>
-      <div className="sidebar-section-label">Categorías</div>
+      <div className="sidebar-section-label">{t('dashboard.categories')}</div>
       <button
         className={`category-item ${selected === null ? 'active' : ''}`}
         onClick={() => onSelect(null)}
       >
         {categoryIcons.all}
-        <span className="category-item-label">Todas</span>
+        <span className="category-item-label">{t('dashboard.all')}</span>
         <span className="category-item-count">{totalCount}</span>
       </button>
       {categories.map(({ category, count }) => (
@@ -90,7 +101,7 @@ export function CategoryFilter({ categories, selected, onSelect }: CategoryFilte
         >
           {categoryIcons[category] || categoryIcons.other}
           <span className="category-item-label">
-            {category === 'all' ? 'Todas' : CATEGORY_LABELS[category as EntryCategory] || category}
+            {category === 'all' ? t('dashboard.all') : t(CATEGORY_I18N_KEYS[category] || '', CATEGORY_LABELS[category as EntryCategory] || category)}
           </span>
           <span className="category-item-count">{count}</span>
         </button>

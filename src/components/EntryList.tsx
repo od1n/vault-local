@@ -1,5 +1,6 @@
 import type { EntryMeta, EntryCategory } from '../types';
 import { CATEGORY_LABELS } from '../types';
+import { useI18n } from '../i18n';
 
 interface EntryListProps {
   entries: EntryMeta[];
@@ -80,11 +81,13 @@ function formatRelativeDate(dateStr: string): string {
 }
 
 export function EntryList({ entries, selectedId, onSelect, onToggleFavorite, loading, onNewEntry, onImport, searchActive }: EntryListProps) {
+  const { t } = useI18n();
+
   if (loading) {
     return (
       <div className="empty-state">
         <div className="loading-spinner" />
-        <p className="empty-state-text">Cargando entradas...</p>
+        <p className="empty-state-text">{t('entry.loading')}</p>
       </div>
     );
   }
@@ -97,8 +100,8 @@ export function EntryList({ entries, selectedId, onSelect, onToggleFavorite, loa
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <span className="empty-state-title">Sin resultados</span>
-          <span className="empty-state-text">No se encontraron entradas con esa busqueda</span>
+          <span className="empty-state-title">{t('entry.no_results.title')}</span>
+          <span className="empty-state-text">{t('entry.no_results.subtitle')}</span>
         </div>
       );
     }
@@ -109,17 +112,17 @@ export function EntryList({ entries, selectedId, onSelect, onToggleFavorite, loa
           <line x1="12" y1="10" x2="12" y2="16" />
           <line x1="9" y1="13" x2="15" y2="13" />
         </svg>
-        <h3>Tu boveda esta vacia</h3>
-        <p>Comienza agregando tu primera credencial o importando desde otro gestor.</p>
+        <h3>{t('entry.empty.title')}</h3>
+        <p>{t('entry.empty.subtitle')}</p>
         <div className="empty-state-actions">
           {onNewEntry && (
             <button className="btn btn-primary btn-sm" onClick={onNewEntry}>
-              Crear primera entrada
+              {t('entry.empty.create')}
             </button>
           )}
           {onImport && (
             <button className="btn btn-secondary btn-sm" onClick={onImport}>
-              Importar credenciales
+              {t('entry.empty.import')}
             </button>
           )}
         </div>
