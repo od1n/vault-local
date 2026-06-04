@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
+  inputRef?: React.Ref<HTMLInputElement>;
 }
 
 export function SearchBar({ value, onChange, inputRef }: SearchBarProps) {
