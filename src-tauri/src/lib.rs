@@ -10,7 +10,7 @@ pub mod security;
 mod state;
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
@@ -42,7 +42,7 @@ fn window_state_path(app: &tauri::AppHandle) -> Option<PathBuf> {
 }
 
 /// Carga el estado guardado de la ventana desde disco.
-fn load_window_state(path: &PathBuf) -> Option<WindowState> {
+fn load_window_state(path: &Path) -> Option<WindowState> {
     fs::read_to_string(path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
@@ -113,13 +113,13 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             // Guardar estado al cerrar, mover o redimensionar
-            match event {
+            if matches!(
+                event,
                 tauri::WindowEvent::CloseRequested { .. }
-                | tauri::WindowEvent::Moved(_)
-                | tauri::WindowEvent::Resized(_) => {
-                    save_window_state(window);
-                }
-                _ => {}
+                    | tauri::WindowEvent::Moved(_)
+                    | tauri::WindowEvent::Resized(_)
+            ) {
+                save_window_state(window);
             }
         })
         .invoke_handler(tauri::generate_handler![

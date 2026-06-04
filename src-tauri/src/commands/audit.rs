@@ -223,7 +223,7 @@ pub fn run_password_audit(state: tauri::State<'_, AppState>) -> Result<AuditResu
             let hash_hex = hex::encode(hasher.finalize());
 
             hash_groups
-                .entry(hash_hex.clone())
+                .entry(hash_hex)
                 .or_default()
                 .push(AuditDuplicateEntry {
                     entry_id: entry_meta.id.clone(),

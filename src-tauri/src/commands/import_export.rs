@@ -188,7 +188,7 @@ fn should_skip(entry: &ParsedEntry) -> bool {
 
 /// Obtiene un valor de un HashMap de headers por nombre, con valor por defecto vacío.
 fn get_field<'a>(record: &'a HashMap<String, String>, key: &str) -> &'a str {
-    record.get(key).map(|s| s.as_str()).unwrap_or("")
+    record.get(key).map_or("", String::as_str)
 }
 
 // ─── Parsers por formato ────────────────────────────────────────────────────
@@ -281,12 +281,7 @@ fn parse_chrome_edge(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> {
         });
     }
 
-    if errors.is_empty() {
-        Ok(entries)
-    } else {
-        // Retornar tanto entradas como errores; los errores se manejan en el llamador
-        Ok(entries)
-    }
+    Ok(entries)
 }
 
 /// Parsea entradas de Firefox CSV.
@@ -335,11 +330,7 @@ fn parse_firefox(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> {
         });
     }
 
-    if errors.is_empty() {
-        Ok(entries)
-    } else {
-        Ok(entries)
-    }
+    Ok(entries)
 }
 
 /// Parsea entradas de Bitwarden CSV.
@@ -404,11 +395,7 @@ fn parse_bitwarden_csv(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> {
         });
     }
 
-    if errors.is_empty() {
-        Ok(entries)
-    } else {
-        Ok(entries)
-    }
+    Ok(entries)
 }
 
 /// Parsea entradas de Bitwarden JSON.
@@ -479,11 +466,7 @@ fn parse_bitwarden_json(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> 
         });
     }
 
-    if errors.is_empty() {
-        Ok(entries)
-    } else {
-        Ok(entries)
-    }
+    Ok(entries)
 }
 
 /// Parsea entradas de 1Password CSV.
@@ -533,11 +516,7 @@ fn parse_onepassword(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> {
         });
     }
 
-    if errors.is_empty() {
-        Ok(entries)
-    } else {
-        Ok(entries)
-    }
+    Ok(entries)
 }
 
 /// Parsea entradas de LastPass CSV.
@@ -596,11 +575,7 @@ fn parse_lastpass(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> {
         });
     }
 
-    if errors.is_empty() {
-        Ok(entries)
-    } else {
-        Ok(entries)
-    }
+    Ok(entries)
 }
 
 /// Parsea entradas de KeePass CSV.
@@ -650,11 +625,7 @@ fn parse_keepass(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> {
         });
     }
 
-    if errors.is_empty() {
-        Ok(entries)
-    } else {
-        Ok(entries)
-    }
+    Ok(entries)
 }
 
 // ─── Comando de importación ─────────────────────────────────────────────────

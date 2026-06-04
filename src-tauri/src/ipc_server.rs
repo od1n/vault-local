@@ -4,7 +4,7 @@
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
@@ -115,7 +115,7 @@ pub fn start(
     let internal_state = Arc::new(Mutex::new(IpcInternalState {
         connection,
         enc_key: Secret::new(EncKey(enc_key)),
-        token: token.clone(),
+        token,
     }));
 
     // Guardar estado compartido
@@ -175,7 +175,7 @@ pub fn stop() {
 }
 
 /// Elimina el archivo de token IPC del disco.
-pub fn cleanup_token(app_data_dir: &PathBuf) {
+pub fn cleanup_token(app_data_dir: &Path) {
     let token_path = app_data_dir.join("ipc.token");
     let _ = std::fs::remove_file(&token_path);
 }
