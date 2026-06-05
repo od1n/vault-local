@@ -4,6 +4,7 @@
 pub mod attachments;
 pub mod audit;
 pub mod auth;
+pub mod backup;
 pub mod clipboard;
 pub mod import_export;
 pub mod license;

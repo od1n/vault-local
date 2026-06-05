@@ -251,6 +251,7 @@ pub fn get_lockout_status(app: tauri::AppHandle) -> Result<Option<u64>, String> 
 
 /// Bloquea el vault eliminando la conexión y las claves de la memoria.
 /// El VaultState se destruye y las claves se zeroizan automáticamente (ZeroizeOnDrop).
+/// Si el respaldo automático está habilitado, se ejecuta de forma no bloqueante.
 #[tauri::command]
 pub fn lock_vault(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<(), String> {
     let mut vault_guard = state
@@ -261,6 +262,9 @@ pub fn lock_vault(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> R
     if vault_guard.is_none() {
         return Err("El vault ya está bloqueado".to_string());
     }
+
+    // Ejecutar respaldo automático antes de cerrar la conexión (no bloqueante)
+    super::backup::auto_backup(&app);
 
     // Detener el servidor IPC y limpiar token
     ipc_server::stop();

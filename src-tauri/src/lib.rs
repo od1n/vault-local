@@ -164,6 +164,7 @@ pub fn run() {
             // Auditoría de contraseñas y verificación de filtraciones
             commands::audit::run_password_audit,
             commands::audit::check_hibp,
+            commands::audit::quick_audit_summary,
             // Generador TOTP (RFC 6238)
             commands::totp::generate_totp,
             // Sistema de licencias offline
@@ -171,6 +172,12 @@ pub fn run() {
             commands::license::check_license,
             commands::license::deactivate_license,
             commands::license::generate_license_key,
+            // Respaldos
+            commands::backup::configure_backup,
+            commands::backup::get_backup_config,
+            commands::backup::perform_backup,
+            commands::backup::list_backups,
+            commands::backup::restore_backup,
         ])
         .run(tauri::generate_context!())
         .expect("Error al iniciar la aplicación Vault Local");

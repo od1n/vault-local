@@ -1,0 +1,141 @@
+<!--
+  ============================================================
+  DRAFT — Sección de descargas multiplataforma + notas de instalación
+  ============================================================
+  NO está enlazado en index.html todavía. Es un borrador listo para pegar.
+
+  ANTES DE USAR:
+  1. Confirma los NOMBRES EXACTOS de los assets en el release terminado:
+     https://github.com/od1n/vault-local/releases/tag/v0.1.3
+     GitHub reemplaza espacios por puntos en los nombres de descarga.
+     Los href de abajo son ESTIMADOS según el patrón de tauri-action —
+     VERIFÍCALOS uno por uno contra la página del release.
+  2. Reemplaza también los 2 botones viejos que apuntan a v0.1.0:
+       - hero (≈ línea 1057 de index.html)
+       - plan Free (≈ línea 1298 de index.html)
+  3. La nota de Gatekeeper es independiente del nombre del archivo:
+     puedes usarla aunque aún no confirmes el .dmg.
+  ============================================================
+-->
+
+<section class="downloads" id="descargas">
+  <div class="container">
+    <h2 class="section-title">Descargar Vault Local v0.1.3</h2>
+    <p class="section-subtitle">Gratis. 100% offline. Sin cuenta, sin nube, sin rastreo.</p>
+
+    <div class="download-grid">
+      <!-- Windows -->
+      <div class="download-card">
+        <h3>Windows</h3>
+        <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.3_x64-setup.exe" class="btn btn-primary">Instalador .exe</a>
+        <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.3_x64_en-US.msi" class="btn btn-secondary">Alternativa .msi</a>
+        <p class="download-meta">Windows 10/11 (64-bit)</p>
+      </div>
+
+      <!-- macOS -->
+      <div class="download-card">
+        <h3>macOS</h3>
+        <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.3_universal.dmg" class="btn btn-primary">Descargar .dmg</a>
+        <p class="download-meta">Universal — Apple Silicon + Intel</p>
+      </div>
+
+      <!-- Linux -->
+      <div class="download-card">
+        <h3>Linux</h3>
+        <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.3_amd64.AppImage" class="btn btn-primary">AppImage</a>
+        <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.3_amd64.deb" class="btn btn-secondary">.deb (Debian/Ubuntu)</a>
+        <p class="download-meta">x86_64</p>
+      </div>
+    </div>
+
+    <!-- ============ NOTAS DE INSTALACIÓN ============ -->
+    <div class="install-notes">
+      <h3>Notas de instalación</h3>
+
+      <!-- Windows / SmartScreen -->
+      <div class="install-note">
+        <strong>Windows — SmartScreen</strong>
+        <p>
+          Windows puede mostrar una advertencia al abrir el instalador porque el
+          binario aún no tiene firma digital. Haz clic en
+          <em>«Más información»</em> → <em>«Ejecutar de todas formas»</em>.
+          El código fuente es abierto y auditable.
+        </p>
+      </div>
+
+      <!-- macOS / Gatekeeper -->
+      <div class="install-note">
+        <strong>macOS — Gatekeeper</strong>
+        <p>
+          La app no está firmada con un certificado de Apple Developer, así que
+          la primera vez macOS dirá que «no se puede verificar el desarrollador».
+          Es normal. Para abrirla:
+        </p>
+        <ol>
+          <li>Arrastra <strong>Vault Local</strong> a tu carpeta Aplicaciones.</li>
+          <li>Haz <strong>clic derecho</strong> sobre el ícono → <strong>Abrir</strong>.</li>
+          <li>En el aviso, pulsa <strong>Abrir</strong> de nuevo. Solo hace falta una vez.</li>
+        </ol>
+        <p class="install-note-alt">
+          Si macOS la bloquea del todo, ve a
+          <em>Ajustes del Sistema → Privacidad y seguridad</em> y pulsa
+          <em>«Abrir de todas formas»</em>. El código es abierto y auditable.
+        </p>
+      </div>
+
+      <!-- Linux / AppImage -->
+      <div class="install-note">
+        <strong>Linux — AppImage</strong>
+        <p>
+          Dale permiso de ejecución y ábrela:
+          <code>chmod +x Vault*.AppImage &amp;&amp; ./Vault*.AppImage</code>.
+          O instala el <code>.deb</code> con
+          <code>sudo dpkg -i Vault*.deb</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!--
+  Estilos sugeridos (añadir al <style> de index.html si no existen
+  clases equivalentes). Usa las variables de color ya definidas en la página.
+-->
+<style>
+  .downloads { padding: 4rem 0; }
+  .download-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0 3rem;
+  }
+  .download-card {
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .download-card h3 { margin: 0 0 0.5rem; }
+  .download-card .btn { width: 100%; }
+  .download-meta { font-size: 0.85rem; opacity: 0.65; margin: 0.25rem 0 0; }
+
+  .install-notes {
+    border: 1px solid rgba(76,141,255,0.25);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    background: rgba(76,141,255,0.05);
+  }
+  .install-note { margin: 1.25rem 0; }
+  .install-note strong { display: block; margin-bottom: 0.35rem; color: #4c8dff; }
+  .install-note ol { margin: 0.5rem 0 0 1.2rem; }
+  .install-note code {
+    background: rgba(255,255,255,0.08);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  .install-note-alt { font-size: 0.9rem; opacity: 0.8; }
+</style>

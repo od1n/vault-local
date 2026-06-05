@@ -14,8 +14,18 @@ import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { AuditPanel } from './AuditPanel';
 import { SshAgentPanel } from './SshAgentPanel';
 import { LicenseDialog } from './LicenseDialog';
+import { BackupSettings } from './BackupSettings';
 import { Onboarding } from './Onboarding';
+import { SecurityAlert } from './SecurityAlert';
 import type { EntryCategory, EntryMeta, NewEntry, UpdateEntry } from '../types';
+
+interface AuditSummary {
+  total_entries: number;
+  weak_passwords: number;
+  duplicate_passwords: number;
+  old_passwords: number;
+  score: number;
+}
 
 interface DashboardProps {
   onLock: () => void;
@@ -54,14 +64,30 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
   const [showAudit, setShowAudit] = useState(false);
   const [showSshAgent, setShowSshAgent] = useState(false);
   const [showLicense, setShowLicense] = useState(false);
+  const [showBackup, setShowBackup] = useState(false);
   const [sidebarFilter, setSidebarFilter] = useState<SidebarFilter>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [auditSummary, setAuditSummary] = useState<AuditSummary | null>(null);
+  const [auditDismissed, setAuditDismissed] = useState(false);
   const [allEntries, setAllEntries] = useState<EntryMeta[]>([]);
   const [categoryCounts, setCategoryCounts] = useState<{ category: EntryCategory; count: number }[]>(
     ALL_CATEGORIES.map((cat) => ({ category: cat, count: 0 }))
   );
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Ejecutar auditoría rápida al desbloquear (no bloquea la UI)
+  useEffect(() => {
+    invoke<AuditSummary>('quick_audit_summary')
+      .then((summary) => {
+        if (summary.weak_passwords > 0 || summary.duplicate_passwords > 0 || summary.old_passwords > 0) {
+          setAuditSummary(summary);
+        }
+      })
+      .catch(() => {
+        // Silently fail — the alert is non-critical
+      });
+  }, []);
 
   // Cargar conteos de todas las categorias (sin filtros)
   const refreshCounts = useCallback(async () => {
@@ -220,6 +246,8 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           setShowChangePassword(false);
         } else if (showLicense) {
           setShowLicense(false);
+        } else if (showBackup) {
+          setShowBackup(false);
         } else if (showAudit) {
           setShowAudit(false);
         } else if (showSshAgent) {
@@ -231,7 +259,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showAudit, showSshAgent, selectedEntry, clearSelected]);
+  }, [handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showBackup, showAudit, showSshAgent, selectedEntry, clearSelected]);
 
   return (
     <div className="dashboard">
@@ -351,6 +379,14 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             </svg>
             {t('dashboard.ssh_agent')}
           </button>
+          <button className="sidebar-lock-btn" onClick={() => setShowBackup(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {t('dashboard.backup')}
+          </button>
           <button className="sidebar-lock-btn" onClick={() => setShowChangePassword(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -395,6 +431,17 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
         </div>
 
         <div className="main-body">
+          {auditSummary && !auditDismissed && !showAudit && (
+            <SecurityAlert
+              summary={auditSummary}
+              onReview={() => {
+                setShowAudit(true);
+                setShowSshAgent(false);
+                setAuditDismissed(true);
+              }}
+              onDismiss={() => setAuditDismissed(true)}
+            />
+          )}
           {showAudit ? (
             <AuditPanel
               onClose={() => setShowAudit(false)}
@@ -506,6 +553,13 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           onActivate={activate}
           onDeactivate={deactivate}
           onClose={() => setShowLicense(false)}
+        />
+      )}
+
+      {/* Backup Settings */}
+      {showBackup && (
+        <BackupSettings
+          onClose={() => setShowBackup(false)}
         />
       )}
 

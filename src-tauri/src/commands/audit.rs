@@ -42,6 +42,24 @@ const COMMON_PASSWORDS: &[&str] = &[
 /// Umbral en días para considerar una contraseña como antigua.
 const OLD_PASSWORD_DAYS: i64 = 90;
 
+/// Umbral en días para considerar una contraseña antigua en el resumen rápido.
+const OLD_PASSWORD_DAYS_SUMMARY: i64 = 180;
+
+/// Resumen ligero de la auditoría para mostrar alertas rápidas al desbloquear.
+#[derive(Serialize)]
+pub struct AuditSummary {
+    /// Número total de entradas en el vault
+    pub total_entries: u32,
+    /// Contraseñas débiles detectadas
+    pub weak_passwords: u32,
+    /// Contraseñas duplicadas (entradas que comparten contraseña)
+    pub duplicate_passwords: u32,
+    /// Contraseñas no actualizadas en más de 180 días
+    pub old_passwords: u32,
+    /// Puntuación general de salud (0-100)
+    pub score: u32,
+}
+
 /// Resultado completo de la auditoría de contraseñas.
 #[derive(Serialize)]
 pub struct AuditResult {
@@ -270,6 +288,106 @@ pub fn run_password_audit(state: tauri::State<'_, AppState>) -> Result<AuditResu
         weak,
         duplicated,
         old,
+        score,
+    })
+}
+
+/// Genera un resumen rápido de la salud de las contraseñas del vault.
+///
+/// A diferencia de `run_password_audit`, este comando es ligero y rápido:
+/// - Solo cuenta problemas, no devuelve detalles individuales
+/// - Usa un umbral de 180 días para contraseñas antiguas (más permisivo)
+/// - No realiza verificaciones HIBP
+///
+/// Diseñado para ejecutarse en segundo plano al desbloquear el vault
+/// y mostrar una alerta rápida al usuario.
+#[tauri::command]
+pub fn quick_audit_summary(state: tauri::State<'_, AppState>) -> Result<AuditSummary, String> {
+    let guard = state
+        .vault
+        .lock()
+        .map_err(|_| "Error al acceder al estado del vault".to_string())?;
+    let vault = guard
+        .as_ref()
+        .ok_or("El vault está bloqueado. Desbloquéelo primero.".to_string())?;
+
+    let enc_key = &vault.enc_key.expose_secret().0;
+
+    let entries_meta = repository::list_entries(&vault.connection, None, None)?;
+    let total_entries = entries_meta.len() as u32;
+
+    let mut weak_count: u32 = 0;
+    let mut old_count: u32 = 0;
+    let mut hash_groups: HashMap<String, u32> = HashMap::new();
+
+    let now = Utc::now();
+
+    for entry_meta in &entries_meta {
+        let (_category, _title, encrypted_data, _favorite, _created_at, updated_at) =
+            repository::get_entry_raw(&vault.connection, &entry_meta.id)?;
+
+        let decrypted = cipher::decrypt(enc_key, &encrypted_data)?;
+        let entry_data: EntryData = serde_json::from_slice(&decrypted)
+            .map_err(|e| format!("Error al deserializar entrada '{}': {}", entry_meta.id, e))?;
+
+        for field in &entry_data.fields {
+            let es_password = field.field_type == "password"
+                || (field.sensitive
+                    && field.field_type != "seed_phrase"
+                    && field.field_type != "security_qa"
+                    && field.field_type != "totp");
+
+            if !es_password || field.value.is_empty() {
+                continue;
+            }
+
+            let password = &field.value;
+
+            // Detección simplificada de debilidad
+            let es_debil = password.len() < 8
+                || !password.chars().any(|c| c.is_ascii_uppercase())
+                || !password.chars().any(|c| c.is_ascii_lowercase())
+                || !password.chars().any(|c| c.is_ascii_digit())
+                || !password.chars().any(|c| !c.is_alphanumeric())
+                || COMMON_PASSWORDS.contains(&password.to_lowercase().as_str());
+
+            if es_debil {
+                weak_count += 1;
+            }
+
+            // Detección de duplicados por hash
+            let mut hasher = Sha256::new();
+            hasher.update(password.as_bytes());
+            let hash_hex = hex::encode(hasher.finalize());
+            *hash_groups.entry(hash_hex).or_insert(0) += 1;
+
+            // Detección de antigüedad (180 días)
+            if let Ok(fecha) = chrono::DateTime::parse_from_rfc3339(&updated_at) {
+                if (now - fecha.with_timezone(&Utc)).num_days() > OLD_PASSWORD_DAYS_SUMMARY {
+                    old_count += 1;
+                }
+            }
+        }
+    }
+
+    // Contar contraseñas duplicadas (entradas en grupos con > 1)
+    let duplicate_count: u32 = hash_groups
+        .values()
+        .filter(|&&count| count > 1)
+        .map(|&count| count)
+        .sum();
+
+    // Calcular puntuación
+    let penalizacion = weak_count as i32 * 10
+        + hash_groups.values().filter(|&&c| c > 1).count() as i32 * 15
+        + old_count as i32 * 5;
+    let score = (100 - penalizacion).clamp(0, 100) as u32;
+
+    Ok(AuditSummary {
+        total_entries,
+        weak_passwords: weak_count,
+        duplicate_passwords: duplicate_count,
+        old_passwords: old_count,
         score,
     })
 }

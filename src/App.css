@@ -1853,6 +1853,83 @@ a {
 /* ============================================
    TOAST NOTIFICATIONS
    ============================================ */
+/* --- Security Alert Banner --- */
+
+.security-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(255, 183, 77, 0.08);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  animation: security-alert-in 0.3s ease;
+}
+
+.security-alert-icon {
+  flex-shrink: 0;
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+}
+
+.security-alert-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.security-alert-issues {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.security-alert-score {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.security-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.security-alert-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition);
+}
+
+.security-alert-dismiss:hover {
+  color: var(--text-primary);
+}
+
+@keyframes security-alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .toast-container {
   position: fixed;
   bottom: 20px;

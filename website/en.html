@@ -10,7 +10,7 @@
   <meta property="og:description" content="Military-grade encryption. Zero cloud. Zero tracking. Your passwords never leave your computer.">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="en_US">
-  <title>Vault Local — Secure Local Password Manager</title>
+  <title>Vault Local — Secure local password manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1000,6 +1000,64 @@
         gap: 16px;
       }
     }
+
+    /* Downloads section */
+    .downloads { padding: 5rem 0; }
+    .download-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+      margin: 2.5rem 0 3rem;
+    }
+    .download-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--card-bg, rgba(255,255,255,0.03));
+      transition: border-color 0.2s;
+    }
+    .download-card:hover { border-color: var(--accent); }
+    .download-card h3 { margin: 0; font-size: 1.25rem; }
+    .download-card .btn { width: 100%; }
+    .download-icon { width: 40px; height: 40px; color: var(--accent); margin-bottom: 0.25rem; }
+    .download-icon svg { width: 100%; height: 100%; }
+    .download-meta { font-size: 0.85rem; opacity: 0.55; margin: 0.25rem 0 0; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: border-color 0.2s;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .install-notes {
+      border: 1px solid rgba(76,141,255,0.2);
+      border-radius: 16px;
+      padding: 1.5rem 2rem;
+      background: rgba(76,141,255,0.04);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .install-notes h3 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .install-note { margin: 1rem 0; }
+    .install-note strong { display: block; margin-bottom: 0.25rem; color: var(--accent); font-size: 0.95rem; }
+    .install-note p { margin: 0; font-size: 0.9rem; opacity: 0.8; line-height: 1.5; }
+    .install-note code {
+      background: rgba(255,255,255,0.08);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
   </style>
 </head>
 <body>
@@ -1009,7 +1067,7 @@
        ====================================================== -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="#" class="nav-logo" aria-label="Vault Local inicio">
+      <a href="#" class="nav-logo" aria-label="Vault Local home">
         <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 2L4 10v12c0 9.6 6.8 18.4 16 20 9.2-1.6 16-10.4 16-20V10L20 2z" fill="#4c8dff" fill-opacity="0.15" stroke="#4c8dff" stroke-width="2" stroke-linejoin="round"/>
           <rect x="14" y="16" width="12" height="10" rx="2" fill="none" stroke="#4c8dff" stroke-width="2"/>
@@ -1021,10 +1079,15 @@
       <ul class="nav-links" id="navLinks">
         <li><a href="#features">Features</a></li>
         <li><a href="#security">Security</a></li>
+        <li><a href="#downloads">Downloads</a></li>
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="#faq">FAQ</a></li>
-        <li><a href="https://github.com/od1n/vault-local/releases/download/v0.1.0/Vault.Local_0.1.0_x64-setup.exe" class="nav-cta">Download</a></li>
-        <li><a href="index.html" style="font-size:0.75rem;font-weight:700;letter-spacing:0.5px;padding:4px 10px;border:1px solid var(--border);border-radius:4px">ES</a></li>
+        <li><a href="#downloads" class="nav-cta">Download</a></li>
+        <li>
+          <a href="index.html" style="font-size:0.75rem;font-weight:700;letter-spacing:0.5px;padding:4px 10px;border:1px solid var(--border);border-radius:4px">ES</a>
+          <a href="pt.html" style="font-size:0.75rem;font-weight:700;letter-spacing:0.5px;padding:4px 10px;border:1px solid var(--border);border-radius:4px;margin-left:6px">PT</a>
+          <a href="de.html" style="font-size:0.75rem;font-weight:700;letter-spacing:0.5px;padding:4px 10px;border:1px solid var(--border);border-radius:4px;margin-left:6px">DE</a>
+        </li>
       </ul>
       <button class="nav-mobile-toggle" id="navToggle" aria-label="Open menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1054,13 +1117,13 @@
       <h1 class="hero-title">Vault Local</h1>
       <p class="hero-tagline">Your secrets, only on your computer. Military-grade encryption, zero cloud, zero tracking.</p>
       <div class="hero-buttons">
-        <a href="https://github.com/od1n/vault-local/releases/download/v0.1.0/Vault.Local_0.1.0_x64-setup.exe" class="btn btn-primary">
+        <a href="#downloads" class="btn btn-primary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Download free (4.6 MB)
+          Download free
         </a>
         <a href="https://github.com/od1n/vault-local" target="_blank" rel="noopener" class="btn btn-secondary">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -1093,7 +1156,7 @@
             <path d="M8.53 16.11a6 6 0 016.95 0"/>
             <line x1="12" y1="20" x2="12.01" y2="20"/>
           </svg>
-          No internet required
+          Works offline
         </div>
       </div>
     </div>
@@ -1115,7 +1178,7 @@
             </svg>
           </div>
           <h3>Military-grade encryption</h3>
-          <p>Argon2id for key derivation, XChaCha20-Poly1305 for data encryption and SQLCipher with AES-256 for the database.</p>
+          <p>Argon2id for key derivation, XChaCha20-Poly1305 for data encryption, and SQLCipher with AES-256 for the database.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -1127,7 +1190,7 @@
             </svg>
           </div>
           <h3>100% local and offline</h3>
-          <p>Your data never leaves your computer. No servers, no clouds, no surprises. Your information is yours alone.</p>
+          <p>Your data never leaves your computer. No servers, no cloud, no surprises. Your information is yours alone.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -1138,7 +1201,7 @@
             </svg>
           </div>
           <h3>Browser extension</h3>
-          <p>Smart autofill in Chrome, Edge, Firefox, Brave, Opera, Vivaldi and Arc. One click and done.</p>
+          <p>Smart autofill on Chrome, Edge, Firefox, Brave, Opera, Vivaldi, and Arc. One click and done.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -1150,7 +1213,7 @@
             </svg>
           </div>
           <h3>Import from any manager</h3>
-          <p>Migrate from Chrome, Firefox, Bitwarden, 1Password, LastPass or KeePass in seconds. Frictionless.</p>
+          <p>Migrate from Chrome, Firefox, Bitwarden, 1Password, LastPass, or KeePass in seconds. Zero friction.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -1160,8 +1223,8 @@
               <polyline points="12 6 12 12 16 14"/>
             </svg>
           </div>
-          <h3>TOTP Generator</h3>
-          <p>2FA codes built right into the app. Eliminates the need for Google Authenticator or Authy.</p>
+          <h3>TOTP generator</h3>
+          <p>2FA codes built right into the app. No need for Google Authenticator or Authy.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -1172,8 +1235,8 @@
               <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
             </svg>
           </div>
-          <h3>Encrypted Sync</h3>
-          <p>Transfer your data between devices with an encrypted file. No middleman servers, you control the sync.</p>
+          <h3>Encrypted sync</h3>
+          <p>Transfer your data between devices with an encrypted file. No middleman servers — you control the sync.</p>
         </div>
 
       </div>
@@ -1222,13 +1285,13 @@
 
         <div class="security-points fade-in">
           <h2>Designed to trust no one — not even us</h2>
-          <p>Every layer of Vault Local is built with one principle: security does not depend on trust. Your master password is never stored, your data has double encryption, and the code is fully auditable.</p>
+          <p>Every layer of Vault Local is built on one principle: security does not depend on trust. Your master password is never stored, your data has double encryption, and the code is fully auditable.</p>
           <div class="security-list">
             <div class="security-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span><strong>Master password never stored</strong> — only a key is derived with Argon2id</span>
+              <span><strong>Master password never stored</strong> — only a key is derived using Argon2id</span>
             </div>
             <div class="security-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1240,17 +1303,78 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span><strong>Open source auditable</strong> — every line is available on GitHub</span>
+              <span><strong>Auditable open source</strong> — every line is available on GitHub</span>
             </div>
             <div class="security-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              <span><strong>Memory zeroization</strong> — secrets are wiped from RAM on close</span>
+              <span><strong>Memory zeroization</strong> — secrets are wiped from RAM on exit</span>
             </div>
           </div>
         </div>
 
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Downloads
+       ====================================================== -->
+  <section class="downloads" id="downloads">
+    <div class="container">
+      <h2 class="section-title fade-in">Download Vault Local</h2>
+      <p class="section-subtitle fade-in">Free. 100% offline. No account, no cloud, no tracking.</p>
+
+      <div class="download-grid">
+        <!-- Windows -->
+        <div class="download-card fade-in">
+          <div class="download-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+          </div>
+          <h3>Windows</h3>
+          <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.0_x64-setup.exe" class="btn btn-primary">Installer .exe (4.8 MB)</a>
+          <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.0_x64_en-US.msi" class="btn btn-outline">Alternative .msi</a>
+          <p class="download-meta">Windows 10/11 — 64-bit</p>
+        </div>
+
+        <!-- macOS -->
+        <div class="download-card fade-in">
+          <div class="download-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          </div>
+          <h3>macOS</h3>
+          <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.0_universal.dmg" class="btn btn-primary">Download .dmg (14 MB)</a>
+          <p class="download-meta">Universal — Apple Silicon + Intel</p>
+        </div>
+
+        <!-- Linux -->
+        <div class="download-card fade-in">
+          <div class="download-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.368 1.884 1.43.868.065 1.13.012 1.854.065.95.08 1.772.34 2.587.664l.003-.003c.322.144.654.187.98.188.164 0 .328-.014.489-.042.67-.116 1.198-.468 1.484-.856.303-.408.482-.904.537-1.449 0-.058 0-.12-.003-.183a3.1 3.1 0 00-.167-.746c-.16-.39-.347-.722-.535-1.22-.157-.436-.242-.922-.382-1.473-.217-.812-.497-1.643-.81-2.367-.134-.314-.292-.584-.447-.772-.106-.146-.234-.226-.336-.248 0 0-.016-.003-.018-.003-.036-.105-.09-.215-.135-.337-.21-.575-.495-.939-.735-1.245-.159-.202-.337-.34-.47-.525-.185-.263-.254-.609-.274-1.086-.021-.505.07-1.123-.02-1.791-.128-.89-.552-1.725-1.206-2.442-.465-.501-.97-.926-1.384-1.435C13.36 3.421 12.948.453 12.504.003zm.007.885c.293 0 .474.377.674.68.415.631.862 1.098 1.317 1.591.605.651 1.062 1.379 1.176 2.129.083.543.012 1.11.031 1.56.025.626.132 1.16.458 1.62.18.26.38.44.55.662.224.283.422.588.564 1.011.013.041.03.087.043.128-.213-.064-.442-.116-.668-.15-.895-.133-1.791-.035-2.516-.065-.62-.028-1.127-.04-1.373-.322-.16-.184-.343-.51-.508-.672a1.55 1.55 0 00-.354-.229c-.139-.068-.197-.127-.382-.156-.122-.021-.3.013-.42.073-.139.074-.222.17-.327.276-.212.213-.369.398-.635.653-.175.168-.446.327-.694.39-.25.065-.477.065-.663.026a2.65 2.65 0 01-.262-.07c-.052-.02-.07-.04-.087-.07a2.06 2.06 0 01-.248-.36c-.17-.327-.295-.693-.333-.977-.04-.296.004-.578.07-.819.073-.267.197-.494.308-.716.373-.744.657-1.467.732-2.512.08-1.117-.236-4.534 2.505-4.875.149-.02.303-.03.459-.03z"/></svg>
+          </div>
+          <h3>Linux</h3>
+          <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.0_amd64.AppImage" class="btn btn-primary">AppImage (82 MB)</a>
+          <a href="https://github.com/od1n/vault-local/releases/download/v0.1.3/Vault.Local_0.1.0_amd64.deb" class="btn btn-outline">.deb (Debian/Ubuntu)</a>
+          <p class="download-meta">x86_64</p>
+        </div>
+      </div>
+
+      <!-- Installation notes -->
+      <div class="install-notes">
+        <h3>Installation notes</h3>
+        <div class="install-note">
+          <strong>Windows — SmartScreen</strong>
+          <p>Windows may show a warning when opening the installer because the binary is not yet digitally signed. Click <em>"More info"</em> then <em>"Run anyway"</em>. The source code is open and auditable.</p>
+        </div>
+        <div class="install-note">
+          <strong>macOS — Gatekeeper</strong>
+          <p>The app is not signed with an Apple Developer certificate. The first time, macOS will say it "can't verify the developer." Drag Vault Local to Applications, then <strong>right-click and choose Open</strong>, and in the prompt click <strong>Open</strong> again. This is only needed once.</p>
+        </div>
+        <div class="install-note">
+          <strong>Linux — AppImage</strong>
+          <p>Make it executable: <code>chmod +x Vault*.AppImage && ./Vault*.AppImage</code>. Or install the <code>.deb</code> with <code>sudo dpkg -i Vault*.deb</code>.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -1295,14 +1419,14 @@
               100% offline
             </li>
           </ul>
-          <a href="https://github.com/od1n/vault-local/releases/download/v0.1.0/Vault.Local_0.1.0_x64-setup.exe" class="btn btn-secondary">Download free</a>
+          <a href="#downloads" class="btn btn-secondary">Download free</a>
         </div>
 
         <!-- Premium -->
         <div class="pricing-card highlighted fade-in">
           <div class="pricing-badge">Most popular</div>
           <div class="pricing-tier">Premium</div>
-          <div class="pricing-price">$15 <span>/ año</span></div>
+          <div class="pricing-price">$15 <span>/ year</span></div>
           <p class="pricing-desc">Everything in Free, and much more.</p>
           <ul class="pricing-features">
             <li>
@@ -1315,7 +1439,7 @@
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              HIBP verification
+              HIBP breach check
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1336,8 +1460,8 @@
         <!-- Vault Pro -->
         <div class="pricing-card fade-in">
           <div class="pricing-tier">Vault Pro</div>
-          <div class="pricing-price">$39 <span>one-time payment</span></div>
-          <p class="pricing-desc">Everything Premium. Forever yours.</p>
+          <div class="pricing-price">$39 <span>one-time</span></div>
+          <p class="pricing-desc">Everything in Premium. Yours forever.</p>
           <ul class="pricing-features">
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1349,7 +1473,7 @@
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Encrypted Sync
+              Encrypted sync
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1377,7 +1501,7 @@
   <section class="payment" id="payment">
     <div class="container">
       <h2 class="section-title fade-in">Payment methods</h2>
-      <p class="section-subtitle fade-in">Choose how you prefer to pay. Secure, fast and hassle-free.</p>
+      <p class="section-subtitle fade-in">Choose how you prefer to pay. Secure, fast, and hassle-free.</p>
       <div class="payment-grid">
 
         <!-- PayPal -->
@@ -1401,8 +1525,8 @@
               <path d="M12 6v2m0 8v2m-4.24-9.24l1.42 1.42m5.64 5.64l1.42 1.42M6 12h2m8 0h2m-9.24 4.24l1.42-1.42m5.64-5.64l1.42-1.42"/>
             </svg>
           </div>
-          <h3>Cryptocurrencies</h3>
-          <p>Pay with Bitcoin, Ethereum, BNB or other cryptocurrencies via Binance Pay.</p>
+          <h3>Cryptocurrency</h3>
+          <p>Pay with Bitcoin, Ethereum, BNB, or other cryptocurrencies via Binance Pay.</p>
           <a href="#" class="crypto-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -1429,7 +1553,7 @@
        ====================================================== -->
   <section class="faq" id="faq">
     <div class="container">
-      <h2 class="section-title fade-in">Frequently Asked Questions</h2>
+      <h2 class="section-title fade-in">Frequently asked questions</h2>
       <p class="section-subtitle fade-in">Clear answers to the most common questions about Vault Local.</p>
       <div class="faq-list">
 
@@ -1442,7 +1566,7 @@
           </button>
           <div class="faq-answer">
             <div class="faq-answer-inner">
-              Yes, the free tier is fully functional with no limits on stored passwords. You can use Vault Local indefinitely without paying a cent. Premium and Vault Pro plans add advanced features like encrypted attachments, password audit and HIBP verification, but the core manager is completely free.
+              Yes, the free tier is fully functional with no limits on stored passwords. You can use Vault Local indefinitely without paying a cent. The Premium and Vault Pro plans add advanced features like encrypted attachments, password audit, and HIBP breach check, but the core password manager is completely free.
             </div>
           </div>
         </div>
@@ -1456,7 +1580,7 @@
           </button>
           <div class="faq-answer">
             <div class="faq-answer-inner">
-              Vault Local uses military-grade encryption with multiple layers: Argon2id for key derivation, XChaCha20-Poly1305 for data encryption, and SQLCipher with AES-256 to protect the database. Your data never leaves your computer and the master password is never stored. Additionally, the code is completely open and auditable.
+              Vault Local uses military-grade encryption with multiple layers: Argon2id for key derivation, XChaCha20-Poly1305 for data encryption, and SQLCipher with AES-256 to protect the database. Your data never leaves your computer and the master password is never stored. Plus, the code is fully open source and auditable.
             </div>
           </div>
         </div>
@@ -1470,7 +1594,7 @@
           </button>
           <div class="faq-answer">
             <div class="faq-answer-inner">
-              We cannot recover it. By design, your master password is never stored or transmitted to any server. This is what guarantees zero-knowledge security. We recommend storing your master password in a secure physical location, like a safe. If you lose it, there is no way to access your vault.
+              We cannot recover it. By design, your master password is never stored or transmitted to any server. This is what guarantees zero-knowledge security. We recommend keeping your master password in a secure physical location, such as a safe. If you lose it, there is no way to access your vault.
             </div>
           </div>
         </div>
@@ -1484,7 +1608,7 @@
           </button>
           <div class="faq-answer">
             <div class="faq-answer-inner">
-              Yes, the app works 100% offline. Vault Local is designed as a local-first application. It does not need an internet connection to function. The only feature that requires a connection is HIBP verification (Have I Been Pwned), which checks if your passwords have appeared in known breaches, and it is completely optional.
+              Yes, the app works 100% offline. Vault Local is designed as a local-first application. It does not need an internet connection to work. The only feature that requires connectivity is the HIBP (Have I Been Pwned) check, which verifies whether your passwords have appeared in known breaches, and it is completely optional.
             </div>
           </div>
         </div>
@@ -1498,7 +1622,7 @@
           </button>
           <div class="faq-answer">
             <div class="faq-answer-inner">
-              After payment, you receive an email with the license key within minutes. Simply enter the key in the Vault Local settings section and Premium features are activated instantly. The key is personal and non-transferable.
+              After payment, you will receive an email with your license key within minutes. Simply enter the key in the Settings section of Vault Local and the Premium features will activate instantly. The key is personal and non-transferable.
             </div>
           </div>
         </div>
@@ -1512,7 +1636,7 @@
           </button>
           <div class="faq-answer">
             <div class="faq-answer-inner">
-              Yes, from Chrome, Firefox, Bitwarden, 1Password, LastPass and KeePass. The process is simple: export your passwords from your current manager in CSV format, and Vault Local imports them automatically, encrypting each entry with your new master password. After verifying the import, we recommend deleting the CSV file.
+              Yes, from Chrome, Firefox, Bitwarden, 1Password, LastPass, and KeePass. The process is simple: export your passwords from your current manager in CSV format, and Vault Local will import them automatically, encrypting each entry with your new master password. After verifying the import, we recommend deleting the CSV file.
             </div>
           </div>
         </div>
@@ -1530,10 +1654,10 @@
         <div class="footer-links">
           <a href="https://github.com/od1n/vault-local" target="_blank" rel="noopener">GitHub</a>
           <a href="https://github.com/od1n/vault-local#readme" target="_blank" rel="noopener">Documentation</a>
-          <a href="privacy-en.html">Privacy Policy</a>
+          <a href="privacy.html">Privacy policy</a>
           <a href="https://github.com/od1n/vault-local/issues" target="_blank" rel="noopener">Contact</a>
         </div>
-        <p class="footer-tagline">Made with Rust and security obsession</p>
+        <p class="footer-tagline">Built with Rust and an obsession for security</p>
         <p class="footer-copyright">&copy; 2026 Vault Local. All rights reserved.</p>
       </div>
     </div>
@@ -1622,7 +1746,7 @@
       });
     })();
 
-    /* PayPal Checkout — Premium y Vault Pro */
+    /* PayPal Checkout — Premium and Vault Pro */
     (function() {
       if (typeof paypal === 'undefined') return;
 
@@ -1680,5 +1804,6 @@
     })();
   </script>
 
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
