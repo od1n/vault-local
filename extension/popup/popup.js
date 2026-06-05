@@ -169,7 +169,7 @@ function handleSearch() {
  * @param {Array} entries - Array de EntryMeta
  */
 function renderEntries(container, entries) {
-  container.innerHTML = '';
+  container.replaceChildren();
 
   entries.forEach((entry) => {
     const card = document.createElement('div');
@@ -179,37 +179,65 @@ function renderEntries(container, entries) {
     // Avatar con la primera letra del título
     const initial = entry.title.charAt(0).toUpperCase() || '?';
 
-    card.innerHTML = `
-      <div class="entry-avatar">${escapeHtml(initial)}</div>
-      <div class="entry-info">
-        <div class="entry-title" title="${escapeHtml(entry.title)}">${escapeHtml(entry.title)}</div>
-        <div class="entry-category">${escapeHtml(entry.category)}</div>
-      </div>
-      <div class="entry-actions">
-        <button class="entry-action-btn" data-action="fill" title="Autocompletar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </button>
-        <button class="entry-action-btn" data-action="copy-user" title="Copiar usuario">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-        </button>
-        <button class="entry-action-btn" data-action="copy-pass" title="Copiar contraseña">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-        </button>
-      </div>
-    `;
+    const avatar = document.createElement('div');
+    avatar.className = 'entry-avatar';
+    avatar.textContent = initial;
+
+    const info = document.createElement('div');
+    info.className = 'entry-info';
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'entry-title';
+    titleDiv.title = entry.title;
+    titleDiv.textContent = entry.title;
+
+    const catDiv = document.createElement('div');
+    catDiv.className = 'entry-category';
+    catDiv.textContent = entry.category;
+
+    info.appendChild(titleDiv);
+    info.appendChild(catDiv);
+
+    const actions = document.createElement('div');
+    actions.className = 'entry-actions';
+
+    const btnFill = createActionBtn('fill', 'Autocompletar',
+      'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7',
+      'M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z');
+    const btnUser = createActionBtn('copy-user', 'Copiar usuario',
+      'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2');
+    const btnPass = createActionBtn('copy-pass', 'Copiar contraseña',
+      'M7 11V7a5 5 0 0 1 10 0v4');
+
+    // Agregar el círculo al botón de usuario
+    const userSvg = btnUser.querySelector('svg');
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', '12');
+    circle.setAttribute('cy', '7');
+    circle.setAttribute('r', '4');
+    userSvg.appendChild(circle);
+
+    // Agregar el rectángulo al botón de contraseña
+    const passSvg = btnPass.querySelector('svg');
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', '3');
+    rect.setAttribute('y', '11');
+    rect.setAttribute('width', '18');
+    rect.setAttribute('height', '11');
+    rect.setAttribute('rx', '2');
+    rect.setAttribute('ry', '2');
+    passSvg.insertBefore(rect, passSvg.firstChild);
+
+    actions.appendChild(btnFill);
+    actions.appendChild(btnUser);
+    actions.appendChild(btnPass);
+
+    card.appendChild(avatar);
+    card.appendChild(info);
+    card.appendChild(actions);
 
     // Click en la tarjeta: autocompletar
     card.addEventListener('click', (e) => {
-      // Ignorar si se hizo click en un botón de acción
       if (e.target.closest('.entry-action-btn')) return;
       handleEntryAction(entry.id, 'fill');
     });
@@ -224,6 +252,25 @@ function renderEntries(container, entries) {
 
     container.appendChild(card);
   });
+}
+
+function createActionBtn(action, title, ...paths) {
+  const btn = document.createElement('button');
+  btn.className = 'entry-action-btn';
+  btn.dataset.action = action;
+  btn.title = title;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  paths.forEach((d) => {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    svg.appendChild(path);
+  });
+  btn.appendChild(svg);
+  return btn;
 }
 
 // --- Acciones sobre entradas ---
@@ -274,9 +321,12 @@ async function handleEntryAction(entryId, action) {
 // --- Utilidades ---
 
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function copyToClipboard(text) {
