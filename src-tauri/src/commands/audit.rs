@@ -374,7 +374,7 @@ pub fn quick_audit_summary(state: tauri::State<'_, AppState>) -> Result<AuditSum
     let duplicate_count: u32 = hash_groups
         .values()
         .filter(|&&count| count > 1)
-        .map(|&count| count)
+        .copied()
         .sum();
 
     // Calcular puntuación
