@@ -313,7 +313,8 @@ pub fn auto_backup(app: &tauri::AppHandle) {
                 }
             };
 
-            let backup_dir = Path::new(&config.backup_dir);
+            let backup_dir_str = config.backup_dir.clone();
+            let backup_dir = Path::new(&backup_dir_str);
             if !backup_dir.exists() {
                 if let Err(e) = fs::create_dir_all(backup_dir) {
                     eprintln!("[Backup] Error al crear directorio de respaldos: {}", e);
