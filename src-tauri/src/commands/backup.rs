@@ -76,7 +76,9 @@ fn write_config(app: &tauri::AppHandle, config: &BackupConfig) -> Result<(), Str
 /// Formato esperado: vault_backup_YYYYMMDD_HHMMSS.db o .salt
 fn extract_timestamp(filename: &str) -> Option<String> {
     let name = filename.strip_prefix("vault_backup_")?;
-    let ts = name.strip_suffix(".db").or_else(|| name.strip_suffix(".salt"))?;
+    let ts = name
+        .strip_suffix(".db")
+        .or_else(|| name.strip_suffix(".salt"))?;
     // Validar formato básico: YYYYMMDD_HHMMSS (15 caracteres)
     if ts.len() == 15 && ts.chars().nth(8) == Some('_') {
         Some(ts.to_string())
@@ -188,10 +190,8 @@ pub fn perform_backup(app: tauri::AppHandle) -> Result<String, String> {
     let salt_dest = backup_dir.join(format!("vault_backup_{}.salt", timestamp));
 
     // Copiar archivos
-    fs::copy(&db_source, &db_dest)
-        .map_err(|e| format!("Error al copiar vault.db: {}", e))?;
-    fs::copy(&salt_source, &salt_dest)
-        .map_err(|e| format!("Error al copiar vault.salt: {}", e))?;
+    fs::copy(&db_source, &db_dest).map_err(|e| format!("Error al copiar vault.db: {}", e))?;
+    fs::copy(&salt_source, &salt_dest).map_err(|e| format!("Error al copiar vault.salt: {}", e))?;
 
     // Actualizar último respaldo
     config.last_backup = Some(Local::now().to_rfc3339());
@@ -289,8 +289,7 @@ pub fn restore_backup(
     let salt_dest = app_data_dir.join("vault.salt");
 
     // Copiar archivos de respaldo sobre los actuales
-    fs::copy(backup_db, &db_dest)
-        .map_err(|e| format!("Error al restaurar vault.db: {}", e))?;
+    fs::copy(backup_db, &db_dest).map_err(|e| format!("Error al restaurar vault.db: {}", e))?;
     fs::copy(backup_salt, &salt_dest)
         .map_err(|e| format!("Error al restaurar vault.salt: {}", e))?;
 
