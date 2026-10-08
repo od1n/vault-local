@@ -114,7 +114,7 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.5 }}>
         Compra o renueva tu plan (Premium $15/año, Pro $39/año) en <span style={{ userSelect: 'all' }}>{SITE_URL}/#pricing</span>.
         ¿Tienes un código promocional? Canjéalo en <span style={{ userSelect: 'all' }}>{SITE_URL}/#promo</span> y
-        recibirás por correo una licencia Premium de prueba por 30 días.
+        recibirás por correo una licencia de prueba con todas las funciones (Pro) por 30 días.
       </p>
     </div>
   );

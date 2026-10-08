@@ -183,7 +183,7 @@ website/
 └── api/
     ├── _license.js         # Firma Ed25519 y envío de correo (no se publica como endpoint)
     ├── paypal-webhook.js   # PayPal (verificado) → licencia de 1 año → correo (Resend)
-    ├── redeem-promo.js     # Código promocional → licencia Premium de 30 días → correo
+    ├── redeem-promo.js     # Código promocional → licencia Pro de prueba de 30 días → correo
     └── README.md           # Variables de entorno y configuración paso a paso
 ```
 
@@ -240,7 +240,7 @@ SECURITY.md                # Política de seguridad
 | PayPal Client ID | `website/index.html` (y en/pt/de) | Live mode |
 | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` | Variables de entorno en Vercel | Para verificar los avisos de PayPal |
 | `RESEND_API_KEY`, `RESEND_FROM` | Variables de entorno en Vercel | `RESEND_FROM` debe usar un dominio verificado en Resend |
-| `PROMO_CODES` | Variable de entorno en Vercel | Ej.: `PRODUCTHUNT2026:2026-12-31`. Da Premium de prueba por 30 días |
+| `PROMO_CODES` | Variable de entorno en Vercel | Ej.: `PRODUCTHUNT2026:2026-12-31`. Da Pro (todas las funciones) de prueba por 30 días |
 | Puerto IPC | `51820` en `ipc_server.rs` y `extension/native-host/host.cjs` | Comunicación app ↔ extensión |
 
 ### Cómo activar o renovar TU licencia (modo completo fijo)

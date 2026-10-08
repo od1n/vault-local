@@ -5,7 +5,7 @@ Dos funciones en esta carpeta:
 | Archivo | Dirección pública | Qué hace |
 |---|---|---|
 | `paypal-webhook.js` | https://vault-local.vercel.app/api/paypal-webhook | Recibe el aviso de PayPal, lo verifica con PayPal y envía por correo una licencia de 1 año |
-| `redeem-promo.js` | https://vault-local.vercel.app/api/redeem-promo | Canjea un código promocional y envía por correo una licencia Premium de prueba de 30 días |
+| `redeem-promo.js` | https://vault-local.vercel.app/api/redeem-promo | Canjea un código promocional y envía por correo una licencia Pro de prueba de 30 días (todas las funciones) |
 | `_license.js` | (no se publica) | Funciones compartidas: firmar licencias Ed25519 y enviar el correo |
 
 Planes (monto exacto en USD → nivel; duración 1 año): `15.00` → Premium, `39.00` → Pro.

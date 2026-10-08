@@ -70,7 +70,7 @@ export function useLicense() {
 
 export function tierLabel(license: LicenseInfo): string {
   if (license.tier === 'owner') return 'Owner';
-  if (license.tier === 'pro') return 'Pro';
+  if (license.tier === 'pro') return license.trial ? 'Pro (prueba)' : 'Pro';
   if (license.tier === 'premium') return license.trial ? 'Premium (prueba)' : 'Premium';
   return 'Gratis';
 }

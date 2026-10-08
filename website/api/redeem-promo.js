@@ -1,4 +1,4 @@
-// Vercel Serverless Function: canje de código promocional -> licencia Premium de prueba por 30 días.
+// Vercel Serverless Function: canje de código promocional -> licencia completa (Pro) de prueba por 30 días.
 //
 // Los códigos válidos NO están en el repositorio: se configuran en la variable de entorno
 //   PROMO_CODES = "PRODUCTHUNT2026:2026-12-31,OTROCODIGO:2027-03-01"
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     const licenseKey = signLicense({
       id: `promo-${code}-${crypto.randomUUID()}`,
       email,
-      tier: 'premium',
+      tier: 'pro',
       trial: true,
       iat,
       exp,
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
 
     const sent = await sendLicenseEmail({
       to: email,
-      planName: `Vault Local Premium (prueba de ${TRIAL_DAYS} días)`,
+      planName: `Vault Local Pro (prueba de ${TRIAL_DAYS} días, todas las funciones)`,
       licenseKey,
       expiresAt: exp,
     });
