@@ -16,6 +16,7 @@
         "width": 1400,
         "height": 900,
         "center": true,
+        "visible": false,
         "minWidth": 1100,
         "minHeight": 750
       }

@@ -49,14 +49,25 @@ fn load_window_state(path: &Path) -> Option<WindowState> {
 }
 
 /// Guarda el estado actual de la ventana a disco.
+/// No guarda si la ventana está minimizada (posición -32000 en Windows).
 fn save_window_state(window: &tauri::Window) {
     let app = window.app_handle();
     if let Some(path) = window_state_path(app) {
         if let Some(wv) = app.get_webview_window(window.label()) {
+            // No guardar estado de ventana minimizada
+            if wv.is_minimized().unwrap_or(false) {
+                return;
+            }
+
             let scale = wv.scale_factor().unwrap_or(1.0);
             let size = wv.inner_size().unwrap_or_default();
             let pos = wv.outer_position().unwrap_or_default();
             let maximized = wv.is_maximized().unwrap_or(false);
+
+            // Sanity check: posiciones negativas extremas indican ventana minimizada
+            if pos.x < -10000 || pos.y < -10000 {
+                return;
+            }
 
             let state = WindowState {
                 width: size.width as f64 / scale,
@@ -91,8 +102,33 @@ pub fn run() {
                     let w = state.width.max(MIN_WIDTH);
                     let h = state.height.max(MIN_HEIGHT);
                     let _ = window.set_size(tauri::LogicalSize::new(w, h));
-                    let _ = window
-                        .set_position(tauri::LogicalPosition::new(state.x as f64, state.y as f64));
+
+                    // Validar que la posición esté dentro de algún monitor visible
+                    let monitors = window.available_monitors().unwrap_or_default();
+                    let position_visible = monitors.iter().any(|m| {
+                        let pos = m.position();
+                        let size = m.size();
+                        let mx = pos.x;
+                        let my = pos.y;
+                        let mw = size.width as i32;
+                        let mh = size.height as i32;
+                        // Al menos 100px de la ventana deben ser visibles en este monitor
+                        state.x < mx + mw - 100
+                            && state.x + w as i32 > mx + 100
+                            && state.y < my + mh - 100
+                            && state.y + h as i32 > my + 100
+                    });
+
+                    if position_visible {
+                        let _ = window.set_position(tauri::LogicalPosition::new(
+                            state.x as f64,
+                            state.y as f64,
+                        ));
+                    } else {
+                        // Posición fuera de pantalla, centrar
+                        let _ = window.center();
+                    }
+
                     if state.maximized {
                         let _ = window.maximize();
                     }
