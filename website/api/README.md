@@ -41,8 +41,10 @@ y pulsa **Save**. Al terminar, vuelve a desplegar: pestaña **Deployments** → 
 
 ## Seguridad
 
-- Sin `PAYPAL_WEBHOOK_ID` correcto, todos los avisos se rechazan (es lo deseado: antes cualquiera
-  podía enviar un aviso falso y recibir una licencia).
+- El estado, el monto y el correo se leen de la orden consultada a PayPal con `PAYPAL_CLIENT_ID` y
+  `PAYPAL_CLIENT_SECRET`, nunca del aviso. Un aviso falso no puede generar una licencia para otro
+  correo. La firma (`PAYPAL_WEBHOOK_ID`) se comprueba y, si falla, queda en los registros como
+  "Firma del aviso no verificada".
 - Si el correo falla, la licencia queda en los registros de Vercel (pestaña **Logs**), en la línea
   que empieza con `LICENCIA`, para enviarla a mano.
 - Para emitir licencias manuales (por ejemplo, la tuya de tipo `owner`) usa

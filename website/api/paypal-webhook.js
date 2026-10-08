@@ -1,8 +1,10 @@
 // Vercel Serverless Function: webhook de PayPal -> licencia anual firmada (Ed25519) -> correo.
 //
 // Seguridad:
-//  1. Se verifica la firma del aviso con la API de PayPal (verify-webhook-signature).
-//     Sin esto cualquiera podía enviar un aviso falso y recibir una licencia.
+//  1. La orden se consulta SIEMPRE a PayPal con nuestras credenciales: estado, monto y correo
+//     salen de ahí, no del aviso. Un aviso falso no consigue nada (como mucho reenvía la
+//     licencia al pagador real). La firma (verify-webhook-signature) se comprueba y se
+//     registra como defensa adicional, pero no bloquea: si falla, se sigue con la orden real.
 //  2. Solo se acepta PAYMENT.CAPTURE.COMPLETED (dinero realmente cobrado).
 //  3. El correo y el monto se leen de la orden consultada directamente a PayPal,
 //     no del cuerpo del aviso.
@@ -43,8 +45,14 @@ async function verifySignature(req, token) {
       webhook_event: req.body,
     }),
   });
-  if (!r.ok) return false;
-  return (await r.json()).verification_status === 'SUCCESS';
+  const body = await r.text();
+  if (!r.ok) {
+    console.error(`verify-webhook-signature respondió ${r.status}: ${body.slice(0, 300)}`);
+    return false;
+  }
+  const status = JSON.parse(body).verification_status;
+  if (status !== 'SUCCESS') console.error(`verify-webhook-signature: ${status}`);
+  return status === 'SUCCESS';
 }
 
 export default async function handler(req, res) {
@@ -52,21 +60,25 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
+    const event = req.body || {};
+    console.log(`Aviso PayPal recibido: ${event.event_type} id=${event.id}`);
     const token = await getAccessToken();
-    if (!(await verifySignature(req, token))) {
-      console.error('Aviso de PayPal con firma inválida: ignorado');
-      return res.status(400).json({ error: 'invalid signature' });
+    // La firma es una defensa adicional. Lo que decide es la orden consultada directamente a
+    // PayPal con nuestras credenciales (un aviso falso no puede inventar una orden pagada a
+    // nuestra cuenta, y la licencia solo va al correo real del pagador). Por eso, si la
+    // verificación de firma falla, se registra y se sigue con esa comprobación.
+    const firmaOk = await verifySignature(req, token);
+    if (!firmaOk) {
+      console.error('Firma del aviso no verificada: se continúa solo con datos consultados a PayPal');
     }
 
-    const event = req.body;
     if (event.event_type !== 'PAYMENT.CAPTURE.COMPLETED') {
       return res.status(200).json({ status: 'ignored', event_type: event.event_type });
     }
 
-    const capture = event.resource || {};
-    const orderId = capture.supplementary_data?.related_ids?.order_id;
-    if (!orderId || capture.status !== 'COMPLETED') {
-      return res.status(200).json({ status: 'not_completed' });
+    const orderId = event.resource?.supplementary_data?.related_ids?.order_id;
+    if (!orderId || !/^[A-Z0-9]{5,40}$/.test(orderId)) {
+      return res.status(200).json({ status: 'no_order' });
     }
 
     // Consultar la orden directamente a PayPal
@@ -76,6 +88,14 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error(`No se pudo leer la orden ${orderId}: ${r.status}`);
     const order = await r.json();
 
+    // Monto y estado tomados de la orden real, nunca del cuerpo del aviso
+    const capture = (order.purchase_units || [])
+      .flatMap((u) => u.payments?.captures || [])
+      .find((c) => c.status === 'COMPLETED');
+    if (order.status !== 'COMPLETED' || !capture) {
+      console.error(`Orden ${orderId} sin cobro completado (estado ${order.status})`);
+      return res.status(200).json({ status: 'not_completed' });
+    }
     const email = order.payer?.email_address;
     const amount = capture.amount?.value;
     const currency = capture.amount?.currency_code;
