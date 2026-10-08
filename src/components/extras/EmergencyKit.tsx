@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { setFlag } from '../GettingStarted';
 import { useI18n, useTr } from '../../i18n';
 
 /**
@@ -53,7 +54,7 @@ export function EmergencyKit({ onClose }: { onClose: () => void }) {
 
           <div className="no-print" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
             <button className="btn btn-secondary" onClick={onClose}>{tr('Cerrar', 'Close')}</button>
-            <button className="btn btn-primary" onClick={() => window.print()}>{tr('Imprimir', 'Print')}</button>
+            <button className="btn btn-primary" onClick={() => { setFlag('kit'); window.print(); }}>{tr('Imprimir', 'Print')}</button>
           </div>
         </div>
       </div>

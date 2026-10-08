@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Vault Local — Folleto</title>
+<style>
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; }
+:root {
+  --ink: #0f1420; --ink2: #3a4357; --muted: #6b7489; --line: #e3e7ef;
+  --blue: #3d7bf5; --blue2: #6aa0ff; --navy: #0d1220; --navy2: #161d30;
+  --green: #22a06b; --amber: #e5a019; --soft: #f4f7fc;
+}
+html, body { margin: 0; padding: 0; font-family: Inter, 'DejaVu Sans', sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; padding: 18mm 17mm 16mm; }
+.page:last-child { page-break-after: auto; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
+h2 { font-size: 26pt; line-height: 1.1; font-weight: 800; }
+h3 { font-size: 12.5pt; font-weight: 700; margin-bottom: 4px; }
+p { margin: 0 0 8px; font-size: 10.2pt; line-height: 1.55; color: var(--ink2); }
+.kicker { font-size: 8.5pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--blue); margin-bottom: 8px; }
+.lead { font-size: 12pt; line-height: 1.55; color: var(--ink2); margin: 10px 0 18px; max-width: 150mm; }
+.shot { width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(10, 20, 40, 0.28); border: 1px solid #222a3d; display: block; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.card { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card p { font-size: 9.4pt; margin: 0; }
+.ico { width: 26px; height: 26px; border-radius: 7px; background: rgba(61,123,245,0.12); color: var(--blue); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+.ico svg { width: 16px; height: 16px; }
+.tag { display: inline-block; font-size: 7.5pt; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-left: 6px; vertical-align: 2px; }
+.t-free { background: #e4f5ec; color: #187a50; }
+.t-prem { background: #e8efff; color: #2a5fd0; }
+.t-pro { background: #f1e9ff; color: #6b3fd0; }
+.footer { position: absolute; left: 17mm; right: 17mm; bottom: 9mm; display: flex; justify-content: space-between; font-size: 7.5pt; color: var(--muted); }
+.caption { font-size: 8.4pt; color: var(--muted); margin-top: 6px; }
+ul.check { list-style: none; padding: 0; margin: 6px 0 0; }
+ul.check li { position: relative; padding-left: 18px; font-size: 9.8pt; line-height: 1.5; color: var(--ink2); margin-bottom: 4px; }
+ul.check li::before { content: ''; position: absolute; left: 2px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+
+/* Portada */
+.cover { background: radial-gradient(120% 70% at 80% 0%, #1d3a7a 0%, var(--navy) 55%); color: #fff; padding: 22mm 18mm; }
+.cover .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15pt; }
+.cover h1 { font-size: 40pt; line-height: 1.04; font-weight: 800; margin: 26mm 0 10px; letter-spacing: -0.03em; }
+.cover h1 span { color: var(--blue2); }
+.cover .sub { font-size: 13.5pt; line-height: 1.5; color: #c5cee3; max-width: 150mm; }
+.cover .badges { display: flex; gap: 10px; margin: 16px 0 14mm; flex-wrap: wrap; }
+.cover .badge { border: 1px solid rgba(255,255,255,0.22); border-radius: 30px; padding: 6px 13px; font-size: 9pt; color: #e3e9f7; background: rgba(255,255,255,0.05); }
+.cover .shot { border-color: #2c3753; box-shadow: 0 30px 60px rgba(0,0,0,0.55); }
+.cover .url { position: absolute; bottom: 14mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; color: #9fb0d6; font-size: 9.5pt; }
+
+/* Comparación */
+table.cmp { width: 100%; border-collapse: collapse; font-size: 9.4pt; margin-top: 8px; }
+table.cmp th, table.cmp td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.cmp th { font-size: 8.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+table.cmp td:first-child { font-weight: 600; color: var(--ink); width: 34%; }
+.yes { color: var(--green); font-weight: 700; }
+.no { color: #c0392b; font-weight: 700; }
+
+/* Planes */
+.plans { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 14px; }
+.plan { border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.plan.hl { border: 2px solid var(--blue); box-shadow: 0 8px 24px rgba(61,123,245,0.18); }
+.plan .name { font-weight: 800; font-size: 13pt; }
+.plan .price { font-size: 24pt; font-weight: 800; margin: 6px 0 2px; }
+.plan .price small { font-size: 9.5pt; color: var(--muted); font-weight: 500; }
+.plan .desc { font-size: 8.6pt; color: var(--muted); margin-bottom: 8px; min-height: 24px; }
+.plan ul.check li { font-size: 8.8pt; margin-bottom: 3px; }
+table.matrix { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin-top: 14px; }
+table.matrix th, table.matrix td { padding: 5px 8px; border-bottom: 1px solid var(--line); }
+table.matrix th { text-align: center; font-size: 8pt; color: var(--muted); }
+table.matrix td:not(:first-child) { text-align: center; width: 15%; }
+table.matrix tr.grp td { background: var(--soft); font-weight: 700; font-size: 8pt; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--blue); }
+.dash { color: #b6bdcc; }
+
+.steps { counter-reset: s; display: grid; gap: 10px; margin-top: 10px; }
+.step { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+.step .n { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 10.5pt; }
+.step p { margin: 2px 0 0; font-size: 9.6pt; }
+.mono { font-family: 'DejaVu Sans Mono', monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; }
+.note { border-left: 3px solid var(--amber); background: #fff8ea; padding: 9px 12px; border-radius: 0 8px 8px 0; font-size: 9.2pt; color: #6a4b0b; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- 1. PORTADA -->
+<section class="page cover">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" fill="#3d7bf5" opacity=".25"/><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" stroke="#6aa0ff" stroke-width="1.5" stroke-linejoin="round"/><rect x="9.5" y="10" width="5" height="4.5" rx=".5" stroke="#fff" stroke-width="1.3"/><path d="M10.5 10V8.5a1.5 1.5 0 013 0V10" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Vault Local
+  </div>
+  <h1>Tus contraseñas,<br>en <span>tu</span> computadora.</h1>
+  <div class="sub">Un gestor de contraseñas que no depende de la nube: todo se cifra y se guarda en tu equipo. Nadie más tiene tus datos, ni siquiera nosotros.</div>
+  <div class="badges">
+    <span class="badge">100% sin conexión</span>
+    <span class="badge">Doble cifrado</span>
+    <span class="badge">Sin cuentas ni suscripciones sorpresa</span>
+    <span class="badge">Windows · macOS · Linux</span>
+  </div>
+  <img class="shot" src="shots/dashboard.png">
+  <div class="url"><span>https://vault-local.vercel.app</span><span>Versión 0.5 · Octubre 2026</span></div>
+</section>
+
+<!-- 2. POR QUÉ LOCAL -->
+<section class="page">
+  <div class="kicker">Por qué Vault Local</div>
+  <h2>Tus claves no tienen por qué vivir en el servidor de otro.</h2>
+  <p class="lead">Los gestores en la nube guardan las bóvedas de millones de personas en el mismo lugar: un blanco enorme para los atacantes. En 2022, a uno de los más conocidos le robaron copias de las bóvedas de sus clientes. Vault Local elimina ese riesgo de raíz: tu bóveda es un archivo cifrado en tu disco y nunca sale de ahí.</p>
+
+  <svg viewBox="0 0 700 210" width="100%" style="margin: 2mm 0 6mm">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9aa4b8"/></marker>
+      <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3d7bf5"/></marker>
+    </defs>
+    <text x="10" y="18" font-size="13" font-weight="700" fill="#6b7489">GESTOR EN LA NUBE</text>
+    <g font-size="12" fill="#3a4357">
+      <rect x="10" y="32" width="110" height="46" rx="8" fill="#f4f7fc" stroke="#e3e7ef"/><text x="65" y="60" text-anchor="middle">Tu equipo</text>
+      <line x1="122" y1="55" x2="198" y2="55" stroke="#9aa4b8" stroke-width="1.6" marker-end="url(#ar)"/><text x="160" y="47" text-anchor="middle" font-size="10" fill="#6b7489">internet</text>
+      <rect x="200" y="22" width="130" height="66" rx="10" fill="#fdecea" stroke="#f3b9b2"/><text x="265" y="50" text-anchor="middle" font-weight="700" fill="#a3372b">Servidor central</text><text x="265" y="68" text-anchor="middle" font-size="10" fill="#a3372b">millones de bóvedas</text>
+      <line x1="332" y1="55" x2="390" y2="55" stroke="#c0392b" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+      <text x="395" y="51" font-size="11" fill="#a3372b" font-weight="700">un ataque = todos expuestos</text>
+      <text x="395" y="67" font-size="10" fill="#6b7489">cuenta, suscripción y conexión obligatorias</text>
+    </g>
+    <text x="10" y="128" font-size="13" font-weight="700" fill="#3d7bf5">VAULT LOCAL</text>
+    <g font-size="12" fill="#3a4357">
+      <rect x="10" y="142" width="320" height="56" rx="10" fill="#e8efff" stroke="#bcd0ff"/>
+      <text x="26" y="166" font-weight="700" fill="#1d4fc4">Tu equipo</text>
+      <text x="26" y="184" font-size="10" fill="#2a5fd0">la bóveda cifrada vive solo aquí · funciona sin internet</text>
+      <line x1="332" y1="170" x2="390" y2="170" stroke="#3d7bf5" stroke-width="1.6" marker-end="url(#arb)"/>
+      <text x="395" y="166" font-size="11" fill="#1d4fc4" font-weight="700">tus respaldos, donde tú elijas</text>
+      <text x="395" y="182" font-size="10" fill="#6b7489">USB, disco externo o tu propia nube, siempre cifrados</text>
+    </g>
+  </svg>
+
+  <table class="cmp">
+    <tr><th></th><th>Gestores en la nube</th><th>Vault Local</th></tr>
+    <tr><td>Dónde están tus datos</td><td>En servidores de la empresa</td><td><span class="yes">En tu computadora</span></td></tr>
+    <tr><td>Necesita internet</td><td>Sí, para casi todo</td><td><span class="yes">No</span></td></tr>
+    <tr><td>Cuenta y correo obligatorios</td><td>Sí</td><td><span class="yes">No</span></td></tr>
+    <tr><td>Si la empresa cierra o sube precios</td><td>Pierdes el servicio o pagas más</td><td><span class="yes">Tu bóveda sigue funcionando</span></td></tr>
+    <tr><td>Cobro</td><td>Suscripción mensual automática</td><td><span class="yes">Pago anual, sin cobros automáticos</span></td></tr>
+    <tr><td>Plan gratis</td><td>Limitado a pocos dispositivos o funciones</td><td><span class="yes">Gestor completo, sin límite de entradas</span></td></tr>
+  </table>
+  <div class="footer"><span>Vault Local</span><span>2</span></div>
+</section>
+
+<!-- 3. SEGURIDAD -->
+<section class="page">
+  <div class="kicker">Seguridad</div>
+  <h2>Doble cifrado de nivel profesional.</h2>
+  <p class="lead">Tu contraseña maestra nunca se guarda. A partir de ella se calculan dos claves distintas: una cifra el archivo completo y otra cifra, además, cada dato sensible por separado.</p>
+
+  <svg viewBox="0 0 700 300" width="100%" style="margin-bottom: 5mm">
+    <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3d7bf5"/></marker></defs>
+    <g font-size="12">
+      <rect x="250" y="8" width="200" height="44" rx="22" fill="#0d1220"/><text x="350" y="35" text-anchor="middle" fill="#fff" font-weight="700">Tu contraseña maestra</text>
+      <line x1="350" y1="54" x2="350" y2="82" stroke="#3d7bf5" stroke-width="2" marker-end="url(#a3)"/>
+      <rect x="200" y="84" width="300" height="52" rx="10" fill="#e8efff" stroke="#bcd0ff"/><text x="350" y="106" text-anchor="middle" font-weight="700" fill="#1d4fc4">Argon2id + HKDF-SHA256</text><text x="350" y="124" text-anchor="middle" font-size="10" fill="#2a5fd0">derivación lenta a propósito: frena los ataques de fuerza bruta</text>
+      <line x1="300" y1="138" x2="180" y2="176" stroke="#3d7bf5" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="400" y1="138" x2="520" y2="176" stroke="#3d7bf5" stroke-width="2" marker-end="url(#a3)"/>
+      <rect x="40" y="178" width="280" height="110" rx="12" fill="#f4f7fc" stroke="#e3e7ef"/>
+      <text x="60" y="204" font-weight="800" fill="#0f1420">Capa 1 · Archivo completo</text>
+      <text x="60" y="224" fill="#3a4357" font-size="11">SQLCipher con AES-256</text>
+      <text x="60" y="244" fill="#6b7489" font-size="10">Sin la clave, el archivo de la bóveda</text>
+      <text x="60" y="258" fill="#6b7489" font-size="10">es ruido ilegible: ni títulos ni categorías</text>
+      <text x="60" y="272" fill="#6b7489" font-size="10">se pueden ver.</text>
+      <rect x="380" y="178" width="280" height="110" rx="12" fill="#f4f7fc" stroke="#e3e7ef"/>
+      <text x="400" y="204" font-weight="800" fill="#0f1420">Capa 2 · Cada dato sensible</text>
+      <text x="400" y="224" fill="#3a4357" font-size="11">XChaCha20-Poly1305</text>
+      <text x="400" y="244" fill="#6b7489" font-size="10">Contraseñas, notas, tarjetas y adjuntos</text>
+      <text x="400" y="258" fill="#6b7489" font-size="10">se cifran otra vez, uno por uno, y se</text>
+      <text x="400" y="272" fill="#6b7489" font-size="10">descifran solo al mostrarlos o copiarlos.</text>
+    </g>
+  </svg>
+
+  <div class="grid2">
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><h3>Se bloquea sola</h3><p>Por inactividad, al suspender el equipo o al bloquear la sesión de Windows (Win+L). Al bloquear, las claves se borran de la memoria.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg></div><h3>Portapapeles seguro</h3><p>Lo que copias se borra solo a los pocos segundos y no queda en el historial del portapapeles de Windows (Win+V) ni se sincroniza con la nube.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><h3>Freno a los intentos</h3><p>Cada contraseña incorrecta aumenta el tiempo de espera antes del siguiente intento.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div><h3>Código abierto</h3><p>Cualquiera puede revisar cómo funciona. Las licencias y las actualizaciones van firmadas digitalmente: la app comprueba la firma antes de aceptarlas.</p></div>
+  </div>
+  <div class="footer"><span>Vault Local</span><span>3</span></div>
+</section>
+
+<!-- 4. DÍA A DÍA -->
+<section class="page">
+  <div class="kicker">El día a día</div>
+  <h2>Rápida cuando la necesitas.</h2>
+  <p class="lead">Una contraseña a dos teclas de distancia, desde cualquier programa, sin buscar ventanas ni copiar a mano.</p>
+  <div class="grid2" style="align-items: start;">
+    <div>
+      <img class="shot" src="shots/quick.png">
+      <div class="caption">Búsqueda rápida con Ctrl+Shift+Espacio, desde cualquier programa.</div>
+    </div>
+    <div>
+      <h3>Búsqueda rápida global <span class="tag t-prem">Premium</span></h3>
+      <p>Escribe dos letras y pulsa Enter para copiar la contraseña, Ctrl+U para el usuario o Ctrl+T para el código de verificación.</p>
+      <h3 style="margin-top:10px">Copia en secuencia <span class="tag t-prem">Premium</span></h3>
+      <p>Copias el usuario, lo pegas y vuelves a pulsar el atajo: ahora tienes la contraseña, y después el código de 6 dígitos.</p>
+      <h3 style="margin-top:10px">Escritura automática <span class="tag t-prem">Premium</span></h3>
+      <p>Vault Local escribe usuario, Tab, contraseña y Enter por ti en la ventana donde estabas.</p>
+    </div>
+  </div>
+  <div style="margin-top: 6mm">
+    <img class="shot" src="shots/clipboard.png" style="width: 82%; margin: 0 auto;">
+    <div class="caption" style="text-align:center">Ficha con usuario, contraseña, código de verificación en dos pasos (TOTP) y la barra del portapapeles con su cuenta regresiva.</div>
+  </div>
+  <div class="grid3" style="margin-top: 6mm">
+    <div class="card"><h3>Códigos 2FA <span class="tag t-free">Gratis</span></h3><p>Genera los códigos de 6 dígitos de Google, Microsoft, GitHub y más, sin otra app.</p></div>
+    <div class="card"><h3>Extensión de navegador</h3><p>Rellena usuario y contraseña en las páginas web de Chrome y Firefox.</p></div>
+    <div class="card"><h3>Desbloqueo rápido <span class="tag t-prem">Premium</span></h3><p>Con un PIN o Windows Hello (huella o rostro) durante las horas que elijas.</p></div>
+  </div>
+  <div class="footer"><span>Vault Local</span><span>4</span></div>
+</section>
+
+<!-- 5. ORGANIZA -->
+<section class="page">
+  <div class="kicker">Orden</div>
+  <h2>Todo en su lugar.</h2>
+  <p class="lead">Plantillas para cada tipo de dato, etiquetas libres y bóvedas separadas para la casa, el trabajo o la familia.</p>
+  <div class="grid2" style="align-items: start;">
+    <div>
+      <img class="shot" src="shots/bank.png">
+      <div class="caption">Etiquetas, recordatorio para cambiar la contraseña e historial de versiones anteriores.</div>
+    </div>
+    <div>
+      <ul class="check">
+        <li><b>9 plantillas:</b> sitios web, bancos, tarjetas, Wi-Fi, identidades, billeteras de criptomonedas, passkeys, notas seguras y otros.</li>
+        <li><b>Etiquetas</b> y filtros de favoritos, recientes y por vencer.</li>
+        <li><b>Papelera</b> con 30 días para recuperar lo borrado.</li>
+        <li><b>Historial de contraseñas</b>: las últimas 20 de cada entrada <span class="tag t-prem">Premium</span></li>
+        <li><b>Archivos adjuntos cifrados</b>, como códigos de respaldo en PDF <span class="tag t-prem">Premium</span></li>
+        <li><b>QR de Wi-Fi</b> para que tus invitados se conecten con la cámara <span class="tag t-prem">Premium</span></li>
+        <li><b>Compartir una entrada cifrada</b> con otra persona, protegida con una contraseña de un solo uso <span class="tag t-prem">Premium</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top: 8mm; align-items: center;">
+    <div>
+      <h3>Bóvedas múltiples <span class="tag t-pro">Pro</span></h3>
+      <p>Separa lo personal, lo del trabajo y lo de la familia. Cada bóveda tiene su propia contraseña maestra y su propio archivo: abrir una no da acceso a las demás. Se elige al desbloquear.</p>
+      <h3 style="margin-top: 10px">Sincronización cifrada <span class="tag t-pro">Pro</span></h3>
+      <p>Lleva tu bóveda a otra computadora en un archivo cifrado con una contraseña aparte, por USB o por la nube que ya usas.</p>
+    </div>
+    <img class="shot" src="shots/lock_crop.png" style="width: 78%; margin-left: auto;">
+  </div>
+  <div class="footer"><span>Vault Local</span><span>5</span></div>
+</section>
+
+<!-- 6. PROTECCIÓN -->
+<section class="page">
+  <div class="kicker">Tranquilidad</div>
+  <h2>Pensado para cuando algo sale mal.</h2>
+  <p class="lead">Una contraseña débil, una filtración, una computadora dañada o, en el peor caso, que tú no estés.</p>
+  <div class="grid2" style="align-items: start;">
+    <div>
+      <img class="shot" src="shots/audit_crop.png">
+      <div class="caption">Auditoría: contraseñas débiles, repetidas, antiguas y filtradas.</div>
+    </div>
+    <div>
+      <h3>Auditoría y filtraciones <span class="tag t-prem">Premium</span></h3>
+      <p>Puntúa la salud de tus contraseñas y comprueba si alguna apareció en filtraciones conocidas (Have I Been Pwned). Solo se envían los 5 primeros caracteres de un resumen de la contraseña: la contraseña nunca sale de tu equipo.</p>
+      <h3 style="margin-top: 10px">Respaldos automáticos <span class="tag t-free">Gratis</span></h3>
+      <p>Cada vez que bloqueas, se guarda una copia cifrada en la carpeta que elijas, con rotación automática de las más antiguas.</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 8mm" class="card">
+    <h3>Acceso de emergencia: 2 de 3 <span class="tag t-free">Gratis</span></h3>
+    <p style="margin-bottom: 8px">Si a ti te pasa algo, tu pareja, tu familia o tu socio pueden abrir tu bóveda en modo solo lectura sin conocer tu contraseña maestra. Vault Local genera 3 hojas para imprimir. Con 2 cualesquiera se abre la bóveda; con 1 sola no se puede hacer nada, porque no revela ni un dato.</p>
+    <svg viewBox="0 0 700 150" width="100%">
+      <defs><marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#22a06b"/></marker></defs>
+      <g font-size="11">
+        <rect x="10" y="10" width="150" height="38" rx="8" fill="#fff" stroke="#bcd0ff"/><text x="85" y="34" text-anchor="middle" font-weight="700" fill="#1d4fc4">Hoja 1 · tu pareja</text>
+        <rect x="10" y="56" width="150" height="38" rx="8" fill="#fff" stroke="#bcd0ff"/><text x="85" y="80" text-anchor="middle" font-weight="700" fill="#1d4fc4">Hoja 2 · un familiar</text>
+        <rect x="10" y="102" width="150" height="38" rx="8" fill="#fff" stroke="#e3e7ef" stroke-dasharray="4 3"/><text x="85" y="126" text-anchor="middle" fill="#9aa4b8">Hoja 3 · caja fuerte</text>
+        <line x1="162" y1="29" x2="268" y2="66" stroke="#22a06b" stroke-width="2" marker-end="url(#a6)"/>
+        <line x1="162" y1="75" x2="268" y2="75" stroke="#22a06b" stroke-width="2" marker-end="url(#a6)"/>
+        <rect x="270" y="48" width="160" height="54" rx="10" fill="#e4f5ec" stroke="#9fd8bd"/><text x="350" y="71" text-anchor="middle" font-weight="800" fill="#187a50">2 hojas cualesquiera</text><text x="350" y="88" text-anchor="middle" font-size="10" fill="#187a50">reconstruyen la clave</text>
+        <line x1="432" y1="75" x2="518" y2="75" stroke="#22a06b" stroke-width="2" marker-end="url(#a6)"/>
+        <rect x="520" y="48" width="170" height="54" rx="10" fill="#0d1220"/><text x="605" y="71" text-anchor="middle" font-weight="800" fill="#fff">Bóveda abierta</text><text x="605" y="88" text-anchor="middle" font-size="10" fill="#9fb0d6">solo lectura</text>
+      </g>
+    </svg>
+    <p style="margin-top: 6px; font-size: 8.8pt">Técnica: división de secretos de Shamir. Cada hoja trae 24 palabras con verificación de errores y un código QR. Las hojas siguen sirviendo aunque cambies tu contraseña maestra.</p>
+  </div>
+  <div style="margin-top: 6mm; display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: center;">
+    <img class="shot" src="shots/sheet_crop.png">
+    <div>
+      <h3>Una hoja por persona</h3>
+      <p>Cada hoja se imprime por separado e incluye las instrucciones para quien la recibe. Si cambias de opinión, generas hojas nuevas y las anteriores dejan de servir.</p>
+    </div>
+  </div>
+  <div class="footer"><span>Vault Local</span><span>6</span></div>
+</section>
+
+<!-- 7. EMPEZAR -->
+<section class="page">
+  <div class="kicker">Empezar</div>
+  <h2>Lista en cinco minutos.</h2>
+  <p class="lead">Al abrirla por primera vez, la lista de <b>Primeros pasos</b> te lleva de la mano hasta dejar la bóveda llena, respaldada y protegida.</p>
+  <div class="grid2" style="align-items: start;">
+    <img class="shot" src="shots/gettingstarted_crop.png">
+    <div>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><div><h3>Descarga e instala</h3><p>Desde <span class="mono">vault-local.vercel.app</span>, para Windows, macOS o Linux.</p></div></div>
+        <div class="step"><div class="n">2</div><div><h3>Crea tu contraseña maestra</h3><p>Es la única que tendrás que recordar. No se guarda en ningún sitio.</p></div></div>
+        <div class="step"><div class="n">3</div><div><h3>Trae tus contraseñas</h3><p>Importa en un clic desde Chrome, Edge, Firefox, Bitwarden, 1Password, LastPass o KeePass.</p></div></div>
+        <div class="step"><div class="n">4</div><div><h3>Protégete de imprevistos</h3><p>Activa los respaldos, imprime el kit de emergencia y prepara el acceso 2 de 3.</p></div></div>
+        <div class="step"><div class="n">5</div><div><h3>Siempre al día</h3><p>La app avisa cuando hay una versión nueva y se actualiza sola, con actualizaciones firmadas.</p></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="note" style="margin-top: 8mm"><b>Importante:</b> nadie puede recuperar tu contraseña maestra, porque no la conocemos. Por eso la app incluye el kit de emergencia para anotarla en papel y el acceso de emergencia para tu familia.</div>
+  <div class="footer"><span>Vault Local</span><span>7</span></div>
+</section>
+
+<!-- 8. PLANES -->
+<section class="page">
+  <div class="kicker">Planes</div>
+  <h2>Gratis para siempre. Más comodidad si la quieres.</h2>
+  <p class="lead" style="margin-bottom: 6px">Pago anual, sin cobros automáticos. Si no renuevas, tus datos siguen intactos y vuelves al plan gratis.</p>
+  <div class="plans">
+    <div class="plan">
+      <div class="name">Gratis</div><div class="price">$0</div><div class="desc">El gestor completo, para siempre.</div>
+      <ul class="check"><li>Entradas ilimitadas</li><li>Doble cifrado y bloqueo automático</li><li>Códigos 2FA y generador</li><li>Importar y exportar</li><li>Respaldos y papelera</li><li>Acceso de emergencia 2 de 3</li></ul>
+    </div>
+    <div class="plan hl">
+      <div class="name">Premium</div><div class="price">$15 <small>/ año</small></div><div class="desc">La comodidad del día a día.</div>
+      <ul class="check"><li>Búsqueda rápida global</li><li>Copia en secuencia y escritura automática</li><li>PIN y Windows Hello</li><li>Tiempos de bloqueo hasta 8 h</li><li>Auditoría y filtraciones</li><li>Adjuntos, historial, compartir, QR Wi-Fi</li></ul>
+    </div>
+    <div class="plan">
+      <div class="name">Pro</div><div class="price">$39 <small>/ año</small></div><div class="desc">Todo Premium, para varias bóvedas y equipos.</div>
+      <ul class="check"><li>Todo lo de Premium</li><li>Bóvedas múltiples</li><li>Sincronización cifrada entre equipos</li></ul>
+    </div>
+  </div>
+
+  <table class="matrix">
+    <tr><th style="text-align:left"></th><th>Gratis</th><th>Premium</th><th>Pro</th></tr>
+    <tr class="grp"><td colspan="4">Seguridad</td></tr>
+    <tr><td>Doble cifrado, bloqueo al suspender y Win+L</td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+    <tr><td>Bloqueo por inactividad</td><td>hasta 5 min</td><td>hasta 8 h, con pausa</td><td>hasta 8 h, con pausa</td></tr>
+    <tr><td>Portapapeles que se borra solo</td><td>hasta 15 s</td><td>hasta 5 min</td><td>hasta 5 min</td></tr>
+    <tr><td>Acceso de emergencia y kit imprimible</td><td><span class="dot"></span></td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+    <tr><td>Auditoría detallada y filtraciones</td><td class="dash">—</td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+    <tr class="grp"><td colspan="4">Comodidad</td></tr>
+    <tr><td>Búsqueda rápida, copia en secuencia, escritura automática</td><td class="dash">—</td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+    <tr><td>Desbloqueo con PIN o Windows Hello</td><td class="dash">—</td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+    <tr><td>Adjuntos, historial, compartir, QR de Wi-Fi</td><td class="dash">—</td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+    <tr class="grp"><td colspan="4">Varias bóvedas y equipos</td></tr>
+    <tr><td>Bóvedas múltiples</td><td class="dash">—</td><td class="dash">—</td><td><span class="dot"></span></td></tr>
+    <tr><td>Sincronización cifrada</td><td class="dash">—</td><td class="dash">—</td><td><span class="dot"></span></td></tr>
+  </table>
+
+  <div class="card" style="margin-top: 7mm; display: flex; justify-content: space-between; align-items: center; gap: 14px;">
+    <div>
+      <h3>Pruébalo todo gratis durante 30 días</h3>
+      <p>Pide tu licencia de prueba Pro en <span class="mono">vault-local.vercel.app/prueba.html</span>: llega a tu correo en un minuto, sin tarjeta.</p>
+    </div>
+    <div style="text-align:right; font-weight:800; font-size: 12pt; color: var(--blue); white-space: nowrap">vault-local.vercel.app</div>
+  </div>
+  <div class="footer"><span>Precios en dólares estadounidenses. Pago con PayPal o tarjeta.</span><span>8</span></div>
+</section>
+
+</body>
+</html>

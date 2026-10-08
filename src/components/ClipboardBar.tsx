@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useClipboard } from '../hooks/useClipboard';
 import { useSettings } from '../hooks/useSettings';
 import { useTr } from '../i18n';
@@ -9,6 +9,20 @@ export function ClipboardBar({ onUpgrade }: { onUpgrade?: () => void }) {
   const { limits } = useSettings();
   const tr = useTr();
   const [msg, setMsg] = useState<string | null>(null);
+  // Consejo que se muestra solo la primera vez que se copia algo
+  const [tip, setTip] = useState(false);
+  const active = countdown > 0;
+  useEffect(() => {
+    if (!active) return;
+    try {
+      if (localStorage.getItem('vault-local-tip-clipboard') !== 'true') {
+        setTip(true);
+        localStorage.setItem('vault-local-tip-clipboard', 'true');
+      }
+    } catch {
+      // sin almacenamiento: sin consejo
+    }
+  }, [active]);
 
   if (countdown <= 0) return null;
 
@@ -37,6 +51,14 @@ export function ClipboardBar({ onUpgrade }: { onUpgrade?: () => void }) {
         {tr('Borrar ahora', 'Clear now')}
       </button>
       {msg && <span className="clipboard-bar-error">{msg}</span>}
+      {tip && (
+        <span className="clipboard-bar-tip">
+          {tr(
+            'Consejo: lo copiado se borra solo y no queda en el historial del portapapeles de Windows (Win+V) ni en la nube.',
+            'Tip: copied content clears itself and is kept out of Windows clipboard history (Win+V) and the cloud.',
+          )}
+        </span>
+      )}
     </div>
   );
 }

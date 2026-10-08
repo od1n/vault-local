@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useSettings } from '../hooks/useSettings';
 import { EmergencyKit } from './extras/EmergencyKit';
 import { EmergencySetupDialog } from './emergency/EmergencySetupDialog';
+import { UpdateSettings } from './UpdateSettings';
 import type { AppSettings } from '../types';
 import { useTr } from '../i18n';
 
@@ -273,6 +274,8 @@ export function SettingsDialog({ onClose, onUpgrade }: Props) {
               </>
             )}
           </div>
+
+          <UpdateSettings />
 
           <div className="settings-section">
             <h3>{tr('Recuperación', 'Recovery')}</h3>

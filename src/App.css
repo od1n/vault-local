@@ -3040,3 +3040,181 @@ a {
     padding: 24px;
   }
 }
+
+/* --- Actualizaciones --- */
+.update-card {
+  position: fixed;
+  right: 16px;
+  bottom: 72px;
+  z-index: 900;
+  width: 340px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  box-shadow: var(--shadow-lg);
+  animation: fadeInUp 0.3s ease;
+}
+
+.update-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.update-card-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.update-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.clipboard-bar {
+  flex-wrap: wrap;
+}
+
+.clipboard-bar-tip {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* --- Primeros pasos --- */
+.getting-started {
+  width: 100%;
+  max-width: 620px;
+  margin: 24px auto;
+  padding: 20px 22px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  align-self: flex-start;
+}
+
+.getting-started-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.getting-started-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.getting-started-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.getting-started-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.06));
+  margin: 14px 0 6px;
+  overflow: hidden;
+}
+
+.getting-started-bar > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.getting-started-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.gs-step {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.gs-step:last-child {
+  border-bottom: none;
+}
+
+.gs-check {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.gs-step.next .gs-check {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.gs-step.done .gs-check {
+  background: var(--success, #4caf50);
+  border-color: var(--success, #4caf50);
+  color: #fff;
+}
+
+.gs-step.done .gs-title {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.gs-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.gs-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 3px;
+}
+
+.gs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.no-selection .getting-started {
+  color: var(--text-primary);
+  margin: 24px 16px;
+  width: calc(100% - 32px);
+}
+
+/* Tres botones (Importar, Exportar, Recibir) en una barra lateral estrecha */
+.sidebar-ie-actions {
+  gap: 4px;
+}
+
+.sidebar-ie-btn {
+  min-width: 0;
+  padding: 7px 4px;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sidebar-ie-btn svg {
+  flex-shrink: 0;
+}

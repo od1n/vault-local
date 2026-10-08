@@ -8,6 +8,7 @@ import { useTheme } from './hooks/useTheme';
 import { LockScreen } from './components/LockScreen';
 import { QuickUnlockPanel } from './components/QuickUnlockPanel';
 import { Dashboard } from './components/Dashboard';
+import { UpdateManager } from './components/UpdateManager';
 import { VaultSwitcher } from './components/vaults/VaultSwitcher';
 import { EmergencyOpenDialog } from './components/emergency/EmergencyOpenDialog';
 import type { VaultList } from './types';
@@ -81,8 +82,17 @@ function AppContent() {
     };
   }, [authState, lock]);
 
+  // Una sola instancia del gestor de actualizaciones en todas las pantallas (conserva la
+  // descarga al bloquear/desbloquear)
+  const withUpdater = (node: React.ReactNode) => (
+    <>
+      {node}
+      <UpdateManager locked={authState !== 'unlocked'} />
+    </>
+  );
+
   if (authState === 'loading') {
-    return (
+    return withUpdater(
       <ToastProvider>
         <div className="loading-screen">
           <div className="loading-spinner" />
@@ -93,7 +103,7 @@ function AppContent() {
   }
 
   if (authState === 'setup') {
-    return (
+    return withUpdater(
       <ToastProvider>
         <LockScreen
           key="setup"
@@ -116,7 +126,7 @@ function AppContent() {
   }
 
   if (authState === 'locked') {
-    return (
+    return withUpdater(
       <ToastProvider>
         <LockScreen
           key="unlock"
@@ -142,7 +152,7 @@ function AppContent() {
     );
   }
 
-  return (
+  return withUpdater(
     <ToastProvider>
       <Dashboard onLock={lock} theme={theme} toggleTheme={toggleTheme} />
     </ToastProvider>

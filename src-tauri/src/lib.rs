@@ -94,6 +94,9 @@ fn save_window_state(window: &tauri::Window) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // Actualizaciones firmadas desde GitHub Releases (latest.json) y reinicio tras instalar
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(AppState::new())
         .setup(|app| {
             let window = app

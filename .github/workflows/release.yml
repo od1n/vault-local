@@ -69,7 +69,12 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Firma de las actualizaciones automáticas (secreto en GitHub → Settings → Secrets)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
+          # Publica latest.json para que la app detecte versiones nuevas
+          includeUpdaterJson: true
           args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
           releaseName: "Vault Local ${{ github.ref_name }}"

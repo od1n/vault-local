@@ -97,7 +97,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                   <line x1="8" y1="21" x2="16" y2="21" />
                   <line x1="12" y1="17" x2="12" y2="21" />
                 </svg>
-                {tr('Instala la extension de navegador para autocompletar', 'Install the browser extension for autofill')}
+                {tr('Instala la extensión de navegador para autocompletar', 'Install the browser extension for autofill')}
               </div>
             </div>
             <button className="btn btn-primary" onClick={handleNext}>{tr('Siguiente', 'Next')}</button>
@@ -115,7 +115,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <h2 className="onboarding-title">{tr('Recuerda tu contraseña maestra', 'Remember your master password')}</h2>
             <div className="onboarding-warning">
               <p className="onboarding-warning-text">
-                {tr('Tu contraseña maestra es la UNICA forma de acceder a tus datos. No la almacenamos ni la podemos recuperar. Guardala en un lugar seguro.', 'Your master password is the ONLY way to access your data. We do not store it and cannot recover it. Keep it somewhere safe.')}
+                {tr('Tu contraseña maestra es la ÚNICA forma de acceder a tus datos. No la almacenamos ni la podemos recuperar. Guárdala en un lugar seguro.', 'Your master password is the ONLY way to access your data. We do not store it and cannot recover it. Keep it somewhere safe.')}
               </p>
             </div>
             <button className="btn btn-primary" onClick={handleNext}>{tr('Entendido, comenzar', 'Got it, let\'s start')}</button>

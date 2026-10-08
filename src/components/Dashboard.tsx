@@ -28,6 +28,7 @@ import { ShareDialog } from './extras/ShareDialog';
 import { BackupSettings } from './BackupSettings';
 import { Onboarding } from './Onboarding';
 import { SecurityAlert } from './SecurityAlert';
+import { GettingStarted, gettingStartedHidden, showGettingStarted } from './GettingStarted';
 import type { EntryCategory, EntryMeta, NewEntry, SessionInfo, UpdateEntry } from '../types';
 
 interface AuditSummary {
@@ -107,6 +108,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     invoke<SessionInfo>('get_session_info').then(setSession).catch(() => setSession(null));
   }, []);
   const readOnly = session?.read_only ?? false;
+  const [gsHidden, setGsHidden] = useState(gettingStartedHidden);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -608,18 +610,20 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           </div>
         )}
 
+        {auditSummary && !auditDismissed && !showAudit && (
+          <div style={{ padding: '12px 16px 0' }}>
+          <SecurityAlert
+            summary={auditSummary}
+            onReview={() => {
+              setShowAudit(true);
+              setShowSshAgent(false);
+              setAuditDismissed(true);
+            }}
+            onDismiss={() => setAuditDismissed(true)}
+          />
+          </div>
+        )}
         <div className="main-body">
-          {auditSummary && !auditDismissed && !showAudit && (
-            <SecurityAlert
-              summary={auditSummary}
-              onReview={() => {
-                setShowAudit(true);
-                setShowSshAgent(false);
-                setAuditDismissed(true);
-              }}
-              onDismiss={() => setAuditDismissed(true)}
-            />
-          )}
           {showAudit ? (
             <AuditPanel
               onClose={() => setShowAudit(false)}
@@ -679,6 +683,28 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                   )}
                 />
               ) : (
+                !readOnly && !gsHidden ? (
+                  <div className="no-selection" style={{ overflowY: 'auto', justifyContent: 'flex-start' }}>
+                    <GettingStarted
+                      entryCount={allEntries.length}
+                      quickSearchEnabled={settings.quick_search_enabled}
+                      isPremium={isPremium}
+                      onNewEntry={handleNewEntry}
+                      onImport={() => setImportExportMode('import')}
+                      onBackup={() => setShowBackup(true)}
+                      onSettings={() => setShowSettings(true)}
+                      onUpgrade={() => setShowLicense(true)}
+                      onHide={() => {
+                        try {
+                          localStorage.setItem('vault-local-getting-started-hidden', 'true');
+                        } catch {
+                          // sin almacenamiento
+                        }
+                        setGsHidden(true);
+                      }}
+                    />
+                  </div>
+                ) : (
                 <div className="no-selection">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" />
@@ -686,7 +712,19 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                     <path d="M10.5 10V8.5a1.5 1.5 0 013 0V10" />
                   </svg>
                   <p>{t('dashboard.select_hint')}</p>
+                  {!readOnly && (
+                    <button
+                      className="link-button"
+                      onClick={() => {
+                        showGettingStarted();
+                        setGsHidden(false);
+                      }}
+                    >
+                      {tr('Ver primeros pasos', 'Show getting started')}
+                    </button>
+                  )}
                 </div>
+                )
               )}
             </>
           )}
