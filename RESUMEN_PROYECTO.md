@@ -243,6 +243,11 @@ SECURITY.md                # Política de seguridad
 | `PROMO_CODES` | Variable de entorno en Vercel | Ej.: `PRODUCTHUNT2026:2026-12-31`. Da Pro (todas las funciones) de prueba por 30 días |
 | Puerto IPC | `51820` en `ipc_server.rs` y `extension/native-host/host.cjs` | Comunicación app ↔ extensión |
 
+### Clave de firma de las actualizaciones (desde v0.5.0)
+- Privada: `D:\Desarrollo\Claude\Projects\Caja Segura\vault-local-secrets\updater.key` (sin contraseña). NUNCA al repositorio.
+- Copiada en GitHub como secreto `TAURI_SIGNING_PRIVATE_KEY` (Settings → Secrets and variables → Actions). Sin ese secreto, la publicación falla.
+- Pública: en `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`. Si se pierde la privada, las apps instaladas no aceptarán más actualizaciones automáticas (habría que reinstalar a mano con una clave nueva).
+
 ### Cómo activar o renovar TU licencia (modo completo fijo)
 
 Tu licencia es de tipo `owner` y **no vence**. Ya está generada en
@@ -341,7 +346,6 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 ### Desarrollo
 - [ ] Reembolsos y contracargos de PayPal no revocan la licencia (las licencias offline no se pueden revocar; solo vencen)
 - [ ] Límite de canjes de promoción global (hoy es por instancia de Vercel; haría falta Vercel KV)
-- [ ] Actualizaciones automáticas de la app (tauri-plugin-updater con firma); hoy se descarga a mano
 - [ ] Mensajes de error del backend (Rust) solo en español
 - [ ] Video demo
 - [ ] Firma de código (diferido hasta tener ingresos; ~$200-400/año)
@@ -406,6 +410,7 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 | v0.1.1 | Correcciones, PayPal integration, promo codes |
 | v0.1.3 | i18n, CI multiplataforma, Vercel analytics |
 | v0.2.0 (no publicar) | Auto-backup, alertas seguridad, landings EN/PT/DE, fixes clippy/fmt/audit, Node 24 |
+| v0.5.0 | Actualizaciones automáticas firmadas, lista de Primeros pasos, folleto PDF |
 | v0.4.0 | Bóvedas múltiples (Pro), acceso de emergencia 2 de 3, interfaz en inglés, cambio de contraseña atómico, etiquetas en sync/exportación |
 | v0.3.0 | Licencias Ed25519 + planes anuales, tiempos configurables, portapapeles seguro, bandeja, búsqueda rápida, escritura automática, papelera, etiquetas, historial, compartir, desbloqueo rápido |
 
