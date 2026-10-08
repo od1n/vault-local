@@ -12,8 +12,8 @@ Password manager local-only, zero-knowledge, open-source. No hay cuentas, no hay
 - **Stack**: Tauri 2.0 (Rust backend + React/TypeScript frontend)
 - **Repo**: https://github.com/od1n/vault-local
 - **Website/Landing**: https://vault-local.vercel.app (Vercel)
-- **Versión actual**: 0.3.0 (sin publicar; v0.2.0 nunca se etiquetó y no debe publicarse: tenía el hueco de licencias)
-- **Tags de release publicados**: v0.1.0, v0.1.1, v0.1.3
+- **Versión actual**: 0.3.0 (publicada el 2026-10-08; v0.2.0 nunca se etiquetó)
+- **Tags de release publicados**: v0.1.0, v0.1.1, v0.1.3, v0.3.0
 - **Licencia**: Freemium — gratis / Premium $15 al año / Pro $39 al año (licencias Ed25519 offline)
 
 ---
@@ -332,12 +332,13 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 
 ### Antes de publicar v0.3.0 (en este orden)
 - [ ] Configurar en Vercel las variables de `website/api/README.md` (sobre todo `LICENSE_PRIVATE_KEY`, `PAYPAL_*`, `RESEND_FROM`, `PROMO_CODES`)
-- [ ] Verificar un dominio en Resend (el remitente `noreply@vault-local.vercel.app` nunca pudo funcionar)
+- [x] Dominio de correo: `vinculo.dev` verificado en Resend; remitente `licencias@vinculo.dev`
 - [ ] Crear el webhook de PayPal apuntando a `/api/paypal-webhook` con el evento `PAYMENT.CAPTURE.COMPLETED`
 - [ ] Hacer una compra de prueba (sandbox o $15 real reembolsado) y comprobar que llega el correo
-- [ ] Probar en Windows: `cargo tauri dev`, bandeja, atajo global, escritura automática, Win+L, Windows Hello
-- [ ] Activar la licencia `owner` en tu app
-- [ ] Crear tag v0.3.0 (no publicar v0.2.0)
+- [x] Probar en Windows (`npm run tauri dev`) y activar la licencia `owner`
+- [x] Tag v0.3.0 publicado con instaladores para Windows, macOS y Linux
+- [ ] Probar el canje en https://vault-local.vercel.app/prueba.html?codigo=PRODUCTHUNT2026 una vez cargadas las variables en Vercel
+- [ ] Al publicar una versión: `@tauri-apps/api` (npm) debe tener la misma versión menor que la biblioteca `tauri` de Rust, o la publicación falla
 
 ### Desarrollo
 - [ ] Traducir al inglés los textos nuevos (hoy solo en español; la app ya mezclaba idiomas)
@@ -407,7 +408,7 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 | v0.1.1 | Correcciones, PayPal integration, promo codes |
 | v0.1.3 | i18n, CI multiplataforma, Vercel analytics |
 | v0.2.0 (no publicar) | Auto-backup, alertas seguridad, landings EN/PT/DE, fixes clippy/fmt/audit, Node 24 |
-| v0.3.0 (pendiente tag) | Licencias Ed25519 + planes anuales, tiempos configurables, portapapeles seguro, bandeja, búsqueda rápida, escritura automática, papelera, etiquetas, historial, compartir, desbloqueo rápido |
+| v0.3.0 | Licencias Ed25519 + planes anuales, tiempos configurables, portapapeles seguro, bandeja, búsqueda rápida, escritura automática, papelera, etiquetas, historial, compartir, desbloqueo rápido |
 
 ---
 
