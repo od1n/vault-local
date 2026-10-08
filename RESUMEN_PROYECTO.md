@@ -1,7 +1,7 @@
 # Vault Local — Resumen Completo del Proyecto
 
 > Documento de referencia para retomar el desarrollo en cualquier sesión de chat.
-> Última actualización: 2026-10-08
+> Última actualización: 2026-10-08 (v0.3.0: licencias Ed25519, tiempos configurables, acceso rápido, papelera, desbloqueo rápido)
 
 ---
 
@@ -12,9 +12,9 @@ Password manager local-only, zero-knowledge, open-source. No hay cuentas, no hay
 - **Stack**: Tauri 2.0 (Rust backend + React/TypeScript frontend)
 - **Repo**: https://github.com/od1n/vault-local
 - **Website/Landing**: https://vault-local.vercel.app (Vercel)
-- **Versión actual**: 0.2.0
+- **Versión actual**: 0.3.0 (sin publicar; v0.2.0 nunca se etiquetó y no debe publicarse: tenía el hueco de licencias)
 - **Tags de release publicados**: v0.1.0, v0.1.1, v0.1.3
-- **Licencia**: Freemium (personal gratis, Premium con clave de licencia)
+- **Licencia**: Freemium — gratis / Premium $15 al año / Pro $39 al año (licencias Ed25519 offline)
 
 ---
 
@@ -67,15 +67,20 @@ src-tauri/
 │   ├── lockout.rs           # Bloqueo por intentos fallidos
 │   ├── security.rs          # Módulo de seguridad
 │   ├── ipc_server.rs        # Servidor IPC para extensión (puerto 51820)
+│   ├── settings.rs          # Ajustes (settings.json) con límites gratis/pago aplicados en backend
+│   ├── desktop.rs           # Suspensión/Win+L, bandeja, atajo global, ventana de búsqueda rápida
+│   ├── quick_unlock.rs      # Desbloqueo rápido con PIN / Windows Hello (solo en memoria)
 │   ├── commands/
 │   │   ├── mod.rs
 │   │   ├── auth.rs          # create_vault, unlock, lock, change_password
 │   │   ├── vault.rs         # CRUD entradas (get, create, update, delete, toggle_favorite)
-│   │   ├── clipboard.rs     # Copiar al portapapeles (auto-clear 15s)
+│   │   ├── clipboard.rs     # Portapapeles: un temporizador, extender, borrar ahora, fuera del historial Win+V
 │   │   ├── audit.rs         # Auditoría passwords (weak, reused, old, HIBP)
 │   │   ├── backup.rs        # Respaldos automáticos (al bloquear vault)
 │   │   ├── totp.rs          # Generador TOTP (RFC 6238)
-│   │   ├── license.rs       # Licencias offline (HMAC-SHA256)
+│   │   ├── license.rs       # Licencias v2 offline (firma Ed25519, solo clave pública en la app)
+│   │   ├── quick.rs         # Búsqueda rápida, copia en secuencia, escritura automática
+│   │   ├── share.rs         # Compartir entrada como archivo .vlshare cifrado
 │   │   ├── import_export.rs # CSV, JSON, KDBX (KeePass)
 │   │   ├── sync.rs          # Sincronización cifrada entre dispositivos
 │   │   ├── ssh_agent.rs     # Agente SSH integrado
@@ -117,15 +122,22 @@ src/
 │   ├── ImportExportDialog.tsx
 │   ├── ChangePasswordDialog.tsx
 │   ├── LicenseDialog.tsx
-│   └── Toast.tsx            # Notificaciones
+│   ├── Toast.tsx            # Notificaciones
+│   ├── SettingsDialog.tsx   # Ajustes (bloqueo, portapapeles, acceso rápido, desbloqueo rápido)
+│   ├── LockWarning.tsx      # Aviso antes del bloqueo automático (Sigo aquí / Pausar)
+│   ├── ClipboardBar.tsx     # Barra de portapapeles (+30 s / Borrar ahora)
+│   ├── QuickSearch.tsx      # Ventana flotante de búsqueda rápida (index.html#quick)
+│   ├── QuickUnlockPanel.tsx # PIN / Windows Hello en la pantalla de bloqueo
+│   └── extras/              # EntryExtras, TrashPanel, ShareDialog, HistoryDialog, WifiQrDialog, EmergencyKit
 ├── hooks/
 │   ├── useAuth.ts           # Estado de autenticación
 │   ├── useVault.ts          # CRUD de entradas
-│   ├── useClipboard.ts      # Copiar al portapapeles
+│   ├── useClipboard.tsx     # Contexto global del portapapeles
+│   ├── useSettings.tsx      # Contexto de ajustes y pausa del bloqueo
+│   ├── useAutoLock.ts       # Bloqueo por inactividad con aviso
 │   ├── useBackup.ts         # Respaldos
 │   ├── useLicense.ts        # Licencias
-│   ├── useTheme.ts          # Tema claro/oscuro
-│   └── useInactivity.ts     # Auto-lock por inactividad
+│   └── useTheme.ts          # Tema claro/oscuro
 └── i18n/
     ├── index.ts
     ├── I18nProvider.tsx
@@ -167,9 +179,12 @@ website/
 ├── privacy.html        # Política de privacidad (español)
 ├── privacy-en.html     # Política de privacidad (inglés)
 ├── _redirects          # Redirecciones Vercel
+├── package.json        # "type": "module" para las funciones
 └── api/
-    ├── paypal-webhook.js   # Serverless function: PayPal → generar licencia → email (Resend)
-    └── README.md
+    ├── _license.js         # Firma Ed25519 y envío de correo (no se publica como endpoint)
+    ├── paypal-webhook.js   # PayPal (verificado) → licencia de 1 año → correo (Resend)
+    ├── redeem-promo.js     # Código promocional → licencia Premium de 30 días → correo
+    └── README.md           # Variables de entorno y configuración paso a paso
 ```
 
 ### CI/CD (`.github/workflows/`)
@@ -208,6 +223,10 @@ SECURITY.md                # Política de seguridad
 | `arboard` | 3 | Portapapeles del sistema |
 | `reqwest` | 0.12 | HIBP API (blocking) |
 | `tauri-plugin-dialog` | 2 | Diálogos nativos |
+| `tauri-plugin-global-shortcut` | 2 | Atajo global de búsqueda rápida |
+| `ed25519-dalek` | 2 | Verificación de licencias |
+| `enigo` | 0.6 | Escritura automática (simula el teclado) |
+| `windows-sys` / `windows` | 0.59 / 0.61 | Detección de Win+L y Windows Hello (solo Windows) |
 
 ---
 
@@ -215,13 +234,36 @@ SECURITY.md                # Política de seguridad
 
 | Valor | Ubicación | Notas |
 |-------|-----------|-------|
-| `LICENSE_SIGNING_KEY` | `src-tauri/src/commands/license.rs` Y `website/api/paypal-webhook.js` | **DEBEN coincidir**. Cambiar en producción. |
-| PayPal Client ID | `website/index.html` (hardcoded) | Live mode |
-| `RESEND_API_KEY` | Variable de entorno en Vercel | Para envío de emails con licencia |
+| Clave PRIVADA de licencias (Ed25519) | `D:\Desarrollo\Claude\Projects\Caja Segura\vault-local-secrets\license-private-key.txt` y variable `LICENSE_PRIVATE_KEY` en Vercel | **Nunca** en el repositorio. Si se filtra, hay que generar otro par y publicar una versión nueva |
+| Clave PÚBLICA de licencias | `src-tauri/src/commands/license.rs` (`LICENSE_PUBLIC_KEY`) y `vault-local-secrets\license-public-key.hex` | Pública; solo sirve para verificar |
+| Tu licencia `owner` (sin vencimiento) | `D:\Desarrollo\Claude\Projects\Caja Segura\vault-local-secrets\licencia-owner.txt` | Guárdala también dentro de tu bóveda |
+| PayPal Client ID | `website/index.html` (y en/pt/de) | Live mode |
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` | Variables de entorno en Vercel | Para verificar los avisos de PayPal |
+| `RESEND_API_KEY`, `RESEND_FROM` | Variables de entorno en Vercel | `RESEND_FROM` debe usar un dominio verificado en Resend |
+| `PROMO_CODES` | Variable de entorno en Vercel | Ej.: `PRODUCTHUNT2026:2026-12-31`. Da Premium de prueba por 30 días |
 | Puerto IPC | `51820` en `ipc_server.rs` y `extension/native-host/host.cjs` | Comunicación app ↔ extensión |
-| Código promocional | `PRODUCTHUNT2026` | Activa Premium |
 
----
+### Cómo activar o renovar TU licencia (modo completo fijo)
+
+Tu licencia es de tipo `owner` y **no vence**. Ya está generada en
+`D:\Desarrollo\Claude\Projects\Caja Segura\vault-local-secrets\licencia-owner.txt`.
+
+1. Abre ese archivo con el Bloc de notas y copia todo el texto (empieza con `VL2-`).
+2. En Vault Local, desbloquea la bóveda y haz clic en **Upgrade / Actualizar** (arriba a la izquierda, junto al ícono del tema).
+3. Pega la clave en el campo **Clave de licencia** y pulsa **Activar**.
+
+Para emitir una nueva (por ejemplo, si cambias de correo o necesitas una licencia de cortesía), en PowerShell 7:
+
+```powershell
+Set-Location 'D:\Desarrollo\Claude\Projects\Caja Segura\vault-local'
+node 'D:\Desarrollo\Claude\Projects\Caja Segura\vault-local\tools\issue-license.mjs' --key-file 'D:\Desarrollo\Claude\Projects\Caja Segura\vault-local-secrets\license-private-key.txt' --email x0d1ns0x@gmail.com --tier owner
+# Licencia Pro de 1 año para un cliente:
+node 'D:\Desarrollo\Claude\Projects\Caja Segura\vault-local\tools\issue-license.mjs' --key-file 'D:\Desarrollo\Claude\Projects\Caja Segura\vault-local-secrets\license-private-key.txt' --email cliente@correo.com --tier pro --days 365
+```
+
+Nadie más puede hacer esto: sin el archivo de clave privada no se pueden firmar licencias válidas.
+Limitación inevitable del código abierto: alguien técnico puede compilar su propia copia sin la
+verificación; lo protegido es el instalador oficial.
 
 ## 6. Cómo Desarrollamos (Convenciones)
 
@@ -265,10 +307,18 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 
 ## 8. Monetización
 
-### Actual: PayPal
-- Checkout integrado en landing page
-- Webhook serverless en Vercel: recibe pago → genera clave HMAC → envía email via Resend
-- Funciona end-to-end
+### Actual: PayPal (pago único anual, renovación manual)
+- Checkout en la página: Premium $15/año, Pro $39/año
+- Webhook en Vercel: verifica el aviso con PayPal → consulta la orden → firma licencia Ed25519 de 1 año → correo con Resend
+- PENDIENTE de configurar: variables de entorno nuevas y webhook (ver `website/api/README.md`)
+
+### Planes
+| Plan | Precio | Incluye |
+|---|---|---|
+| Gratis | $0 | Todo el gestor; tiempos de bloqueo ≤ 5 min y portapapeles ≤ 15 s; papelera, etiquetas, kit de emergencia, bloqueo al suspender/Win+L, recibir entradas compartidas |
+| Premium | $15/año | Tiempos hasta 8 h / 5 min, pausar bloqueo, +30 s portapapeles, bandeja, búsqueda rápida global, copia en secuencia, escritura automática, desbloqueo rápido PIN/Windows Hello, historial de contraseñas, vencimientos, compartir cifrado, QR Wi-Fi, HIBP, auditoría detallada, adjuntos |
+| Pro | $39/año | Premium + sincronización cifrada |
+| Owner | — | Todo, sin vencimiento (solo para el autor) |
 
 ### Pendiente: Binance Pay
 - Investigación completa en `BINANCE_PAY_RESEARCH.md`
@@ -280,28 +330,35 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 
 ## 9. Lo que Falta por Hacer
 
+### Antes de publicar v0.3.0 (en este orden)
+- [ ] Configurar en Vercel las variables de `website/api/README.md` (sobre todo `LICENSE_PRIVATE_KEY`, `PAYPAL_*`, `RESEND_FROM`, `PROMO_CODES`)
+- [ ] Verificar un dominio en Resend (el remitente `noreply@vault-local.vercel.app` nunca pudo funcionar)
+- [ ] Crear el webhook de PayPal apuntando a `/api/paypal-webhook` con el evento `PAYMENT.CAPTURE.COMPLETED`
+- [ ] Hacer una compra de prueba (sandbox o $15 real reembolsado) y comprobar que llega el correo
+- [ ] Probar en Windows: `cargo tauri dev`, bandeja, atajo global, escritura automática, Win+L, Windows Hello
+- [ ] Activar la licencia `owner` en tu app
+- [ ] Crear tag v0.3.0 (no publicar v0.2.0)
+
 ### Desarrollo
-- [ ] Probar `cargo tauri build` local con las features nuevas (backup, alerts)
-- [ ] Crear tag v0.2.0 y publicar release
-- [ ] Video demo (investigar herramientas de grabación automatizada)
-- [ ] Firma de código (diferido hasta tener ingresos reales; cuesta ~$200-400/año)
+- [ ] Traducir al inglés los textos nuevos (hoy solo en español; la app ya mezclaba idiomas)
+- [ ] "Bóvedas múltiples" aparece en el plan Pro de la página pero NO está implementado: implementarlo o quitarlo
+- [ ] El cambio de contraseña maestra no reinicia el servidor IPC de la extensión con las claves nuevas (revisar)
+- [ ] El cambio de contraseña maestra no es transaccional (si falla a mitad puede dejar la bóveda inconsistente)
+- [ ] Etiquetas y vencimientos no viajan en la sincronización cifrada ni en exportar/importar
+- [ ] Video demo
+- [ ] Firma de código (diferido hasta tener ingresos; ~$200-400/año)
 
 ### Extensiones
 - [ ] Verificar aprobación Chrome Web Store
 - [ ] Verificar aprobación Firefox AMO
-- [ ] Responder a cualquier feedback de los revisores
 
 ### Monetización
-- [ ] Aplicar como merchant en Binance Pay
-- [ ] Implementar webhook Binance Pay (similar al de PayPal, en `website/api/`)
+- [ ] Aplicar como merchant en Binance Pay y crear su webhook (mismo patrón que PayPal, usando `_license.js`)
 
 ### Promoción
 - [ ] Ejecutar plan de 4 semanas de `COMUNIDADES_PROMOCION.md`
-- [ ] Construir karma en Reddit/HN orgánicamente (no automatizable — viola TOS)
-- [ ] Posts en Lemmy, Mastodon, Lobste.rs, foros de seguridad
-- [ ] Considerar Product Hunt launch
-
----
+- [ ] Construir karma en Reddit/HN orgánicamente
+- [ ] Considerar Product Hunt launch (código `PRODUCTHUNT2026` vía `PROMO_CODES`)
 
 ## 10. Features Implementadas (Completo)
 
@@ -318,15 +375,25 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 11. **Sincronización cifrada** — Exportar/importar archivo cifrado entre dispositivos
 12. **Archivos adjuntos** — Cifrados con XChaCha20
 13. **Agente SSH** — Listar, agregar, remover claves del agente del sistema
-14. **Portapapeles seguro** — Auto-clear a 15 segundos
-15. **Licencias offline** — HMAC-SHA256, sin conexión requerida
+14. **Portapapeles seguro** — Borrado automático configurable, extender, borrar ahora, fuera del historial Win+V
+15. **Licencias offline** — Ed25519 (v2), planes anuales, prueba de 30 días por código
 16. **Tema claro/oscuro** — Preferencia del sistema
 17. **i18n** — Español + inglés
-18. **Auto-lock** — Bloqueo por inactividad
+18. **Auto-lock** — Configurable (1 min–8 h), aviso previo, pausar; al suspender, Win+L o minimizar
 19. **Bloqueo por intentos** — Lockout progresivo
 20. **Extensión Chrome/Firefox** — Autofill, popup, native messaging
 21. **Persistencia de ventana** — Recuerda posición y tamaño
-22. **Landing multi-idioma** — ES, EN, PT, DE con descargas por plataforma
+22. **Landing multi-idioma** — ES, EN, PT, DE con descargas por plataforma y canje de códigos
+23. **Bandeja del sistema y búsqueda rápida global** — Atajo configurable, Enter/Ctrl+U/Ctrl+T/Ctrl+Enter
+24. **Copia en secuencia** — Usuario → contraseña → TOTP pulsando el atajo global
+25. **Escritura automática** — Secuencias `{USERNAME}{TAB}{PASSWORD}{ENTER}{DELAY n}`
+26. **Papelera** — 30 días, restaurar, vaciar
+27. **Etiquetas, recientes por uso real, duplicar entrada**
+28. **Historial de contraseñas** (hasta 20 por entrada) y **fecha para cambiar la contraseña**
+29. **Compartir entrada cifrada** (.vlshare) y **QR de Wi-Fi**
+30. **Plantillas** Tarjeta, Wi-Fi e Identidad
+31. **Desbloqueo rápido** con PIN o Windows Hello (solo en memoria, caduca)
+32. **Kit de emergencia** imprimible
 
 ---
 
@@ -337,7 +404,8 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 | v0.1.0 | Release inicial: vault CRUD, cifrado, generador, portapapeles |
 | v0.1.1 | Correcciones, PayPal integration, promo codes |
 | v0.1.3 | i18n, CI multiplataforma, Vercel analytics |
-| v0.2.0 (pendiente tag) | Auto-backup, alertas seguridad, landings EN/PT/DE, fixes clippy/fmt/audit, Node 24 |
+| v0.2.0 (no publicar) | Auto-backup, alertas seguridad, landings EN/PT/DE, fixes clippy/fmt/audit, Node 24 |
+| v0.3.0 (pendiente tag) | Licencias Ed25519 + planes anuales, tiempos configurables, portapapeles seguro, bandeja, búsqueda rápida, escritura automática, papelera, etiquetas, historial, compartir, desbloqueo rápido |
 
 ---
 
@@ -348,7 +416,7 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 Proyecto: Vault Local — password manager local, Tauri 2.0 + Rust + React.
 Repo: https://github.com/od1n/vault-local
 Ruta: D:\Desarrollo\Claude\Projects\Caja Segura\vault-local\
-Versión: 0.2.0
+Versión: 0.3.0
 CI: cargo fmt, clippy -D warnings, cargo audit, tsc --noEmit
 Lee RESUMEN_PROYECTO.md en la raíz del repo para contexto completo.
 Usa español neutro, nunca argentino.
