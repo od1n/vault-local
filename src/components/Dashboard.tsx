@@ -497,15 +497,15 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               </svg>
               {t('dashboard.export')}
             </button>
+            <button className="sidebar-ie-btn" onClick={() => setShowShareImport(true)} title="Recibir una entrada compartida (.vlshare)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+              Recibir
+            </button>
           </div>
-          <button className="sidebar-lock-btn" onClick={() => setShowShareImport(true)} title="Importar un archivo .vlshare que alguien compartió contigo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
-              <polyline points="16 6 12 2 8 6" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-            </svg>
-            Recibir entrada compartida
-          </button>
           <button className="sidebar-lock-btn" onClick={() => (isPro ? setShowSync(true) : setShowLicense(true))}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6" />

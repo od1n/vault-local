@@ -2914,3 +2914,28 @@ a {
   color: var(--text-muted);
   margin-top: 14px;
 }
+
+/* Ajustes del encabezado de la barra lateral: evitar desbordes horizontales */
+.sidebar-header {
+  gap: 8px;
+  padding: 18px 14px 14px;
+}
+
+.premium-badge,
+.upgrade-link {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sidebar-ie-actions {
+  padding: 0 0 8px;
+}
+
+.sidebar-ie-btn {
+  padding: 7px 4px;
+  gap: 4px;
+}
+
+.quick-unlock-pin .input:placeholder-shown {
+  letter-spacing: normal;
+}

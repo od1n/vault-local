@@ -22,7 +22,7 @@ export function ClipboardBar({ onUpgrade }: { onUpgrade?: () => void }) {
   return (
     <div className="clipboard-bar" role="status">
       <span className="clipboard-bar-text">
-        {copiedLabel ? <strong>{copiedLabel}</strong> : 'Contenido'} copiado · se borrará en {countdown} s
+        Copiado: <strong>{copiedLabel || 'contenido'}</strong> · se borrará en {countdown} s
       </span>
       <button
         className="btn btn-secondary btn-sm"

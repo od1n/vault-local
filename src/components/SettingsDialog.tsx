@@ -110,7 +110,7 @@ export function SettingsDialog({ onClose, onUpgrade }: Props) {
 
           <div className="settings-section">
             <h3>Bloqueo</h3>
-            <Row label="Bloquear tras inactividad" hint={`Gratis: hasta ${limits.max_auto_lock_minutes} min.`}>
+            <Row label="Bloquear tras inactividad" hint={premium ? `Hasta ${minutesLabel(limits.max_auto_lock_minutes)}.` : `Plan gratuito: hasta ${limits.max_auto_lock_minutes} min.`}>
               <select
                 className="select"
                 value={settings.auto_lock_minutes}
@@ -149,7 +149,7 @@ export function SettingsDialog({ onClose, onUpgrade }: Props) {
             <h3>Portapapeles</h3>
             <Row
               label="Borrar lo copiado después de"
-              hint={`Gratis: hasta ${limits.max_clipboard_secs} s. Lo copiado nunca entra al historial del portapapeles del sistema.`}
+              hint={`${premium ? `Hasta ${secondsLabel(limits.max_clipboard_secs)}` : `Plan gratuito: hasta ${limits.max_clipboard_secs} s`}. Lo copiado nunca entra al historial del portapapeles del sistema.`}
             >
               <select
                 className="select"

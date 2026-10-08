@@ -3,7 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useTheme } from '../hooks/useTheme';
-import type { EntryMeta } from '../types';
+import type { EntryCategory, EntryMeta } from '../types';
+import { CATEGORY_LABELS } from '../types';
 import '../App.css';
 
 type What = 'username' | 'password' | 'totp';
@@ -164,7 +165,7 @@ export function QuickSearch() {
             onDoubleClick={() => copy('password')}
           >
             <span className="quick-item-title">{e.favorite ? '★ ' : ''}{e.title}</span>
-            <span className="quick-item-cat">{e.category}</span>
+            <span className="quick-item-cat">{CATEGORY_LABELS[e.category as EntryCategory] || e.category}</span>
           </li>
         ))}
         {results.length === 0 && <li className="quick-empty">Sin resultados</li>}
