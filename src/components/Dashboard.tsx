@@ -72,8 +72,10 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
   // Avisar si el atajo global no se pudo registrar
   useEffect(() => {
     const un = listen<string>('shortcut-error', (e) => showToast(e.payload, 'error'));
+    const un2 = listen<string>('auto-type-aborted', (e) => showToast(e.payload, 'error'));
     return () => {
       un.then((f) => f());
+      un2.then((f) => f());
     };
   }, [showToast]);
   const activate = useCallback(async (key: string) => {

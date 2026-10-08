@@ -215,8 +215,13 @@ pub fn unlock_vault(
 
     install_unlocked(&app, &state, conn, ipc_db_key, enc_key, db_path)?;
 
-    // Preparar el desbloqueo rápido (si está activado y hay licencia)
-    crate::quick_unlock::arm(&app, &state);
+    // Preparar el desbloqueo rápido en segundo plano (Argon2 no debe congelar la interfaz).
+    // Solo el desbloqueo con contraseña maestra reinicia el vencimiento y los intentos.
+    let app_bg = app.clone();
+    std::thread::spawn(move || {
+        let state = app_bg.state::<AppState>();
+        crate::quick_unlock::arm(&app_bg, &state, true);
+    });
 
     Ok(())
 }
@@ -357,6 +362,12 @@ pub fn change_master_password(
     let (new_db_key, new_enc_key) =
         kdf::derive_keys_from_password(new_password.as_bytes(), &new_salt)?;
 
+    // Los pasos 3 a 5 van en una transacción: si algo falla, no queda nada cifrado a medias
+    let tx = vault
+        .connection
+        .unchecked_transaction()
+        .map_err(|e| format!("Error al iniciar la transacción: {}", e))?;
+
     // 3. Re-cifrar TODAS las entradas con la nueva enc_key
     let current_enc_key = &vault.enc_key.expose_secret().0;
     // Incluye la papelera: si no, esas entradas quedarían cifradas con la clave anterior
@@ -396,6 +407,12 @@ pub fn change_master_password(
     // 5. Re-cifrar el token de verificación
     let new_verify = cipher::encrypt(&new_enc_key, VERIFY_TOKEN.as_bytes())?;
     repository::save_config(&vault.connection, "verify_token", &new_verify)?;
+
+    // 5b. Re-cifrar el PIN de desbloqueo rápido, si existe
+    crate::quick_unlock::reencrypt_pin(&vault.connection, current_enc_key, &new_enc_key)?;
+
+    tx.commit()
+        .map_err(|e| format!("Error al confirmar el re-cifrado: {}", e))?;
 
     // 6. Re-cifrar la base de datos con PRAGMA rekey
     let new_hex_key = hex::encode(new_db_key);

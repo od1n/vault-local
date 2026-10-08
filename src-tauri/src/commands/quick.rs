@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use tauri::Emitter;
 use zeroize::Zeroizing;
 
 use crate::commands::clipboard::{copy_secret, read_entry, ClipboardStatus};
@@ -280,6 +281,14 @@ pub fn quick_auto_type(
     crate::desktop::hide_quick(&app);
     thread::spawn(move || {
         thread::sleep(AUTO_TYPE_FOCUS_DELAY);
+        // No escribir a ciegas: si el foco no volvió a la ventana de origen, cancelar
+        if !crate::desktop::focus_returned_to_previous() {
+            let _ = app.emit(
+                "auto-type-aborted",
+                "Escritura automática cancelada: la ventana de destino cambió.",
+            );
+            return;
+        }
         if let Err(e) = type_steps(steps) {
             eprintln!("Escritura automática: {}", e);
         }

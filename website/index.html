@@ -1556,7 +1556,7 @@
         var form = document.getElementById('promo-form');
         var msg = document.getElementById('promo-msg');
         if (!form) return;
-        var T = { sending: 'Enviando…', ok: 'Listo: revisa tu correo (también la carpeta de spam).', invalid_code: 'El código no es válido o ya venció.', invalid_email: 'Escribe un correo válido.', error: 'No pudimos enviar el correo. Inténtalo más tarde.' };
+        var T = { too_many: 'Demasiados intentos. Prueba de nuevo en una hora.', sending: 'Enviando…', ok: 'Listo: revisa tu correo (también la carpeta de spam).', invalid_code: 'El código no es válido o ya venció.', invalid_email: 'Escribe un correo válido.', error: 'No pudimos enviar el correo. Inténtalo más tarde.' };
         form.addEventListener('submit', function(e) {
           e.preventDefault();
           var btn = form.querySelector('button');

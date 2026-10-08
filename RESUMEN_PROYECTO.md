@@ -343,7 +343,9 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 - [ ] Traducir al inglés los textos nuevos (hoy solo en español; la app ya mezclaba idiomas)
 - [ ] "Bóvedas múltiples" aparece en el plan Pro de la página pero NO está implementado: implementarlo o quitarlo
 - [ ] El cambio de contraseña maestra no reinicia el servidor IPC de la extensión con las claves nuevas (revisar)
-- [ ] El cambio de contraseña maestra no es transaccional (si falla a mitad puede dejar la bóveda inconsistente)
+- [ ] Reembolsos y contracargos de PayPal no revocan la licencia (las licencias offline no se pueden revocar; solo vencen)
+- [ ] Límite de canjes de promoción global (hoy es por instancia de Vercel; haría falta Vercel KV)
+- [ ] Comprobar en sandbox que la verificación del webhook de PayPal acepta el aviso tal como lo entrega Vercel
 - [ ] Etiquetas y vencimientos no viajan en la sincronización cifrada ni en exportar/importar
 - [ ] Video demo
 - [ ] Firma de código (diferido hasta tener ingresos; ~$200-400/año)

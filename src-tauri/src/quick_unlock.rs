@@ -22,6 +22,9 @@ use crate::settings;
 use crate::state::AppState;
 
 const PIN_CONFIG_KEY: &str = "quick_unlock_pin";
+
+/// Momento del último desbloqueo con la contraseña maestra en esta sesión.
+static LAST_MASTER_UNLOCK: std::sync::Mutex<Option<SystemTime>> = std::sync::Mutex::new(None);
 const MAX_ATTEMPTS: u8 = 3;
 const PIN_MIN: usize = 4;
 const PIN_MAX: usize = 32;
@@ -52,9 +55,32 @@ pub fn disarm(state: &AppState) {
     *lock_quick(state) = None;
 }
 
+/// Vuelve a cifrar el PIN guardado al cambiar la contraseña maestra.
+pub fn reencrypt_pin(
+    conn: &rusqlite::Connection,
+    old_key: &[u8; 32],
+    new_key: &[u8; 32],
+) -> Result<(), String> {
+    if let Some(blob) = repository::get_config(conn, PIN_CONFIG_KEY)? {
+        match cipher::decrypt(old_key, &blob) {
+            Ok(pin) => {
+                let pin = Zeroizing::new(pin);
+                let new_blob = cipher::encrypt(new_key, &pin)?;
+                repository::save_config(conn, PIN_CONFIG_KEY, &new_blob)?;
+            }
+            // Ilegible: mejor borrarlo que dejar un PIN que nunca funcionará
+            Err(_) => repository::delete_config(conn, PIN_CONFIG_KEY)?,
+        }
+    }
+    Ok(())
+}
+
 /// Prepara el desbloqueo rápido con las claves de la bóveda abierta.
-/// Se llama justo después de desbloquear con la contraseña maestra o al cambiar el PIN.
-pub fn arm(app: &tauri::AppHandle, state: &AppState) {
+///
+/// `fresh = true` solo tras desbloquear con la contraseña maestra: reinicia el vencimiento
+/// y los intentos. En otros casos (cambiar el PIN o un ajuste) se conservan, para que el
+/// desbloqueo rápido no se pueda renovar indefinidamente sin la contraseña maestra.
+pub fn arm(app: &tauri::AppHandle, state: &AppState, fresh: bool) {
     let cfg = settings::effective(app);
     if !cfg.quick_unlock_enabled || !settings::is_premium(app) {
         disarm(state);
@@ -101,16 +127,37 @@ pub fn arm(app: &tauri::AppHandle, state: &AppState) {
     let db_path = vault.db_path.clone();
     drop(guard);
 
-    *lock_quick(state) = if pin_wrap.is_none() && hello_wrap.is_none() {
+    // El vencimiento siempre se cuenta desde el último desbloqueo con contraseña maestra
+    let last_master = {
+        let mut lm = LAST_MASTER_UNLOCK.lock().unwrap_or_else(|e| e.into_inner());
+        if fresh {
+            *lm = Some(SystemTime::now());
+        }
+        *lm
+    };
+    let Some(last_master) = last_master else {
+        disarm(state);
+        return;
+    };
+    let expires = last_master + Duration::from_secs(u64::from(cfg.quick_unlock_hours) * 3600);
+    let mut q = lock_quick(state);
+    if expires <= SystemTime::now() {
+        *q = None;
+        return;
+    }
+    let attempts_left = match (fresh, q.as_ref()) {
+        (false, Some(prev)) => prev.attempts_left,
+        _ => MAX_ATTEMPTS,
+    };
+    *q = if pin_wrap.is_none() && hello_wrap.is_none() {
         None
     } else {
         Some(Armed {
             pin: pin_wrap,
             hello: hello_wrap,
             db_path,
-            expires: SystemTime::now()
-                + Duration::from_secs(u64::from(cfg.quick_unlock_hours) * 3600),
-            attempts_left: MAX_ATTEMPTS,
+            expires,
+            attempts_left,
         })
     };
 }
@@ -183,24 +230,38 @@ fn restore(
     result
 }
 
-/// Desbloquea con el PIN.
+/// Desbloquea con el PIN. Corre fuera del hilo principal (Argon2 tarda).
 #[tauri::command]
-pub fn quick_unlock_with_pin(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-    pin: String,
-) -> Result<(), String> {
+pub async fn quick_unlock_with_pin(app: tauri::AppHandle, pin: String) -> Result<(), String> {
     let pin = Zeroizing::new(pin);
-    if !current_status(&app, &state).pin {
+    tauri::async_runtime::spawn_blocking(move || {
+        use tauri::Manager;
+        let state = app.state::<AppState>();
+        pin_unlock(&app, &state, &pin)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Lógica del desbloqueo con PIN. Los intentos se descuentan bajo el mutex `quick`.
+fn pin_unlock(app: &tauri::AppHandle, state: &AppState, pin: &str) -> Result<(), String> {
+    if !current_status(app, state).pin {
         return Err(
             "El desbloqueo con PIN no está disponible; usa tu contraseña maestra".to_string(),
         );
     }
-    let (salt, blob, db_path) = {
-        let q = lock_quick(&state);
-        let a = q.as_ref().ok_or("Desbloqueo rápido no disponible")?;
+    // Reservar el intento ANTES de probar el PIN: así varios intentos simultáneos
+    // no pueden superar el límite.
+    let (salt, blob, db_path, left_after) = {
+        let mut q = lock_quick(state);
+        let a = q.as_mut().ok_or("Desbloqueo rápido no disponible")?;
+        if a.attempts_left == 0 {
+            *q = None;
+            return Err("Debes usar tu contraseña maestra".to_string());
+        }
+        a.attempts_left -= 1;
         let (salt, blob) = a.pin.as_ref().ok_or("PIN no configurado")?;
-        (*salt, blob.clone(), a.db_path.clone())
+        (*salt, blob.clone(), a.db_path.clone(), a.attempts_left)
     };
 
     let mut k = kdf::derive_master_key(pin.as_bytes(), &salt)?;
@@ -209,25 +270,22 @@ pub fn quick_unlock_with_pin(
 
     match opened {
         Ok(material) => {
-            let material = Zeroizing::new(material);
-            restore(&app, &state, &material, db_path)
-        }
-        Err(_) => {
-            let mut q = lock_quick(&state);
-            let left = q.as_mut().map(|a| {
-                a.attempts_left = a.attempts_left.saturating_sub(1);
-                a.attempts_left
-            });
-            match left {
-                Some(n) if n > 0 => Err(format!("PIN incorrecto. Te quedan {} intento(s).", n)),
-                _ => {
-                    *q = None;
-                    Err(
-                        "PIN incorrecto. Por seguridad, ahora debes usar tu contraseña maestra."
-                            .to_string(),
-                    )
-                }
+            if let Some(a) = lock_quick(state).as_mut() {
+                a.attempts_left = MAX_ATTEMPTS;
             }
+            let material = Zeroizing::new(material);
+            restore(app, state, &material, db_path)
+        }
+        Err(_) if left_after > 0 => Err(format!(
+            "PIN incorrecto. Te quedan {} intento(s).",
+            left_after
+        )),
+        Err(_) => {
+            disarm(state);
+            Err(
+                "PIN incorrecto. Por seguridad, ahora debes usar tu contraseña maestra."
+                    .to_string(),
+            )
         }
     }
 }
@@ -308,7 +366,7 @@ pub fn set_quick_unlock_pin(
             None => repository::delete_config(&vault.connection, PIN_CONFIG_KEY)?,
         }
     }
-    arm(&app, &state);
+    arm(&app, &state, false);
     Ok(())
 }
 
@@ -369,5 +427,35 @@ mod hello {
 
     pub fn verify(_hwnd: isize, _message: &str) -> Result<bool, String> {
         Err("Windows Hello solo está disponible en Windows".to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pin_se_recifra_al_cambiar_la_contrasena_maestra() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE vault_config (key TEXT PRIMARY KEY, value BLOB NOT NULL);",
+        )
+        .unwrap();
+        let (old, new) = ([1u8; 32], [2u8; 32]);
+        let blob = cipher::encrypt(&old, b"4321").unwrap();
+        repository::save_config(&conn, PIN_CONFIG_KEY, &blob).unwrap();
+
+        reencrypt_pin(&conn, &old, &new).unwrap();
+        let stored = repository::get_config(&conn, PIN_CONFIG_KEY)
+            .unwrap()
+            .unwrap();
+        assert_eq!(cipher::decrypt(&new, &stored).unwrap(), b"4321");
+        assert!(cipher::decrypt(&old, &stored).is_err());
+
+        // Un PIN ilegible se borra en lugar de quedar inservible
+        reencrypt_pin(&conn, &old, &new).unwrap();
+        assert!(repository::get_config(&conn, PIN_CONFIG_KEY)
+            .unwrap()
+            .is_none());
     }
 }

@@ -229,7 +229,7 @@ pub fn update_settings(
     let state = app.state::<crate::state::AppState>();
     let unlocked = state.vault.lock().map(|g| g.is_some()).unwrap_or(false);
     if unlocked {
-        crate::quick_unlock::arm(&app, &state);
+        crate::quick_unlock::arm(&app, &state, false);
     } else if !settings.quick_unlock_enabled {
         crate::quick_unlock::disarm(&state);
     }

@@ -1556,7 +1556,7 @@
         var form = document.getElementById('promo-form');
         var msg = document.getElementById('promo-msg');
         if (!form) return;
-        var T = { sending: 'Wird gesendet…', ok: 'Fertig: prüfe dein Postfach (auch den Spam-Ordner).', invalid_code: 'Der Code ist ungültig oder abgelaufen.', invalid_email: 'Bitte gib eine gültige E-Mail ein.', error: 'Die E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen.' };
+        var T = { too_many: 'Zu viele Versuche. Bitte in einer Stunde erneut versuchen.', sending: 'Wird gesendet…', ok: 'Fertig: prüfe dein Postfach (auch den Spam-Ordner).', invalid_code: 'Der Code ist ungültig oder abgelaufen.', invalid_email: 'Bitte gib eine gültige E-Mail ein.', error: 'Die E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen.' };
         form.addEventListener('submit', function(e) {
           e.preventDefault();
           var btn = form.querySelector('button');

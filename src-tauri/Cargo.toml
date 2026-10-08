@@ -37,6 +37,6 @@ tauri-plugin-global-shortcut = "2"
 enigo = "0.6"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_StationsAndDesktops"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_StationsAndDesktops", "Win32_UI_WindowsAndMessaging"] }
 windows = { version = "0.61", features = ["Foundation", "Security_Credentials_UI", "Win32_Foundation", "Win32_System_WinRT"] }
 windows-future = "0.2"

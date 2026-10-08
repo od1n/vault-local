@@ -249,9 +249,16 @@ pub fn import_sync_file(
 
     let enc_key = &vault.enc_key.expose_secret().0;
 
-    // Si el modo es "replace", eliminar todas las entradas existentes
+    // Toda la importación va en una transacción: si algo falla, no queda nada a medias
+    let tx = vault
+        .connection
+        .unchecked_transaction()
+        .map_err(|e| format!("Error al iniciar la transacción: {}", e))?;
+
+    // Si el modo es "replace", eliminar todas las entradas existentes (incluida la papelera,
+    // para que un ID repetido no choque al insertar)
     if mode == "replace" {
-        let existing = repository::list_entries(&vault.connection, None, None)?;
+        let existing = repository::list_entries_including_deleted(&vault.connection)?;
         for entry in &existing {
             repository::delete_entry(&vault.connection, &entry.id)?;
         }
@@ -282,6 +289,8 @@ pub fn import_sync_file(
                             sync_entry.favorite,
                             &sync_entry.updated_at,
                         )?;
+                        // Si aquí estaba en la papelera, la versión más reciente la revive
+                        let _ = repository::restore_entry(&vault.connection, &sync_entry.id);
                         entry_count += 1;
                     }
                 }
@@ -351,6 +360,9 @@ pub fn import_sync_file(
             attachment_count += 1;
         }
     }
+
+    tx.commit()
+        .map_err(|e| format!("Error al confirmar la importación: {}", e))?;
 
     Ok(SyncStats {
         entries: entry_count,

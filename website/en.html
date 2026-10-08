@@ -1556,7 +1556,7 @@
         var form = document.getElementById('promo-form');
         var msg = document.getElementById('promo-msg');
         if (!form) return;
-        var T = { sending: 'Sending…', ok: 'Done: check your inbox (and the spam folder).', invalid_code: 'The code is invalid or has expired.', invalid_email: 'Please enter a valid email.', error: 'We could not send the email. Please try again later.' };
+        var T = { too_many: 'Too many attempts. Please try again in an hour.', sending: 'Sending…', ok: 'Done: check your inbox (and the spam folder).', invalid_code: 'The code is invalid or has expired.', invalid_email: 'Please enter a valid email.', error: 'We could not send the email. Please try again later.' };
         form.addEventListener('submit', function(e) {
           e.preventDefault();
           var btn = form.querySelector('button');

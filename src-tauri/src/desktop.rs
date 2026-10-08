@@ -23,6 +23,13 @@ pub struct LockRequest {
 }
 
 pub fn request_lock(app: &tauri::AppHandle, reason: &str) {
+    // Bloquear en el backend directamente: no depender de que el JavaScript de una
+    // ventana oculta o suspendida reciba el evento. El evento solo refresca la interfaz.
+    let state = app.state::<crate::state::AppState>();
+    let unlocked = state.vault.lock().map(|g| g.is_some()).unwrap_or(false);
+    if unlocked {
+        let _ = crate::commands::auth::lock_vault(app.clone(), state);
+    }
     let _ = app.emit(
         "request-lock",
         LockRequest {
@@ -123,8 +130,33 @@ pub fn hide_quick(app: &tauri::AppHandle) {
     }
 }
 
+/// Ventana que tenía el foco antes de abrir la búsqueda rápida (solo Windows).
+static PREV_FOREGROUND: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+
+#[cfg(target_os = "windows")]
+fn foreground_window() -> isize {
+    unsafe { windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow() as isize }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn foreground_window() -> isize {
+    0
+}
+
+/// true si el foco volvió a la ventana que estaba activa antes de la búsqueda rápida.
+/// En sistemas donde no se puede comprobar, devuelve true.
+pub fn focus_returned_to_previous() -> bool {
+    let prev = PREV_FOREGROUND.load(std::sync::atomic::Ordering::SeqCst);
+    if cfg!(target_os = "windows") {
+        prev != 0 && foreground_window() == prev
+    } else {
+        true
+    }
+}
+
 /// Muestra la búsqueda rápida (la crea la primera vez).
 pub fn show_quick(app: &tauri::AppHandle) {
+    PREV_FOREGROUND.store(foreground_window(), std::sync::atomic::Ordering::SeqCst);
     let window = match app.get_webview_window(QUICK_LABEL) {
         Some(w) => w,
         None => {
@@ -159,6 +191,11 @@ pub fn show_quick(app: &tauri::AppHandle) {
 
 /// Acción del atajo global: avanza la copia en secuencia o abre/cierra la búsqueda rápida.
 pub fn on_quick_shortcut(app: &tauri::AppHandle) {
+    // Si la licencia venció con la app abierta, el atajo deja de funcionar
+    if !settings::effective(app).quick_search_enabled {
+        apply_settings(app);
+        return;
+    }
     let state = app.state::<crate::state::AppState>();
     if crate::commands::quick::advance_sequence(app, &state) {
         return;
