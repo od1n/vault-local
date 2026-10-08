@@ -4666,6 +4666,8 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-global-shortcut",
  "uuid",
+ "windows 0.61.3",
+ "windows-future 0.2.1",
  "windows-sys 0.59.0",
  "zeroize",
 ]

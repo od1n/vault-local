@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { useSettings } from '../hooks/useSettings';
 import { EmergencyKit } from './extras/EmergencyKit';
 import type { AppSettings } from '../types';
@@ -11,6 +12,7 @@ interface Props {
 const AUTO_LOCK_OPTIONS = [1, 2, 3, 5, 10, 15, 30, 60, 120, 240, 480];
 const CLIPBOARD_OPTIONS = [5, 10, 15, 30, 60, 120, 300];
 const WARNING_OPTIONS = [15, 30, 60];
+const QUICK_HOURS = [1, 2, 4, 8, 12, 24, 72];
 
 function minutesLabel(m: number) {
   return m < 60 ? `${m} min` : `${m / 60} h`;
@@ -51,6 +53,27 @@ export function SettingsDialog({ onClose, onUpgrade }: Props) {
   const [sequence, setSequence] = useState(saved.auto_type_sequence);
   const premium = limits.premium;
   const [showKit, setShowKit] = useState(false);
+  const [hasPin, setHasPin] = useState(false);
+  const [helloAvailable, setHelloAvailable] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [pinMsg, setPinMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke<boolean>('has_quick_unlock_pin').then(setHasPin).catch(() => setHasPin(false));
+    invoke<boolean>('hello_available').then(setHelloAvailable).catch(() => setHelloAvailable(false));
+  }, []);
+
+  const savePin = async (pin: string | null) => {
+    setPinMsg(null);
+    try {
+      await invoke('set_quick_unlock_pin', { pin });
+      setHasPin(pin !== null);
+      setNewPin('');
+      setPinMsg(pin ? 'PIN guardado. Funcionará desde el próximo bloqueo.' : 'PIN eliminado.');
+    } catch (e) {
+      setPinMsg(typeof e === 'string' ? e : 'No se pudo guardar el PIN');
+    }
+  };
 
   // Partimos de los valores efectivos para no reenviar valores de pago guardados
   // cuando la licencia ya no los permite.
@@ -192,6 +215,56 @@ export function SettingsDialog({ onClose, onUpgrade }: Props) {
                 </button>
               </div>
             </Row>
+          </div>
+
+          <div className="settings-section">
+            <h3>Desbloqueo rápido</h3>
+            <Row
+              label="Desbloquear con PIN o Windows Hello"
+              hint="Solo mientras la app siga abierta. Al cerrarla, o tras 3 PIN incorrectos, se vuelve a pedir la contraseña maestra."
+              premium={!premium}
+            >
+              <Toggle
+                checked={settings.quick_unlock_enabled}
+                onChange={(v) => (premium ? save({ quick_unlock_enabled: v }) : onUpgrade())}
+              />
+            </Row>
+            {settings.quick_unlock_enabled && (
+              <>
+                <Row label="Pedir la contraseña maestra cada" hint="Contado desde el último desbloqueo con la contraseña maestra.">
+                  <select className="select" value={settings.quick_unlock_hours} onChange={(e) => save({ quick_unlock_hours: Number(e.target.value) })}>
+                    {QUICK_HOURS.map((h) => (
+                      <option key={h} value={h}>{h} h</option>
+                    ))}
+                  </select>
+                </Row>
+                <Row label={hasPin ? 'PIN configurado' : 'PIN de desbloqueo rápido'} hint="De 4 a 32 caracteres. Se guarda cifrado dentro de tu bóveda.">
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      className="input"
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder={hasPin ? 'Nuevo PIN' : 'PIN'}
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value)}
+                      style={{ minWidth: 110 }}
+                    />
+                    <button className="btn btn-secondary btn-sm" disabled={newPin.length < 4} onClick={() => savePin(newPin)}>
+                      Guardar
+                    </button>
+                    {hasPin && (
+                      <button className="btn btn-ghost btn-sm" onClick={() => savePin(null)}>Quitar</button>
+                    )}
+                  </div>
+                </Row>
+                {pinMsg && <div className="settings-row-hint" style={{ marginBottom: 8 }}>{pinMsg}</div>}
+                {helloAvailable && (
+                  <Row label="Permitir Windows Hello" hint="Huella, rostro o PIN de Windows.">
+                    <Toggle checked={settings.quick_unlock_hello} onChange={(v) => save({ quick_unlock_hello: v })} />
+                  </Row>
+                )}
+              </>
+            )}
           </div>
 
           <div className="settings-section">

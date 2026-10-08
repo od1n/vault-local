@@ -60,6 +60,12 @@ pub struct AppSettings {
     pub copy_sequence: bool,
     /// Secuencia de escritura automática por defecto (pago)
     pub auto_type_sequence: String,
+    /// Desbloqueo rápido con PIN/Windows Hello mientras la app siga abierta (pago)
+    pub quick_unlock_enabled: bool,
+    /// Horas que dura el desbloqueo rápido desde el último uso de la contraseña maestra
+    pub quick_unlock_hours: u32,
+    /// Permitir Windows Hello para el desbloqueo rápido (pago, solo Windows)
+    pub quick_unlock_hello: bool,
 }
 
 impl Default for AppSettings {
@@ -77,6 +83,9 @@ impl Default for AppSettings {
             quick_search_shortcut: "CommandOrControl+Shift+Space".to_string(),
             copy_sequence: false,
             auto_type_sequence: "{USERNAME}{TAB}{PASSWORD}{ENTER}".to_string(),
+            quick_unlock_enabled: false,
+            quick_unlock_hours: 8,
+            quick_unlock_hello: false,
         }
     }
 }
@@ -141,7 +150,10 @@ pub fn apply_limits(saved: &AppSettings, premium: bool) -> AppSettings {
         .clipboard_clear_secs
         .clamp(MIN_CLIPBOARD_SECS, l.max_clipboard_secs);
     e.lock_warning_secs = e.lock_warning_secs.clamp(10, 120);
+    e.quick_unlock_hours = e.quick_unlock_hours.clamp(1, 72);
     if !premium {
+        e.quick_unlock_enabled = false;
+        e.quick_unlock_hello = false;
         e.tray_enabled = false;
         e.close_to_tray = false;
         e.quick_search_enabled = false;
@@ -189,7 +201,9 @@ pub fn update_settings(
             || settings.tray_enabled
             || settings.close_to_tray
             || settings.quick_search_enabled
-            || settings.copy_sequence;
+            || settings.copy_sequence
+            || settings.quick_unlock_enabled
+            || settings.quick_unlock_hello;
         if pide_pago {
             return Err("Ese ajuste requiere una licencia Premium".to_string());
         }
@@ -211,6 +225,14 @@ pub fn update_settings(
 
     // Aplicar cambios que dependen del sistema (atajo global, bandeja)
     crate::desktop::apply_settings(&app);
+    // Rehacer (o anular) el desbloqueo rápido con la configuración nueva
+    let state = app.state::<crate::state::AppState>();
+    let unlocked = state.vault.lock().map(|g| g.is_some()).unwrap_or(false);
+    if unlocked {
+        crate::quick_unlock::arm(&app, &state);
+    } else if !settings.quick_unlock_enabled {
+        crate::quick_unlock::disarm(&state);
+    }
 
     Ok(response(&app))
 }

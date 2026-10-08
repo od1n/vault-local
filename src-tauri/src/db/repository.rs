@@ -127,6 +127,13 @@ pub fn save_config(conn: &Connection, key: &str, value: &[u8]) -> Result<(), Str
     Ok(())
 }
 
+/// Elimina un valor de configuración de vault_config.
+pub fn delete_config(conn: &Connection, key: &str) -> Result<(), String> {
+    conn.execute("DELETE FROM vault_config WHERE key = ?1", params![key])
+        .map_err(|e| format!("Error al borrar configuración '{}': {}", key, e))?;
+    Ok(())
+}
+
 /// Obtiene un valor de configuración de vault_config.
 /// Retorna None si la clave no existe.
 pub fn get_config(conn: &Connection, key: &str) -> Result<Option<Vec<u8>>, String> {

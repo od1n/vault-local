@@ -69,5 +69,11 @@ export function useAuth() {
     setError(null);
   }, []);
 
-  return { authState, error, processing, createVault, unlock, lock };
+  /** La bóveda se abrió por desbloqueo rápido (PIN / Windows Hello) */
+  const markUnlocked = useCallback(() => {
+    setError(null);
+    setAuthState('unlocked');
+  }, []);
+
+  return { authState, error, processing, createVault, unlock, lock, markUnlocked };
 }

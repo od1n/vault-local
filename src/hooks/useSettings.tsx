@@ -15,6 +15,9 @@ const DEFAULTS: AppSettings = {
   quick_search_shortcut: 'CommandOrControl+Shift+Space',
   copy_sequence: false,
   auto_type_sequence: '{USERNAME}{TAB}{PASSWORD}{ENTER}',
+  quick_unlock_enabled: false,
+  quick_unlock_hours: 8,
+  quick_unlock_hello: false,
 };
 
 const FREE_LIMITS: SettingsLimits = {

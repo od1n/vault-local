@@ -213,6 +213,16 @@ export interface AppSettings {
   quick_search_shortcut: string;
   copy_sequence: boolean;
   auto_type_sequence: string;
+  quick_unlock_enabled: boolean;
+  quick_unlock_hours: number;
+  quick_unlock_hello: boolean;
+}
+
+export interface QuickStatus {
+  pin: boolean;
+  hello: boolean;
+  attempts_left: number;
+  expires_in_secs: number;
 }
 
 export interface SettingsLimits {

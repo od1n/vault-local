@@ -95,7 +95,8 @@ pub fn create_vault(
     let encrypted_token = cipher::encrypt(&enc_key, VERIFY_TOKEN.as_bytes())?;
     repository::save_config(&conn, "verify_token", &encrypted_token)?;
 
-    // Zeroizar la clave de la base de datos (ya no la necesitamos en memoria)
+    let kept_db_key = db_key;
+    // Zeroizar la clave de la base de datos (la copia queda protegida en VaultState)
     db_key.zeroize();
 
     // Zeroizar la contraseña original
@@ -106,6 +107,7 @@ pub fn create_vault(
     let vault_state = VaultState {
         connection: conn,
         enc_key: Secret::new(EncKey(enc_key)),
+        db_key: Secret::new(EncKey(kept_db_key)),
         db_path,
     };
 
@@ -211,29 +213,55 @@ pub fn unlock_vault(
     let mut password = password;
     password.zeroize();
 
-    // Almacenar el estado del vault desbloqueado
-    let vault_state = VaultState {
-        connection: conn,
-        enc_key: Secret::new(EncKey(enc_key)),
-        db_path: db_path.clone(),
-    };
+    install_unlocked(&app, &state, conn, ipc_db_key, enc_key, db_path)?;
 
-    let mut vault_guard = state
-        .vault
-        .lock()
-        .map_err(|_| "Error al acceder al estado del vault".to_string())?;
-    *vault_guard = Some(vault_state);
+    // Preparar el desbloqueo rápido (si está activado y hay licencia)
+    crate::quick_unlock::arm(&app, &state);
+
+    Ok(())
+}
+
+/// Verifica el token de verificación con la clave de campos.
+pub(crate) fn verify_token(conn: &rusqlite::Connection, enc_key: &[u8; 32]) -> bool {
+    repository::get_config(conn, "verify_token")
+        .ok()
+        .flatten()
+        .and_then(|t| cipher::decrypt(enc_key, &t).ok())
+        .map(|t| t == VERIFY_TOKEN.as_bytes())
+        .unwrap_or(false)
+}
+
+/// Deja la bóveda desbloqueada e inicia el servidor IPC de la extensión.
+/// Lo usan el desbloqueo con contraseña maestra y el desbloqueo rápido.
+pub(crate) fn install_unlocked(
+    app: &tauri::AppHandle,
+    state: &AppState,
+    conn: rusqlite::Connection,
+    db_key: [u8; 32],
+    enc_key: [u8; 32],
+    db_path: PathBuf,
+) -> Result<(), String> {
+    {
+        let mut vault_guard = state
+            .vault
+            .lock()
+            .map_err(|_| "Error al acceder al estado del vault".to_string())?;
+        *vault_guard = Some(VaultState {
+            connection: conn,
+            enc_key: Secret::new(EncKey(enc_key)),
+            db_key: Secret::new(EncKey(db_key)),
+            db_path: db_path.clone(),
+        });
+    }
 
     // Iniciar el servidor IPC para la extensión del navegador
-    let app_data_dir = get_app_data_dir(&app)?;
-    let mut ipc_db_key = ipc_db_key;
+    let app_data_dir = get_app_data_dir(app)?;
+    let mut ipc_db_key = db_key;
     if let Err(e) = ipc_server::start(db_path, &ipc_db_key, enc_key, app_data_dir) {
         // No es crítico: el vault funciona sin la extensión
         eprintln!("[IPC] Error al iniciar servidor IPC: {}", e);
     }
-    // Zeroizar la copia de db_key usada para el IPC
     ipc_db_key.zeroize();
-
     Ok(())
 }
 
@@ -386,9 +414,13 @@ pub fn change_master_password(
     let new_vault = VaultState {
         connection: conn,
         enc_key: Secret::new(EncKey(new_enc_key)),
+        db_key: Secret::new(EncKey(new_db_key)),
         db_path,
     };
     *vault_guard = Some(new_vault);
+
+    // El material del desbloqueo rápido usa las claves anteriores: anularlo
+    crate::quick_unlock::disarm(&state);
 
     // 9. Zeroizar contraseñas y claves temporales
     let mut current_password = current_password;

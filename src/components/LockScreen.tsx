@@ -7,6 +7,8 @@ interface LockScreenProps {
   onSetup: (password: string, confirmPassword: string) => void;
   error: string | null;
   processing: boolean;
+  /** Panel de desbloqueo rápido (PIN / Windows Hello), si está disponible */
+  quickPanel?: React.ReactNode;
 }
 
 function calcStrength(password: string): number {
@@ -23,7 +25,7 @@ function calcStrength(password: string): number {
 const strengthColors = ['', '#ff4c4c', '#ffb74d', '#ffb74d', '#4caf50'];
 const strengthWidths = ['0%', '25%', '50%', '75%', '100%'];
 
-export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockScreenProps) {
+export function LockScreen({ mode, onUnlock, onSetup, error, processing, quickPanel }: LockScreenProps) {
   const { t, locale, setLocale } = useI18n();
   const strengthLabels = ['', t('lock.strength.very_weak'), t('lock.strength.weak'), t('lock.strength.acceptable'), t('lock.strength.very_strong')];
   const [password, setPassword] = useState('');
@@ -98,6 +100,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing }: LockS
           </button>
         </div>
 
+        {mode === 'unlock' && quickPanel}
         <form className="lock-form" onSubmit={handleSubmit}>
           <div className="lock-input-group">
             <input

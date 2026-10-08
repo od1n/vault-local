@@ -7,6 +7,7 @@ mod db;
 mod desktop;
 pub mod ipc_server;
 mod lockout;
+mod quick_unlock;
 pub mod security;
 mod settings;
 mod state;
@@ -211,6 +212,13 @@ pub fn run() {
             settings::update_settings,
             settings::request_lock_pause,
             settings::get_vault_location,
+            // Desbloqueo rápido
+            quick_unlock::quick_unlock_status,
+            quick_unlock::quick_unlock_with_pin,
+            quick_unlock::quick_unlock_with_hello,
+            quick_unlock::has_quick_unlock_pin,
+            quick_unlock::set_quick_unlock_pin,
+            quick_unlock::hello_available,
             // Búsqueda rápida, copia en secuencia y escritura automática
             commands::quick::quick_copy,
             commands::quick::quick_auto_type,

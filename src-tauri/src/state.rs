@@ -20,6 +20,9 @@ pub struct VaultState {
     pub connection: Connection,
     /// Clave de cifrado para campos sensibles (envuelta en Secret para protección en memoria)
     pub enc_key: Secret<EncKey>,
+    /// Clave de SQLCipher. Se conserva mientras la bóveda está abierta solo para
+    /// poder preparar el desbloqueo rápido (SQLCipher ya la mantiene en memoria igualmente).
+    pub db_key: Secret<EncKey>,
     /// Ruta al archivo de la base de datos
     pub db_path: PathBuf,
 }
@@ -28,6 +31,8 @@ pub struct VaultState {
 /// El vault es None cuando está bloqueado y Some cuando está desbloqueado.
 pub struct AppState {
     pub vault: Mutex<Option<VaultState>>,
+    /// Material para el desbloqueo rápido (solo en memoria; desaparece al cerrar la app)
+    pub quick: Mutex<Option<crate::quick_unlock::Armed>>,
 }
 
 impl AppState {
@@ -35,6 +40,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             vault: Mutex::new(None),
+            quick: Mutex::new(None),
         }
     }
 }

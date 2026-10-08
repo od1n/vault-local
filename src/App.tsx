@@ -5,6 +5,7 @@ import { SettingsProvider } from './hooks/useSettings';
 import { ClipboardProvider } from './hooks/useClipboard';
 import { useTheme } from './hooks/useTheme';
 import { LockScreen } from './components/LockScreen';
+import { QuickUnlockPanel } from './components/QuickUnlockPanel';
 import { Dashboard } from './components/Dashboard';
 import { ToastProvider } from './components/Toast';
 import { I18nProvider } from './i18n/I18nProvider';
@@ -12,7 +13,7 @@ import { useI18n } from './i18n';
 import './App.css';
 
 function AppContent() {
-  const { authState, error, processing, createVault, unlock, lock } = useAuth();
+  const { authState, error, processing, createVault, unlock, lock, markUnlocked } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
 
@@ -58,6 +59,7 @@ function AppContent() {
         <LockScreen
           mode="unlock"
           onUnlock={unlock}
+          quickPanel={<QuickUnlockPanel onUnlocked={markUnlocked} />}
           onSetup={() => Promise.resolve()}
           error={error}
           processing={processing}

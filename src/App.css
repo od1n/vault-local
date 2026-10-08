@@ -2886,3 +2886,31 @@ a {
     display: none !important;
   }
 }
+
+/* --- Desbloqueo rápido --- */
+.quick-unlock {
+  margin-bottom: 16px;
+}
+
+.quick-unlock-pin {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-unlock-pin .input {
+  flex: 1;
+  letter-spacing: 0.3em;
+}
+
+.quick-unlock-error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.quick-unlock-divider {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
