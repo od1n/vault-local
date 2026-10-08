@@ -13,7 +13,6 @@ use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use tauri::Manager;
 use zeroize::Zeroize;
 
 use crate::crypto::{cipher, kdf};
@@ -642,6 +641,7 @@ fn parse_keepass(content: &str) -> Result<Vec<ParsedEntry>, Vec<String>> {
 /// 4. Retorna el conteo de importadas, omitidas y errores encontrados
 #[tauri::command]
 pub fn import_entries(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     file_path: String,
     format: String,
@@ -661,7 +661,17 @@ pub fn import_entries(
         .map_err(|e| format!("Error al leer el archivo '{}': {}", file_path, e))?;
 
     // Parsear según el formato indicado
+    let mut extras: Extras = Vec::new();
+    // La fecha de cambio de contraseña es Premium (igual que set_entry_expiry)
+    let can_expiry =
+        crate::commands::license::require_tier(&app, crate::commands::license::Tier::Premium)
+            .is_ok();
     let parsed_entries = match format.as_str() {
+        "vault_local" => {
+            let (entries, ex) = parse_vault_local_json(&content).map_err(|errs| errs.join("; "))?;
+            extras = ex;
+            entries
+        }
         "chrome" | "edge" => parse_chrome_edge(&content).map_err(|errs| errs.join("; "))?,
         "firefox" => parse_firefox(&content).map_err(|errs| errs.join("; "))?,
         "bitwarden_csv" => parse_bitwarden_csv(&content).map_err(|errs| errs.join("; "))?,
@@ -727,7 +737,20 @@ pub fn import_entries(
             &now,
             &now,
         ) {
-            Ok(()) => imported += 1,
+            Ok(()) => {
+                imported += 1;
+                if let Some((tags, expires_at)) = extras.get(i) {
+                    if !tags.is_empty() {
+                        let _ = repository::set_tags(&vault.connection, &id, tags);
+                    }
+                    let expiry = expires_at
+                        .as_deref()
+                        .filter(|d| can_expiry && chrono::DateTime::parse_from_rfc3339(d).is_ok());
+                    if expiry.is_some() {
+                        let _ = repository::set_expiry(&vault.connection, &id, expiry);
+                    }
+                }
+            }
             Err(e) => {
                 errors.push(format!(
                     "Fila {}: error al insertar '{}' - {}",
@@ -761,7 +784,7 @@ pub fn import_entries(
 /// incluyendo metadatos de versión y fecha de exportación.
 #[tauri::command]
 pub fn export_entries(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     file_path: String,
     format: String,
@@ -771,11 +794,10 @@ pub fn export_entries(
     let validated_path = validate_file_path(&file_path)?;
 
     // Re-autenticación: leer salt, derivar claves y verificar contraseña
-    let salt_path = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("vault.salt");
+    let salt_path = {
+        let guard = with_vault!(state);
+        crate::commands::auth::salt_path_for(&guard.as_ref().unwrap().db_path)
+    };
     let salt = fs::read(&salt_path).map_err(|e| format!("Error al leer salt: {}", e))?;
     let (mut db_key, enc_key_verify) = kdf::derive_keys_from_password(password.as_bytes(), &salt)?;
 
@@ -820,6 +842,8 @@ pub fn export_entries(
             fields: entry_data.fields,
             notes: entry_data.notes,
             favorite,
+            tags: meta.tags.clone(),
+            expires_at: meta.expires_at.clone(),
         });
     }
 
@@ -845,6 +869,8 @@ struct ExportEntry {
     fields: Vec<EntryField>,
     notes: String,
     favorite: bool,
+    tags: Vec<String>,
+    expires_at: Option<String>,
 }
 
 /// Busca el primer campo cuyo nombre coincida con alguno de los patrones dados.
@@ -905,7 +931,7 @@ fn export_csv(file_path: &str, entries: &[ExportEntry]) -> Result<(), String> {
 }
 
 /// Estructura del JSON de exportación de Vault Local.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct ExportJson {
     vault: String,
     version: String,
@@ -914,20 +940,57 @@ struct ExportJson {
 }
 
 /// Entrada individual en el JSON de exportación.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct ExportJsonEntry {
     category: String,
     title: String,
     fields: Vec<EntryField>,
+    #[serde(default)]
     notes: String,
+    #[serde(default)]
     favorite: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    expires_at: Option<String>,
+}
+
+/// Etiquetas y vencimiento por posición de cada entrada importada.
+type Extras = Vec<(Vec<String>, Option<String>)>;
+
+/// Lee el JSON exportado por Vault Local (con etiquetas y vencimiento).
+fn parse_vault_local_json(content: &str) -> Result<(Vec<ParsedEntry>, Extras), Vec<String>> {
+    let export: ExportJson = serde_json::from_str(content).map_err(|e| {
+        vec![format!(
+            "El archivo no es una exportación JSON de Vault Local: {}",
+            e
+        )]
+    })?;
+    if export.vault != "Vault Local" {
+        return Err(vec![
+            "El archivo no es una exportación JSON de Vault Local".to_string()
+        ]);
+    }
+    let mut entries = Vec::with_capacity(export.entries.len());
+    let mut extras = Vec::with_capacity(export.entries.len());
+    for e in export.entries {
+        extras.push((e.tags, e.expires_at));
+        entries.push(ParsedEntry {
+            category: e.category,
+            title: e.title,
+            fields: e.fields,
+            notes: e.notes,
+            favorite: e.favorite,
+        });
+    }
+    Ok((entries, extras))
 }
 
 /// Exporta las entradas en formato JSON propio de Vault Local.
 fn export_json(file_path: &str, entries: &[ExportEntry]) -> Result<(), String> {
     let export = ExportJson {
         vault: "Vault Local".to_string(),
-        version: "0.1.0".to_string(),
+        version: "0.4.0".to_string(),
         exported_at: Utc::now().to_rfc3339(),
         entries: entries
             .iter()
@@ -937,6 +1000,8 @@ fn export_json(file_path: &str, entries: &[ExportEntry]) -> Result<(), String> {
                 fields: e.fields.clone(),
                 notes: e.notes.clone(),
                 favorite: e.favorite,
+                tags: e.tags.clone(),
+                expires_at: e.expires_at.clone(),
             })
             .collect(),
     };
@@ -1142,4 +1207,35 @@ pub fn import_kdbx(
         skipped,
         errors,
     })
+}
+
+#[cfg(test)]
+mod tests_vault_local {
+    use super::*;
+
+    #[test]
+    fn json_propio_ida_y_vuelta_con_etiquetas() {
+        let path = std::env::temp_dir().join(format!("vl-export-{}.json", Uuid::new_v4()));
+        let entries = vec![ExportEntry {
+            category: "login".into(),
+            title: "Banco".into(),
+            fields: vec![],
+            notes: "n".into(),
+            favorite: true,
+            tags: vec!["finanzas".into()],
+            expires_at: Some("2027-01-01T00:00:00Z".into()),
+        }];
+        export_json(path.to_str().unwrap(), &entries).unwrap();
+        let content = fs::read_to_string(&path).unwrap();
+        let (parsed, extras) = parse_vault_local_json(&content).unwrap();
+        assert_eq!(parsed[0].title, "Banco");
+        assert!(parsed[0].favorite);
+        assert_eq!(extras[0].0, vec!["finanzas".to_string()]);
+        assert_eq!(extras[0].1.as_deref(), Some("2027-01-01T00:00:00Z"));
+        assert!(parse_vault_local_json(
+            "{\"vault\":\"Otro\",\"version\":\"1\",\"exported_at\":\"x\",\"entries\":[]}"
+        )
+        .is_err());
+        let _ = fs::remove_file(&path);
+    }
 }

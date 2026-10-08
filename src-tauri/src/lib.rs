@@ -5,12 +5,14 @@ mod commands;
 mod crypto;
 mod db;
 mod desktop;
+mod emergency;
 pub mod ipc_server;
 mod lockout;
 mod quick_unlock;
 pub mod security;
 mod settings;
 mod state;
+mod vaults;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -183,6 +185,19 @@ pub fn run() {
             commands::auth::lock_vault,
             commands::auth::get_lockout_status,
             commands::auth::change_master_password,
+            // Bóvedas múltiples
+            vaults::list_vaults,
+            vaults::select_vault,
+            vaults::add_vault,
+            vaults::rename_vault,
+            vaults::delete_vault,
+            vaults::get_session_info,
+            // Acceso de emergencia
+            emergency::emergency_status,
+            emergency::emergency_setup,
+            emergency::emergency_disable,
+            emergency::emergency_candidates,
+            emergency::emergency_open,
             // CRUD de entradas
             commands::vault::get_entries,
             commands::vault::get_entry,

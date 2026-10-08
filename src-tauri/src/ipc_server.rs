@@ -183,14 +183,23 @@ pub fn cleanup_token(app_data_dir: &Path) {
 /// Bucle principal del servidor TCP.
 fn run_server(state: Arc<Mutex<IpcInternalState>>, shutdown: Arc<AtomicBool>) {
     // Bind solo a localhost (127.0.0.1), nunca a 0.0.0.0
-    let listener = match TcpListener::bind(format!("127.0.0.1:{}", IPC_PORT)) {
-        Ok(l) => l,
-        Err(e) => {
-            eprintln!(
-                "[IPC] Error al iniciar servidor en puerto {}: {}",
-                IPC_PORT, e
-            );
-            return;
+    // Al reiniciar (cambio de contraseña, bloquear y desbloquear rápido) el hilo anterior
+    // puede tardar hasta ~100 ms en soltar el puerto: reintentar unos segundos.
+    let mut intentos = 0;
+    let listener = loop {
+        match TcpListener::bind(format!("127.0.0.1:{}", IPC_PORT)) {
+            Ok(l) => break l,
+            Err(e) => {
+                intentos += 1;
+                if intentos >= 30 || shutdown.load(Ordering::SeqCst) {
+                    eprintln!(
+                        "[IPC] Error al iniciar servidor en puerto {}: {}",
+                        IPC_PORT, e
+                    );
+                    return;
+                }
+                thread::sleep(Duration::from_millis(100));
+            }
         }
     };
 

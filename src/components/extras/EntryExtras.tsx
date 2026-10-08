@@ -4,6 +4,7 @@ import type { Entry } from '../../types';
 import { ShareDialog } from './ShareDialog';
 import { HistoryDialog } from './HistoryDialog';
 import { WifiQrDialog, wifiPayload } from './WifiQrDialog';
+import { useTr } from '../../i18n';
 
 interface Props {
   entry: Entry;
@@ -26,6 +27,7 @@ export function daysUntil(iso: string | null): number | null {
 
 /** Etiquetas, vencimiento y acciones extra de una entrada. */
 export function EntryExtras({ entry, isPremium, onUpgrade, onChanged, onDuplicated, notify }: Props) {
+  const tr = useTr();
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(entry.tags);
   const [dialog, setDialog] = useState<'share' | 'history' | 'qr' | null>(null);
@@ -40,7 +42,7 @@ export function EntryExtras({ entry, isPremium, onUpgrade, onChanged, onDuplicat
       setTags(await invoke<string[]>('set_entry_tags', { id: entry.id, tags: next }));
       onChanged();
     } catch (e) {
-      notify(typeof e === 'string' ? e : 'No se pudieron guardar las etiquetas', 'error');
+      notify(typeof e === 'string' ? e : tr('No se pudieron guardar las etiquetas', 'Could not save the tags'), 'error');
     }
   };
 
@@ -60,7 +62,7 @@ export function EntryExtras({ entry, isPremium, onUpgrade, onChanged, onDuplicat
       await invoke('set_entry_expiry', { id: entry.id, expiresAt: iso });
       onChanged();
     } catch (e) {
-      notify(typeof e === 'string' ? e : 'No se pudo guardar la fecha', 'error');
+      notify(typeof e === 'string' ? e : tr('No se pudo guardar la fecha', 'Could not save the date'), 'error');
     }
   };
 
@@ -72,10 +74,10 @@ export function EntryExtras({ entry, isPremium, onUpgrade, onChanged, onDuplicat
   const duplicate = async () => {
     try {
       const id = await invoke<string>('duplicate_entry', { id: entry.id });
-      notify('Entrada duplicada', 'success');
+      notify(tr('Entrada duplicada', 'Entry duplicated'), 'success');
       onDuplicated(id);
     } catch (e) {
-      notify(typeof e === 'string' ? e : 'No se pudo duplicar', 'error');
+      notify(typeof e === 'string' ? e : tr('No se pudo duplicar', 'Could not duplicate'), 'error');
     }
   };
 
@@ -86,17 +88,17 @@ export function EntryExtras({ entry, isPremium, onUpgrade, onChanged, onDuplicat
   return (
     <div className="entry-extras">
       <div className="entry-extras-row">
-        <span className="entry-extras-label">Etiquetas</span>
+        <span className="entry-extras-label">{tr('Etiquetas', 'Tags')}</span>
         <div className="tag-list">
           {tags.map((t) => (
             <span key={t} className="tag-chip">
               {t}
-              <button aria-label={`Quitar etiqueta ${t}`} onClick={() => saveTags(tags.filter((x) => x !== t))}>×</button>
+              <button aria-label={tr(`Quitar etiqueta ${t}`, `Remove tag ${t}`)} onClick={() => saveTags(tags.filter((x) => x !== t))}>×</button>
             </span>
           ))}
           <input
             className="tag-input"
-            placeholder="Agregar etiqueta y pulsar Enter"
+            placeholder={tr('Agregar etiqueta y pulsar Enter', 'Add a tag and press Enter')}
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
@@ -112,7 +114,7 @@ export function EntryExtras({ entry, isPremium, onUpgrade, onChanged, onDuplicat
 
       <div className="entry-extras-row">
         <span className="entry-extras-label">
-          Cambiar contraseña el{!isPremium && <span className="premium-star">★</span>}
+          {tr('Cambiar contraseña el', 'Change password on')}{!isPremium && <span className="premium-star">★</span>}
         </span>
         <div className="entry-extras-expiry">
           <input
@@ -122,30 +124,30 @@ export function EntryExtras({ entry, isPremium, onUpgrade, onChanged, onDuplicat
             onChange={(e) => setExpiry(e.target.value || null)}
             style={{ width: 160 }}
           />
-          <button className="btn btn-ghost btn-sm" onClick={() => quickExpiry(90)}>+90 días</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => quickExpiry(180)}>+180 días</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => quickExpiry(90)}>{tr('+90 días', '+90 days')}</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => quickExpiry(180)}>{tr('+180 días', '+180 days')}</button>
           {entry.expires_at && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setExpiry(null)}>Quitar</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setExpiry(null)}>{tr('Quitar', 'Remove')}</button>
           )}
           {left !== null && (
             <span className={`expiry-badge ${left <= 0 ? 'overdue' : left <= 14 ? 'soon' : ''}`}>
-              {left <= 0 ? `Vencida hace ${-left} día(s)` : `Faltan ${left} día(s)`}
+              {left <= 0 ? tr(`Vencida hace ${-left} día(s)`, `Overdue by ${-left} day(s)`) : tr(`Faltan ${left} día(s)`, `${left} day(s) left`)}
             </span>
           )}
         </div>
       </div>
 
       <div className="entry-extras-actions">
-        <button className="btn btn-secondary btn-sm" onClick={duplicate}>Duplicar</button>
+        <button className="btn btn-secondary btn-sm" onClick={duplicate}>{tr('Duplicar', 'Duplicate')}</button>
         <button className="btn btn-secondary btn-sm" onClick={premiumAction('share')}>
-          Compartir cifrada{!isPremium && ' ★'}
+          {tr('Compartir cifrada', 'Share encrypted')}{!isPremium && ' ★'}
         </button>
         <button className="btn btn-secondary btn-sm" onClick={premiumAction('history')}>
-          Historial ({entry.history_count}){!isPremium && ' ★'}
+          {tr('Historial', 'History')} ({entry.history_count}){!isPremium && ' ★'}
         </button>
         {isWifi && (
           <button className="btn btn-secondary btn-sm" onClick={premiumAction('qr')}>
-            Código QR del Wi-Fi{!isPremium && ' ★'}
+            {tr('Código QR del Wi-Fi', 'Wi-Fi QR code')}{!isPremium && ' ★'}
           </button>
         )}
       </div>

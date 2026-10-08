@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { LicenseInfo } from '../types';
 import { tierLabel } from '../hooks/useLicense';
+import { useI18n, useTr } from '../i18n';
 
 interface LicenseDialogProps {
   license: LicenseInfo;
@@ -11,10 +12,10 @@ interface LicenseDialogProps {
 
 const SITE_URL = 'https://vault-local.vercel.app';
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, locale: string): string {
   if (!dateStr) return '---';
   try {
-    return new Date(dateStr).toLocaleString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(dateStr).toLocaleString(locale === 'en' ? 'en-US' : 'es', { day: 'numeric', month: 'long', year: 'numeric' });
   } catch {
     return dateStr;
   }
@@ -46,6 +47,8 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: LicenseDialogProps) {
+  const tr = useTr();
+  const { locale } = useI18n();
   const [inputKey, setInputKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +61,7 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
 
   const handleActivate = useCallback(async () => {
     if (!inputKey.trim()) {
-      setError('Pega tu clave de licencia');
+      setError(tr('Pega tu clave de licencia', 'Paste your license key'));
       return;
     }
     setLoading(true);
@@ -67,12 +70,12 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
     const result = await onActivate(inputKey.trim());
     setLoading(false);
     if (result.success) {
-      setSuccess('Licencia activada correctamente');
+      setSuccess(tr('Licencia activada correctamente', 'License activated successfully'));
       setInputKey('');
     } else {
-      setError(result.error || 'Error al activar');
+      setError(result.error || tr('Error al activar', 'Activation failed'));
     }
-  }, [inputKey, onActivate]);
+  }, [inputKey, onActivate, tr]);
 
   const handleDeactivate = useCallback(async () => {
     setLoading(true);
@@ -82,15 +85,15 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
     setLoading(false);
     setConfirmDeactivate(false);
     if (result.success) {
-      setSuccess('Licencia desactivada en este equipo');
+      setSuccess(tr('Licencia desactivada en este equipo', 'License deactivated on this computer'));
     } else {
-      setError(result.error || 'Error al desactivar');
+      setError(result.error || tr('Error al desactivar', 'Deactivation failed'));
     }
-  }, [onDeactivate]);
+  }, [onDeactivate, tr]);
 
   const activationForm = (
     <div>
-      <label className="form-label">{expired ? 'Pega tu nueva clave de licencia' : 'Clave de licencia'}</label>
+      <label className="form-label">{expired ? tr('Pega tu nueva clave de licencia', 'Paste your new license key') : tr('Clave de licencia', 'License key')}</label>
       <textarea
         className="textarea"
         placeholder="VL2-…"
@@ -109,12 +112,17 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
         disabled={loading || !inputKey.trim()}
         style={{ width: '100%', marginTop: 8 }}
       >
-        {loading ? 'Activando...' : 'Activar'}
+        {loading ? tr('Activando...', 'Activating...') : tr('Activar', 'Activate')}
       </button>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.5 }}>
-        Compra o renueva tu plan (Premium $15/año, Pro $39/año) en <span style={{ userSelect: 'all' }}>{SITE_URL}/#pricing</span>.
-        ¿Tienes un código promocional? Canjéalo en <span style={{ userSelect: 'all' }}>{SITE_URL}/#promo</span> y
-        recibirás por correo una licencia de prueba con todas las funciones (Pro) por 30 días.
+        {tr('Compra o renueva tu plan (Premium $15/año, Pro $39/año) en', 'Buy or renew your plan (Premium $15/year, Pro $39/year) at')}{' '}
+        <span style={{ userSelect: 'all' }}>{SITE_URL}/#pricing</span>.{' '}
+        {tr('¿Tienes un código promocional? Canjéalo en', 'Have a promo code? Redeem it at')}{' '}
+        <span style={{ userSelect: 'all' }}>{SITE_URL}/#promo</span>{' '}
+        {tr(
+          'y recibirás por correo una licencia de prueba con todas las funciones (Pro) por 30 días.',
+          'and you will receive by email a trial license with all features (Pro) for 30 days.',
+        )}
       </p>
     </div>
   );
@@ -123,8 +131,8 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
         <div className="modal-header">
-          <h2 className="modal-title">{active ? `Vault Local ${tierLabel(license)}` : 'Actualizar a Premium'}</h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Cerrar">
+          <h2 className="modal-title">{active ? `Vault Local ${tierLabel(license, locale)}` : tr('Actualizar a Premium', 'Upgrade to Premium')}</h2>
+          <button className="btn-icon" onClick={onClose} aria-label={tr('Cerrar', 'Close')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -137,34 +145,37 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
             <div>
               <div style={boxStyle(expiringSoon ? '255, 170, 0' : '76, 175, 80')}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{tierLabel(license)} activo</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{tr(`${tierLabel(license, locale)} activo`, `${tierLabel(license, locale)} active`)}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
                     {license.expires_at === null
-                      ? 'Sin vencimiento'
+                      ? tr('Sin vencimiento', 'No expiration')
                       : expiringSoon
-                        ? `Vence en ${license.days_left} día(s). Renueva para no perder las funciones de pago.`
-                        : `Vence el ${formatDate(license.expires_at)}`}
+                        ? tr(
+                            `Vence en ${license.days_left} día(s). Renueva para no perder las funciones de pago.`,
+                            `Expires in ${license.days_left} day(s). Renew to keep the paid features.`,
+                          )
+                        : tr(`Vence el ${formatDate(license.expires_at, locale)}`, `Expires on ${formatDate(license.expires_at, locale)}`)}
                   </div>
                 </div>
               </div>
 
-              <Row label="Licenciado a" value={license.email || '---'} />
-              <Row label="Clave" value={license.license_key ? maskKey(license.license_key) : '---'} />
-              <Row label="Activada en este equipo" value={formatDate(license.activated_at)} />
+              <Row label={tr('Licenciado a', 'Licensed to')} value={license.email || '---'} />
+              <Row label={tr('Clave', 'Key')} value={license.license_key ? maskKey(license.license_key) : '---'} />
+              <Row label={tr('Activada en este equipo', 'Activated on this computer')} value={formatDate(license.activated_at, locale)} />
 
               {expiringSoon && <div style={{ marginBottom: 16 }}>{activationForm}</div>}
 
               {!confirmDeactivate ? (
                 <button className="btn btn-secondary" onClick={() => setConfirmDeactivate(true)} disabled={loading} style={{ width: '100%' }}>
-                  Desactivar licencia en este equipo
+                  {tr('Desactivar licencia en este equipo', 'Deactivate license on this computer')}
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn btn-secondary" onClick={() => setConfirmDeactivate(false)} style={{ flex: 1 }}>
-                    Cancelar
+                    {tr('Cancelar', 'Cancel')}
                   </button>
                   <button className="btn btn-danger" onClick={handleDeactivate} disabled={loading} style={{ flex: 1 }}>
-                    {loading ? 'Desactivando...' : 'Confirmar'}
+                    {loading ? tr('Desactivando...', 'Deactivating...') : tr('Confirmar', 'Confirm')}
                   </button>
                 </div>
               )}
@@ -174,24 +185,25 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
               {expired ? (
                 <div style={boxStyle('255, 76, 76')}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>Tu licencia venció el {formatDate(license.expires_at)}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{tr(`Tu licencia venció el ${formatDate(license.expires_at, locale)}`, `Your license expired on ${formatDate(license.expires_at, locale)}`)}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                      Tus datos siguen intactos. Las funciones de pago vuelven al renovar.
+                      {tr('Tus datos siguen intactos. Las funciones de pago vuelven al renovar.', 'Your data is intact. Paid features come back when you renew.')}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div style={{ ...boxStyle('76, 141, 255'), fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   <span>
-                    Premium desbloquea: tiempos de bloqueo y de portapapeles personalizables, búsqueda rápida con atajo
-                    global, escritura automática, copia en secuencia, verificación de filtraciones (HIBP), auditoría
-                    detallada, archivos adjuntos, historial de contraseñas y más. Pro añade la sincronización cifrada.
+                    {tr(
+                      'Premium desbloquea: tiempos de bloqueo y de portapapeles personalizables, búsqueda rápida con atajo global, escritura automática, copia en secuencia, verificación de filtraciones (HIBP), auditoría detallada, archivos adjuntos, historial de contraseñas y más. Pro añade la sincronización cifrada y las bóvedas múltiples (Personal, Trabajo, Familia).',
+                      'Premium unlocks: custom lock and clipboard timeouts, quick search with a global shortcut, auto-type, sequential copy, breach checking (HIBP), detailed audit, file attachments, password history and more. Pro adds encrypted sync and multiple vaults (Personal, Work, Family).',
+                    )}
                   </span>
                 </div>
               )}
               {license.status === 'invalid' && (
                 <p style={{ fontSize: 12, color: 'var(--warning, #f0a020)', marginBottom: 12 }}>
-                  La licencia guardada no es válida (las claves del formato anterior ya no se aceptan). Activa una clave nueva.
+                  {tr('La licencia guardada no es válida (las claves del formato anterior ya no se aceptan). Activa una clave nueva.', 'The saved license is not valid (keys in the old format are no longer accepted). Activate a new key.')}
                 </p>
               )}
               {activationForm}
@@ -212,7 +224,7 @@ export function LicenseDialog({ license, onActivate, onDeactivate, onClose }: Li
 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>
-            Cerrar
+            {tr('Cerrar', 'Close')}
           </button>
         </div>
       </div>

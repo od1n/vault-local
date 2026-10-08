@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useClipboard } from '../hooks/useClipboard';
+import { useTr } from '../i18n';
 
 interface PasswordGeneratorProps {
   onSelect?: (password: string) => void;
   standalone?: boolean;
 }
 
-function calcPasswordStrength(length: number, options: { uppercase: boolean; lowercase: boolean; numbers: boolean; symbols: boolean }): { score: number; label: string; color: string; width: string } {
+function calcPasswordStrength(length: number, options: { uppercase: boolean; lowercase: boolean; numbers: boolean; symbols: boolean }, tr: (es: string, en: string) => string): { score: number; label: string; color: string; width: string } {
   const activeOptions = [options.uppercase, options.lowercase, options.numbers, options.symbols].filter(Boolean).length;
   let score = 0;
   if (length >= 8) score++;
@@ -16,13 +17,20 @@ function calcPasswordStrength(length: number, options: { uppercase: boolean; low
   if (activeOptions >= 3) score++;
   if (activeOptions >= 4 && length >= 16) score++;
   score = Math.min(4, score);
-  const labels = ['Muy débil', 'Débil', 'Aceptable', 'Fuerte', 'Muy fuerte'];
+  const labels = [
+    tr('Muy débil', 'Very weak'),
+    tr('Débil', 'Weak'),
+    tr('Aceptable', 'Fair'),
+    tr('Fuerte', 'Strong'),
+    tr('Muy fuerte', 'Very strong'),
+  ];
   const colors = ['#ff4c4c', '#ff4c4c', '#ffb74d', '#ffb74d', '#4caf50'];
   const widths = ['10%', '25%', '50%', '75%', '100%'];
   return { score, label: labels[score], color: colors[score], width: widths[score] };
 }
 
 export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorProps) {
+  const tr = useTr();
   const [password, setPassword] = useState('');
   const [length, setLength] = useState(20);
   const [uppercase, setUppercase] = useState(true);
@@ -62,7 +70,7 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
     generate();
   }, [generate]);
 
-  const strength = calcPasswordStrength(length, { uppercase, lowercase, numbers, symbols });
+  const strength = calcPasswordStrength(length, { uppercase, lowercase, numbers, symbols }, tr);
 
   return (
     <div className={`password-generator ${standalone ? 'password-generator-standalone' : ''}`}>
@@ -70,16 +78,16 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
         <div className="pwgen-value">{password || '...'}</div>
         <div className="pwgen-actions">
           {copiedField === 'pwgen' ? (
-            <span className="copied-badge">Copiado</span>
+            <span className="copied-badge">{tr('Copiado', 'Copied')}</span>
           ) : (
-            <button className="btn-icon" onClick={() => copyToClipboard(password, 'pwgen', 'Contraseña generada')} aria-label="Copiar">
+            <button className="btn-icon" onClick={() => copyToClipboard(password, 'pwgen', tr('Contraseña generada', 'Generated password'))} aria-label={tr('Copiar', 'Copy')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                 <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
               </svg>
             </button>
           )}
-          <button className="btn-icon" onClick={generate} aria-label="Regenerar">
+          <button className="btn-icon" onClick={generate} aria-label={tr('Regenerar', 'Regenerate')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23,4 23,10 17,10" />
               <polyline points="1,20 1,14 7,14" />
@@ -98,12 +106,12 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
         </div>
         <div className="pwgen-strength-label">
           <span style={{ color: strength.color }}>{strength.label}</span>
-          <span style={{ color: 'var(--text-muted)' }}>{length} caracteres</span>
+          <span style={{ color: 'var(--text-muted)' }}>{tr(`${length} caracteres`, `${length} characters`)}</span>
         </div>
       </div>
 
       <div className="pwgen-option">
-        <span className="pwgen-option-label">Longitud</span>
+        <span className="pwgen-option-label">{tr('Longitud', 'Length')}</span>
         <div className="pwgen-length-control">
           <input
             type="range"
@@ -118,7 +126,7 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
       </div>
 
       <div className="pwgen-option">
-        <span className="pwgen-option-label">Mayúsculas (A-Z)</span>
+        <span className="pwgen-option-label">{tr('Mayúsculas (A-Z)', 'Uppercase (A-Z)')}</span>
         <label className="toggle-switch">
           <input type="checkbox" checked={uppercase} onChange={(e) => setUppercase(e.target.checked)} />
           <span className="toggle-track" />
@@ -126,7 +134,7 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
       </div>
 
       <div className="pwgen-option">
-        <span className="pwgen-option-label">Minúsculas (a-z)</span>
+        <span className="pwgen-option-label">{tr('Minúsculas (a-z)', 'Lowercase (a-z)')}</span>
         <label className="toggle-switch">
           <input type="checkbox" checked={lowercase} onChange={(e) => setLowercase(e.target.checked)} />
           <span className="toggle-track" />
@@ -134,7 +142,7 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
       </div>
 
       <div className="pwgen-option">
-        <span className="pwgen-option-label">Números (0-9)</span>
+        <span className="pwgen-option-label">{tr('Números (0-9)', 'Numbers (0-9)')}</span>
         <label className="toggle-switch">
           <input type="checkbox" checked={numbers} onChange={(e) => setNumbers(e.target.checked)} />
           <span className="toggle-track" />
@@ -142,7 +150,7 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
       </div>
 
       <div className="pwgen-option">
-        <span className="pwgen-option-label">Símbolos (!@#$)</span>
+        <span className="pwgen-option-label">{tr('Símbolos (!@#$)', 'Symbols (!@#$)')}</span>
         <label className="toggle-switch">
           <input type="checkbox" checked={symbols} onChange={(e) => setSymbols(e.target.checked)} />
           <span className="toggle-track" />
@@ -152,7 +160,7 @@ export function PasswordGenerator({ onSelect, standalone }: PasswordGeneratorPro
       {onSelect && (
         <div className="pwgen-footer">
           <button className="btn btn-primary btn-sm" onClick={() => onSelect(password)}>
-            Usar contraseña
+            {tr('Usar contraseña', 'Use password')}
           </button>
         </div>
       )}

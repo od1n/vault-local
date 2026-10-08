@@ -25,6 +25,10 @@ pub struct VaultState {
     pub db_key: Secret<EncKey>,
     /// Ruta al archivo de la base de datos
     pub db_path: PathBuf,
+    /// Nombre de la bóveda abierta (para mostrarlo en la interfaz)
+    pub name: String,
+    /// Abierta con el acceso de emergencia: solo lectura (también forzado en SQLite)
+    pub read_only: bool,
 }
 
 /// Estado global de la aplicación gestionado por Tauri.

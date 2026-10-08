@@ -1,3 +1,4 @@
+import { useI18n, useTr } from '../i18n';
 import { useState, useCallback, useEffect, type FormEvent, type KeyboardEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -15,14 +16,15 @@ interface EntryFormProps {
 
 const categories: EntryCategory[] = ['web', 'bank', 'wallet', 'passkey', 'note', 'other'];
 
-const FIELD_TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'text', label: 'Texto' },
-  { value: 'password', label: 'Contraseña' },
-  { value: 'textarea', label: 'Área de texto' },
-  { value: 'seed_phrase', label: 'Frase semilla' },
-  { value: 'security_qa', label: 'Pregunta de seguridad' },
-  { value: 'totp', label: 'TOTP' },
-  { value: 'ssh_key', label: 'Clave SSH' },
+// Etiquetas como par [es, en]; se resuelven con tr() dentro del componente.
+const FIELD_TYPE_OPTIONS: { value: string; label: [string, string] }[] = [
+  { value: 'text', label: ['Texto', 'Text'] },
+  { value: 'password', label: ['Contraseña', 'Password'] },
+  { value: 'textarea', label: ['Área de texto', 'Text area'] },
+  { value: 'seed_phrase', label: ['Frase semilla', 'Seed phrase'] },
+  { value: 'security_qa', label: ['Pregunta de seguridad', 'Security question'] },
+  { value: 'totp', label: ['TOTP', 'TOTP'] },
+  { value: 'ssh_key', label: ['Clave SSH', 'SSH key'] },
 ];
 
 function getEffectiveFieldType(field: EntryField): string {
@@ -37,6 +39,8 @@ function formatFileSize(bytes: number): string {
 }
 
 export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrade }: EntryFormProps) {
+  const { t } = useI18n();
+  const tr = useTr();
   const isEditing = !!entry;
 
   const [category, setCategory] = useState<EntryCategory>(
@@ -174,7 +178,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
         return (
           <textarea
             className="field-textarea"
-            placeholder="Valor"
+            placeholder={tr('Valor', 'Value')}
             value={field.value}
             onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
             rows={4}
@@ -186,7 +190,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <textarea
               className="field-textarea seed-phrase-input"
-              placeholder="Ingresa la frase semilla (palabras separadas por espacios)"
+              placeholder={tr('Ingresa la frase semilla (palabras separadas por espacios)', 'Enter the seed phrase (words separated by spaces)')}
               value={field.value}
               onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
               rows={3}
@@ -208,21 +212,21 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
         return (
           <div className="security-qa-field" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div>
-              <label className="form-label" style={{ fontSize: '11px', marginBottom: '3px' }}>Pregunta</label>
+              <label className="form-label" style={{ fontSize: '11px', marginBottom: '3px' }}>{tr('Pregunta', 'Question')}</label>
               <input
                 className="input"
                 type="text"
-                placeholder="Escribe la pregunta de seguridad"
+                placeholder={tr('Escribe la pregunta de seguridad', 'Type the security question')}
                 value={field.name}
                 onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
               />
             </div>
             <div>
-              <label className="form-label" style={{ fontSize: '11px', marginBottom: '3px' }}>Respuesta</label>
+              <label className="form-label" style={{ fontSize: '11px', marginBottom: '3px' }}>{tr('Respuesta', 'Answer')}</label>
               <input
                 className="input"
                 type="password"
-                placeholder="Escribe la respuesta"
+                placeholder={tr('Escribe la respuesta', 'Type the answer')}
                 value={field.value}
                 onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
               />
@@ -235,7 +239,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
           <input
             className="input"
             type="password"
-            placeholder="Clave secreta (base32)"
+            placeholder={tr('Clave secreta (base32)', 'Secret key (base32)')}
             value={field.value}
             onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
             style={{ flex: 1 }}
@@ -247,14 +251,14 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <textarea
               className="field-textarea"
-              placeholder="Pega tu clave privada SSH (PEM o OpenSSH format)"
+              placeholder={tr('Pega tu clave privada SSH (PEM o OpenSSH format)', 'Paste your SSH private key (PEM or OpenSSH format)')}
               value={field.value}
               onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
               rows={5}
               style={{ fontFamily: "'Courier New', monospace", fontSize: '12px' }}
             />
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              La clave se cifrara y podra ser enviada al SSH Agent del sistema.
+              {tr('La clave se cifrara y podrá ser enviada al SSH Agent del sistema.', 'The key will be encrypted and can be sent to the system SSH agent.')}
             </div>
           </div>
         );
@@ -264,7 +268,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
           <input
             className="input"
             type="password"
-            placeholder="Valor"
+            placeholder={tr('Valor', 'Value')}
             value={field.value}
             onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
             style={{ flex: 1 }}
@@ -276,7 +280,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
           <input
             className="input"
             type="text"
-            placeholder="Valor"
+            placeholder={tr('Valor', 'Value')}
             value={field.value}
             onChange={(e) => handleFieldChange(index, 'value', e.target.value)}
             style={{ flex: 1 }}
@@ -289,8 +293,8 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
     <div className="modal-overlay" onClick={onCancel} onKeyDown={handleKeyDown}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{isEditing ? 'Editar entrada' : 'Nueva entrada'}</h2>
-          <button className="btn-icon" onClick={onCancel} aria-label="Cerrar">
+          <h2 className="modal-title">{isEditing ? tr('Editar entrada', 'Edit entry') : tr('Nueva entrada', 'New entry')}</h2>
+          <button className="btn-icon" onClick={onCancel} aria-label={tr('Cerrar', 'Close')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -300,7 +304,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
 
         <form className="modal-body" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Categoría</label>
+            <label className="form-label">{tr('Categoría', 'Category')}</label>
             <select
               className="select"
               value={category}
@@ -308,18 +312,18 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
-                  {CATEGORY_LABELS[cat]}
+                  {t(`category.${cat}`, CATEGORY_LABELS[cat])}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Título</label>
+            <label className="form-label">{tr('Título', 'Title')}</label>
             <input
               className="input"
               type="text"
-              placeholder="Nombre de la entrada"
+              placeholder={tr('Nombre de la entrada', 'Entry name')}
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
@@ -330,13 +334,13 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
             />
             {titleError && (
               <span style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                El título es obligatorio
+                {tr('El título es obligatorio', 'Title is required')}
               </span>
             )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">Campos</label>
+            <label className="form-label">{tr('Campos', 'Fields')}</label>
             {fields.map((field, index) => {
               const fieldType = getEffectiveFieldType(field);
               const isSecurityQA = fieldType === 'security_qa';
@@ -353,7 +357,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                           className={`field-type-option ${fieldType === opt.value ? 'active' : ''}`}
                           onClick={() => handleFieldTypeChange(index, opt.value)}
                         >
-                          {opt.label}
+                          {tr(...opt.label)}
                         </button>
                       ))}
                     </div>
@@ -366,7 +370,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                           <button
                             type="button"
                             className={`field-sensitive-toggle active`}
-                            title="Campo sensible"
+                            title={tr('Campo sensible', 'Sensitive field')}
                             style={{ cursor: 'default', opacity: 0.6 }}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -378,7 +382,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                             type="button"
                             className="btn-icon"
                             onClick={() => removeField(index)}
-                            aria-label="Eliminar campo"
+                            aria-label={tr('Eliminar campo', 'Remove field')}
                             style={{ color: 'var(--danger)' }}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -395,7 +399,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                           <input
                             className="input"
                             type="text"
-                            placeholder="Nombre del campo"
+                            placeholder={tr('Nombre del campo', 'Field name')}
                             value={field.name}
                             onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
                             style={{ flex: 1 }}
@@ -404,7 +408,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                             type="button"
                             className={`field-sensitive-toggle ${field.sensitive ? 'active' : ''}`}
                             onClick={() => handleFieldChange(index, 'sensitive', !field.sensitive)}
-                            title={field.sensitive ? 'Campo sensible' : 'Campo visible'}
+                            title={field.sensitive ? tr('Campo sensible', 'Sensitive field') : tr('Campo visible', 'Visible field')}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -415,7 +419,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                             type="button"
                             className="btn-icon"
                             onClick={() => removeField(index)}
-                            aria-label="Eliminar campo"
+                            aria-label={tr('Eliminar campo', 'Remove field')}
                             style={{ color: 'var(--danger)' }}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -432,7 +436,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                         <input
                           className="input"
                           type="text"
-                          placeholder="Nombre del campo"
+                          placeholder={tr('Nombre del campo', 'Field name')}
                           value={field.name}
                           onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
                           style={{ flex: '0 0 40%' }}
@@ -445,8 +449,8 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                             onClick={() =>
                               setPwgenFieldIndex(pwgenFieldIndex === index ? null : index)
                             }
-                            aria-label="Generar contraseña"
-                            title="Generar contraseña"
+                            aria-label={tr('Generar contraseña', 'Generate password')}
+                            title={tr('Generar contraseña', 'Generate password')}
                             style={pwgenFieldIndex === index ? { color: 'var(--accent)' } : undefined}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -459,7 +463,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                           type="button"
                           className={`field-sensitive-toggle ${field.sensitive ? 'active' : ''}`}
                           onClick={() => handleFieldChange(index, 'sensitive', !field.sensitive)}
-                          title={field.sensitive ? 'Campo sensible' : 'Campo visible'}
+                          title={field.sensitive ? tr('Campo sensible', 'Sensitive field') : tr('Campo visible', 'Visible field')}
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -470,7 +474,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                           type="button"
                           className="btn-icon"
                           onClick={() => removeField(index)}
-                          aria-label="Eliminar campo"
+                          aria-label={tr('Eliminar campo', 'Remove field')}
                           style={{ color: 'var(--danger)' }}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -493,15 +497,15 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Agregar campo
+              {tr('Agregar campo', 'Add field')}
             </button>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Notas</label>
+            <label className="form-label">{tr('Notas', 'Notes')}</label>
             <textarea
               className="textarea"
-              placeholder="Notas adicionales (opcional)"
+              placeholder={tr('Notas adicionales (opcional)', 'Additional notes (optional)')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -510,7 +514,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
 
           {/* Attachments Section */}
           <div className="attachments-section">
-            <h3>Archivos adjuntos</h3>
+            <h3>{tr('Archivos adjuntos', 'Attachments')}</h3>
             {!isPremium ? (
               <div className="premium-gate" style={{ padding: 20 }}>
                 <div className="premium-gate-icon">
@@ -520,11 +524,11 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                   </svg>
                 </div>
                 <div className="premium-gate-text">
-                  Adjuntos disponibles en Premium
+                  {tr('Adjuntos disponibles en Premium', 'Attachments available in Premium')}
                 </div>
                 {onUpgrade && (
                   <button className="btn btn-primary btn-sm" type="button" onClick={onUpgrade}>
-                    Actualizar a Premium
+                    {tr('Actualizar a Premium', 'Upgrade to Premium')}
                   </button>
                 )}
               </div>
@@ -547,7 +551,7 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                             type="button"
                             className="btn-icon"
                             onClick={() => handleDeleteAttachment(att.id)}
-                            aria-label="Eliminar adjunto"
+                            aria-label={tr('Eliminar adjunto', 'Delete attachment')}
                             style={{ color: 'var(--danger)' }}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -569,11 +573,11 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                   </svg>
-                  {attachmentLoading ? 'Adjuntando...' : 'Adjuntar archivo'}
+                  {attachmentLoading ? tr('Adjuntando...', 'Attaching...') : tr('Adjuntar archivo', 'Attach file')}
                 </button>
               </>
             ) : (
-              <p className="attachment-hint">Guarda la entrada primero para adjuntar archivos.</p>
+              <p className="attachment-hint">{tr('Guarda la entrada primero para adjuntar archivos.', 'Save the entry first to attach files.')}</p>
             )}
           </div>
 
@@ -591,18 +595,18 @@ export function EntryForm({ entry, onSave, onCancel, isPremium = false, onUpgrad
                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
               </svg>
             )}
-            Marcar como favorito
+            {tr('Marcar como favorito', 'Mark as favorite')}
           </button>
         </form>
 
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
-            Cancelar
+            {tr('Cancelar', 'Cancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={(e) => {
             handleSubmit(e as unknown as FormEvent);
           }}>
-            {isEditing ? 'Guardar cambios' : 'Crear entrada'}
+            {isEditing ? tr('Guardar cambios', 'Save changes') : tr('Crear entrada', 'Create entry')}
           </button>
         </div>
       </div>

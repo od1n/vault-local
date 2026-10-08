@@ -94,6 +94,11 @@ pub fn arm(app: &tauri::AppHandle, state: &AppState, fresh: bool) {
     let Some(vault) = guard.as_ref() else {
         return;
     };
+    if vault.read_only {
+        drop(guard);
+        disarm(state);
+        return;
+    }
     let enc_key = &vault.enc_key.expose_secret().0;
     let mut material = Zeroizing::new([0u8; 64]);
     material[..32].copy_from_slice(&vault.db_key.expose_secret().0);

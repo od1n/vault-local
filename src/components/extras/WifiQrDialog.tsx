@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { Entry } from '../../types';
+import { useTr } from '../../i18n';
 
 function escapeWifi(s: string) {
   return s.replace(/([\;,":])/g, '\\$1');
@@ -21,6 +22,7 @@ export function wifiPayload(entry: Entry): string | null {
 
 /** Muestra un QR para conectarse a la red escaneándolo con la cámara del teléfono. */
 export function WifiQrDialog({ entry, onClose }: { entry: Entry; onClose: () => void }) {
+  const tr = useTr();
   const [svg, setSvg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,20 +36,20 @@ export function WifiQrDialog({ entry, onClose }: { entry: Entry; onClose: () => 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380 }}>
         <div className="modal-header">
-          <h2 className="modal-title">Conectarse a «{entry.title}»</h2>
+          <h2 className="modal-title">{tr(`Conectarse a «${entry.title}»`, `Connect to “${entry.title}”`)}</h2>
         </div>
         <div className="modal-body" style={{ textAlign: 'center' }}>
           {svg ? (
             <div style={{ background: '#fff', padding: 12, borderRadius: 8, display: 'inline-block', width: 260 }} dangerouslySetInnerHTML={{ __html: svg }} />
           ) : (
-            <p>Completa el nombre de la red (SSID) para generar el código.</p>
+            <p>{tr('Completa el nombre de la red (SSID) para generar el código.', 'Fill in the network name (SSID) to generate the code.')}</p>
           )}
           <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Abre la cámara del teléfono y apunta al código. Quien lo vea en tu pantalla también puede conectarse.
+            {tr('Abre la cámara del teléfono y apunta al código. Quien lo vea en tu pantalla también puede conectarse.', 'Open your phone camera and point it at the code. Anyone who sees it on your screen can also connect.')}
           </p>
         </div>
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cerrar</button>
+          <button className="btn btn-secondary" onClick={onClose}>{tr('Cerrar', 'Close')}</button>
         </div>
       </div>
     </div>

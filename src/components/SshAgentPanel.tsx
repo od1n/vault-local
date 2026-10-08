@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { SshKeyInfo } from '../types';
+import { useTr } from '../i18n';
 
 interface SshAgentPanelProps {
   onClose: () => void;
@@ -16,6 +17,7 @@ function getKeyTypeClass(keyType: string): string {
 }
 
 export function SshAgentPanel({ onClose, onViewEntry }: SshAgentPanelProps) {
+  const tr = useTr();
   const [keys, setKeys] = useState<SshKeyInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function SshAgentPanel({ onClose, onViewEntry }: SshAgentPanelProps) {
       const result = await invoke<SshKeyInfo[]>('list_ssh_keys');
       setKeys(result);
     } catch (err) {
-      setError(`Error al cargar claves SSH: ${err}`);
+      setError(String(err));
     } finally {
       setLoading(false);
     }
@@ -78,28 +80,28 @@ export function SshAgentPanel({ onClose, onViewEntry }: SshAgentPanelProps) {
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Agregar todas
+              {tr('Agregar todas', 'Add all')}
             </button>
           )}
           <button className="btn btn-secondary btn-sm" onClick={onClose}>
-            Cerrar
+            {tr('Cerrar', 'Close')}
           </button>
         </div>
       </div>
 
       <p className="ssh-description">
-        Gestiona tus claves SSH. Las claves se pueden agregar al agente SSH del sistema para autenticacion sin contrasena.
+        {tr('Gestiona tus claves SSH. Las claves se pueden agregar al agente SSH del sistema para autenticación sin contraseña.', 'Manage your SSH keys. Keys can be added to the system SSH agent for passwordless authentication.')}
       </p>
 
       {loading && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', gap: '12px' }}>
           <div className="loading-spinner" style={{ width: '24px', height: '24px' }} />
-          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Cargando claves SSH...</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{tr('Cargando claves SSH...', 'Loading SSH keys...')}</span>
         </div>
       )}
 
       {error && (
-        <div className="ie-error" style={{ marginTop: '12px' }}>{error}</div>
+        <div className="ie-error" style={{ marginTop: '12px' }}>{tr(`Error al cargar claves SSH: ${error}`, `Failed to load SSH keys: ${error}`)}</div>
       )}
 
       {!loading && !error && keys.length === 0 && (
@@ -109,10 +111,10 @@ export function SshAgentPanel({ onClose, onViewEntry }: SshAgentPanelProps) {
             <path d="M7 15h0M2 8h20" />
           </svg>
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '12px' }}>
-            No hay claves SSH en tu boveda.
+            {tr('No hay claves SSH en tu bóveda.', 'There are no SSH keys in your vault.')}
           </p>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Crea una entrada con un campo tipo "Clave SSH".
+            {tr('Crea una entrada con un campo tipo "Clave SSH".', 'Create an entry with an "SSH Key" field.')}
           </p>
         </div>
       )}
@@ -133,13 +135,13 @@ export function SshAgentPanel({ onClose, onViewEntry }: SshAgentPanelProps) {
                   className={`ssh-agent-toggle ${key.added_to_agent ? 'active' : ''}`}
                   onClick={() => handleToggle(key)}
                 >
-                  {key.added_to_agent ? 'Remover' : 'Agregar'}
+                  {key.added_to_agent ? tr('Remover', 'Remove') : tr('Agregar', 'Add')}
                 </button>
                 <button
                   className="btn-icon"
                   onClick={() => onViewEntry(key.entry_id)}
-                  aria-label="Ver entrada"
-                  title="Ver entrada"
+                  aria-label={tr('Ver entrada', 'View entry')}
+                  title={tr('Ver entrada', 'View entry')}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />

@@ -251,10 +251,7 @@ pub fn request_lock_pause(app: tauri::AppHandle, minutes: u32) -> Result<i64, St
 /// Ruta del archivo de la bóveda en este equipo (para el kit de emergencia).
 #[tauri::command]
 pub fn get_vault_location(app: tauri::AppHandle) -> Result<String, String> {
-    app.path()
-        .app_data_dir()
-        .map(|d| d.join("vault.db").to_string_lossy().to_string())
-        .map_err(|e| format!("Error al obtener directorio de datos: {}", e))
+    crate::vaults::active_dir(&app).map(|d| d.join("vault.db").to_string_lossy().to_string())
 }
 
 #[cfg(test)]

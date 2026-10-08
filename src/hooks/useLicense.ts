@@ -68,9 +68,10 @@ export function useLicense() {
   };
 }
 
-export function tierLabel(license: LicenseInfo): string {
+export function tierLabel(license: LicenseInfo, locale: 'es' | 'en' = 'es'): string {
+  const trial = locale === 'en' ? ' (trial)' : ' (prueba)';
   if (license.tier === 'owner') return 'Owner';
-  if (license.tier === 'pro') return license.trial ? 'Pro (prueba)' : 'Pro';
-  if (license.tier === 'premium') return license.trial ? 'Premium (prueba)' : 'Premium';
-  return 'Gratis';
+  if (license.tier === 'pro') return license.trial ? `Pro${trial}` : 'Pro';
+  if (license.tier === 'premium') return license.trial ? `Premium${trial}` : 'Premium';
+  return locale === 'en' ? 'Free' : 'Gratis';
 }

@@ -27,3 +27,12 @@ export function getTranslation(locale: Locale, key: string, fallback?: string): 
 }
 
 export { es, en };
+
+/**
+ * Traducción en línea para textos nuevos: tr('Guardar', 'Save').
+ * Evita mantener claves sueltas en dos archivos para textos de un solo uso.
+ */
+export function useTr() {
+  const { locale } = useContext(I18nContext);
+  return (es: string, en: string) => (locale === 'en' ? en : es);
+}

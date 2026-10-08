@@ -4,7 +4,7 @@ type Theme = 'dark' | 'light';
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Leer tema guardado en localStorage — no hay datos sensibles aqui
+    // Leer tema guardado en localStorage — no hay datos sensibles aquí
     try {
       return (localStorage.getItem('vault-local-theme') as Theme) || 'dark';
     } catch {

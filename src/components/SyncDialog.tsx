@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { useTr } from '../i18n';
 
 interface SyncDialogProps {
   onClose: () => void;
@@ -16,6 +17,7 @@ type SyncTab = 'export' | 'import';
 type SyncMode = 'merge' | 'replace';
 
 export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
+  const tr = useTr();
   const [activeTab, setActiveTab] = useState<SyncTab>('export');
 
   // Estado de exportación
@@ -44,10 +46,10 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
     if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
     if (/\d/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
-    if (score <= 1) return { level: 1, label: 'Debil' };
-    if (score <= 2) return { level: 2, label: 'Regular' };
-    if (score <= 3) return { level: 3, label: 'Buena' };
-    return { level: 4, label: 'Fuerte' };
+    if (score <= 1) return { level: 1, label: tr('Débil', 'Weak') };
+    if (score <= 2) return { level: 2, label: tr('Regular', 'Fair') };
+    if (score <= 3) return { level: 3, label: tr('Buena', 'Good') };
+    return { level: 4, label: tr('Fuerte', 'Strong') };
   };
 
   const strength = getPasswordStrength(exportPassword);
@@ -55,15 +57,15 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
   // Exportar archivo de sincronización
   const handleExport = useCallback(async () => {
     if (!exportPassword) {
-      setError('Ingresa una contraseña de sincronización.');
+      setError(tr('Ingresa una contraseña de sincronización.', 'Enter a sync password.'));
       return;
     }
     if (exportPassword !== exportPasswordConfirm) {
-      setError('Las contraseñas no coinciden.');
+      setError(tr('Las contraseñas no coinciden.', 'The passwords do not match.'));
       return;
     }
     if (exportPassword.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.');
+      setError(tr('La contraseña debe tener al menos 8 caracteres.', 'The password must be at least 8 characters long.'));
       return;
     }
 
@@ -82,11 +84,11 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
       });
       setExportResult(result);
     } catch (err) {
-      setError(`Error al exportar: ${err}`);
+      setError(tr(`Error al exportar: ${err}`, `Export failed: ${err}`));
     } finally {
       setLoading(false);
     }
-  }, [exportPassword, exportPasswordConfirm]);
+  }, [exportPassword, exportPasswordConfirm, tr]);
 
   // Seleccionar archivo de importación
   const handleSelectFile = useCallback(async () => {
@@ -101,15 +103,15 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
         setError(null);
       }
     } catch (err) {
-      setError(`Error al seleccionar archivo: ${err}`);
+      setError(tr(`Error al seleccionar archivo: ${err}`, `Failed to select file: ${err}`));
     }
-  }, []);
+  }, [tr]);
 
   // Importar archivo de sincronización
   const handleImport = useCallback(async () => {
     if (!importFilePath) return;
     if (!importPassword) {
-      setError('Ingresa la contraseña de sincronización.');
+      setError(tr('Ingresa la contraseña de sincronización.', 'Enter the sync password.'));
       return;
     }
 
@@ -126,11 +128,11 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
         onComplete();
       }
     } catch (err) {
-      setError(`Error al importar: ${err}`);
+      setError(tr(`Error al importar: ${err}`, `Import failed: ${err}`));
     } finally {
       setLoading(false);
     }
-  }, [importFilePath, importPassword, importMode, onComplete]);
+  }, [importFilePath, importPassword, importMode, onComplete, tr]);
 
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
@@ -155,7 +157,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
       <div className="modal">
         {/* Encabezado */}
         <div className="modal-header">
-          <h2 className="modal-title">Sincronizar boveda</h2>
+          <h2 className="modal-title">{tr('Sincronizar bóveda', 'Sync vault')}</h2>
           <button className="btn-icon" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -170,13 +172,13 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
             className={`sync-tab ${activeTab === 'export' ? 'active' : ''}`}
             onClick={() => { setActiveTab('export'); setError(null); }}
           >
-            Exportar
+            {tr('Exportar', 'Export')}
           </button>
           <button
             className={`sync-tab ${activeTab === 'import' ? 'active' : ''}`}
             onClick={() => { setActiveTab('import'); setError(null); }}
           >
-            Importar
+            {tr('Importar', 'Import')}
           </button>
         </div>
 
@@ -192,8 +194,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                   <line x1="12" y1="8" x2="12.01" y2="8" />
                 </svg>
                 <p>
-                  Este archivo contendrá toda tu boveda cifrada con la contraseña de sincronización.
-                  Usalo para transferir a otro dispositivo.
+                  {tr('Este archivo contendrá toda tu bóveda cifrada con la contraseña de sincronización. Usalo para transferir a otro dispositivo.', 'This file will contain your entire vault encrypted with the sync password. Use it to transfer to another device.')}
                 </p>
               </div>
 
@@ -201,12 +202,12 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                 <>
                   {/* Contraseña de sincronización */}
                   <div className="form-group" style={{ marginTop: 20 }}>
-                    <label className="form-label">Contraseña de sincronización</label>
+                    <label className="form-label">{tr('Contraseña de sincronización', 'Sync password')}</label>
                     <div className="lock-input-group">
                       <input
                         className="input"
                         type={showExportPassword ? 'text' : 'password'}
-                        placeholder="Minimo 8 caracteres"
+                        placeholder={tr('Minimo 8 caracteres', 'At least 8 characters')}
                         value={exportPassword}
                         onChange={(e) => { setExportPassword(e.target.value); setError(null); }}
                         disabled={loading}
@@ -216,7 +217,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                         className="lock-toggle-password"
                         onClick={() => setShowExportPassword(!showExportPassword)}
                         tabIndex={-1}
-                        aria-label={showExportPassword ? 'Ocultar' : 'Mostrar'}
+                        aria-label={showExportPassword ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                       >
                         {showExportPassword ? (
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -254,11 +255,11 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
 
                   {/* Confirmar contraseña */}
                   <div className="form-group">
-                    <label className="form-label">Confirmar contraseña</label>
+                    <label className="form-label">{tr('Confirmar contraseña', 'Confirm password')}</label>
                     <input
                       className="input"
                       type={showExportPassword ? 'text' : 'password'}
-                      placeholder="Repite la contraseña"
+                      placeholder={tr('Repite la contraseña', 'Repeat the password')}
                       value={exportPasswordConfirm}
                       onChange={(e) => { setExportPasswordConfirm(e.target.value); setError(null); }}
                       disabled={loading}
@@ -275,7 +276,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>{exportResult.entries} entradas y {exportResult.attachments} adjuntos exportados</span>
+                      <span>{tr(`${exportResult.entries} entradas y ${exportResult.attachments} adjuntos exportados`, `${exportResult.entries} entries and ${exportResult.attachments} attachments exported`)}</span>
                     </div>
                   </div>
                 </div>
@@ -285,7 +286,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
               {loading && (
                 <div className="ie-loading">
                   <div className="loading-spinner" />
-                  <span>Exportando...</span>
+                  <span>{tr('Exportando...', 'Exporting...')}</span>
                 </div>
               )}
 
@@ -298,12 +299,12 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
               {importResult === null && (
                 <>
                   <div className="form-group">
-                    <label className="form-label">Contraseña de sincronización</label>
+                    <label className="form-label">{tr('Contraseña de sincronización', 'Sync password')}</label>
                     <div className="lock-input-group">
                       <input
                         className="input"
                         type={showImportPassword ? 'text' : 'password'}
-                        placeholder="Contraseña usada al exportar"
+                        placeholder={tr('Contraseña usada al exportar', 'Password used when exporting')}
                         value={importPassword}
                         onChange={(e) => { setImportPassword(e.target.value); setError(null); }}
                         disabled={loading}
@@ -313,7 +314,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                         className="lock-toggle-password"
                         onClick={() => setShowImportPassword(!showImportPassword)}
                         tabIndex={-1}
-                        aria-label={showImportPassword ? 'Ocultar' : 'Mostrar'}
+                        aria-label={showImportPassword ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                       >
                         {showImportPassword ? (
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -334,7 +335,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
 
                   {/* Selección de archivo */}
                   <div className="form-group">
-                    <label className="form-label">Archivo</label>
+                    <label className="form-label">{tr('Archivo', 'File')}</label>
                     <div className="ie-file-row">
                       <button
                         className="btn btn-secondary btn-sm"
@@ -345,7 +346,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                           <polyline points="14 2 14 8 20 8" />
                         </svg>
-                        Seleccionar archivo
+                        {tr('Seleccionar archivo', 'Select file')}
                       </button>
                       {importFilePath && (
                         <span className="ie-file-path" title={importFilePath}>
@@ -357,15 +358,15 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
 
                   {/* Modo de importación */}
                   <div className="form-group">
-                    <label className="form-label">Modo</label>
+                    <label className="form-label">{tr('Modo', 'Mode')}</label>
                     <select
                       className="select"
                       value={importMode}
                       onChange={(e) => setImportMode(e.target.value as SyncMode)}
                       disabled={loading}
                     >
-                      <option value="merge">Combinar (mantener existentes, actualizar si hay cambios)</option>
-                      <option value="replace">Reemplazar todo</option>
+                      <option value="merge">{tr('Combinar (mantener existentes, actualizar si hay cambios)', 'Merge (keep existing, update if changed)')}</option>
+                      <option value="replace">{tr('Reemplazar todo', 'Replace all')}</option>
                     </select>
                   </div>
 
@@ -377,7 +378,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
-                      <p>Esto eliminará todas las entradas actuales y las reemplazará con las del archivo.</p>
+                      <p>{tr('Esto eliminará todas las entradas actuales y las reemplazará con las del archivo.', 'This will delete all current entries and replace them with those from the file.')}</p>
                     </div>
                   )}
                 </>
@@ -391,7 +392,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>{importResult.entries} entradas y {importResult.attachments} adjuntos importados</span>
+                      <span>{tr(`${importResult.entries} entradas y ${importResult.attachments} adjuntos importados`, `${importResult.entries} entries and ${importResult.attachments} attachments imported`)}</span>
                     </div>
                   </div>
                 </div>
@@ -401,7 +402,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
               {loading && (
                 <div className="ie-loading">
                   <div className="loading-spinner" />
-                  <span>Importando...</span>
+                  <span>{tr('Importando...', 'Importing...')}</span>
                 </div>
               )}
 
@@ -415,12 +416,12 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
         <div className="modal-footer">
           {isFinished ? (
             <button className="btn btn-primary" onClick={onClose}>
-              Cerrar
+              {tr('Cerrar', 'Close')}
             </button>
           ) : (
             <>
               <button className="btn btn-secondary" onClick={onClose} disabled={loading}>
-                Cancelar
+                {tr('Cancelar', 'Cancel')}
               </button>
               {activeTab === 'export' ? (
                 <button
@@ -428,7 +429,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                   onClick={handleExport}
                   disabled={loading || !exportPassword || !exportPasswordConfirm}
                 >
-                  {loading ? 'Exportando...' : 'Exportar archivo de sync'}
+                  {loading ? tr('Exportando...', 'Exporting...') : tr('Exportar archivo de sync', 'Export sync file')}
                 </button>
               ) : (
                 <button
@@ -436,7 +437,7 @@ export function SyncDialog({ onClose, onComplete }: SyncDialogProps) {
                   onClick={handleImport}
                   disabled={loading || !importFilePath || !importPassword}
                 >
-                  {loading ? 'Importando...' : 'Importar'}
+                  {loading ? tr('Importando...', 'Importing...') : tr('Importar', 'Import')}
                 </button>
               )}
             </>

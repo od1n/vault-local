@@ -242,3 +242,43 @@ export interface ClipboardStatus {
   active: boolean;
   seconds_left: number;
 }
+
+// --- Bóvedas múltiples ---
+export interface VaultItem {
+  id: string;
+  name: string;
+  created_at: string;
+  exists: boolean;
+}
+
+export interface VaultList {
+  active: string;
+  vaults: VaultItem[];
+  can_create: boolean;
+}
+
+export interface SessionInfo {
+  name: string;
+  read_only: boolean;
+  vault_count: number;
+}
+
+// --- Acceso de emergencia ---
+export interface EmergencyStatus {
+  configured: boolean;
+  key_id: string | null;
+  created_at: string | null;
+}
+
+export interface EmergencyShare {
+  part: number;
+  words: string[];
+  code: string;
+}
+
+export interface EmergencySetup {
+  key_id: string;
+  created_at: string;
+  vault_name: string;
+  shares: EmergencyShare[];
+}

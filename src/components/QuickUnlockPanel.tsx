@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { QuickStatus } from '../types';
+import { useTr } from '../i18n';
 
 /** Desbloqueo rápido en la pantalla de bloqueo: PIN y/o Windows Hello. */
 export function QuickUnlockPanel({ onUnlocked }: { onUnlocked: () => void }) {
+  const tr = useTr();
   const [status, setStatus] = useState<QuickStatus | null>(null);
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,7 +29,7 @@ export function QuickUnlockPanel({ onUnlocked }: { onUnlocked: () => void }) {
       await invoke('quick_unlock_with_pin', { pin });
       onUnlocked();
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'No se pudo desbloquear');
+      setError(typeof err === 'string' ? err : tr('No se pudo desbloquear', 'Could not unlock'));
       refresh();
     } finally {
       setPin('');
@@ -42,7 +44,7 @@ export function QuickUnlockPanel({ onUnlocked }: { onUnlocked: () => void }) {
       await invoke('quick_unlock_with_hello');
       onUnlocked();
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'No se pudo desbloquear');
+      setError(typeof err === 'string' ? err : tr('No se pudo desbloquear', 'Could not unlock'));
       refresh();
     } finally {
       setBusy(false);
@@ -58,23 +60,23 @@ export function QuickUnlockPanel({ onUnlocked }: { onUnlocked: () => void }) {
             type="password"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="PIN de desbloqueo rápido"
+            placeholder={tr('PIN de desbloqueo rápido', 'Quick unlock PIN')}
             value={pin}
             onChange={(e) => setPin(e.target.value)}
             autoFocus
           />
           <button className="btn btn-primary" type="submit" disabled={busy || !pin}>
-            Desbloquear
+            {tr('Desbloquear', 'Unlock')}
           </button>
         </form>
       )}
       {status.hello && (
         <button className="btn btn-secondary" onClick={withHello} disabled={busy} style={{ width: '100%', marginTop: 8 }}>
-          Desbloquear con Windows Hello
+          {tr('Desbloquear con Windows Hello', 'Unlock with Windows Hello')}
         </button>
       )}
       {error && <div className="quick-unlock-error">{error}</div>}
-      <div className="quick-unlock-divider">o usa tu contraseña maestra</div>
+      <div className="quick-unlock-divider">{tr('o usa tu contraseña maestra', 'or use your master password')}</div>
     </div>
   );
 }

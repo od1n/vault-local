@@ -69,11 +69,22 @@ export function useAuth() {
     setError(null);
   }, []);
 
+  /** Vuelve a comprobar si la bóveda seleccionada existe (tras cambiar de bóveda) */
+  const recheck = useCallback(async () => {
+    setError(null);
+    try {
+      const created = await invoke<boolean>('is_vault_created');
+      setAuthState(created ? 'locked' : 'setup');
+    } catch {
+      setAuthState('locked');
+    }
+  }, []);
+
   /** La bóveda se abrió por desbloqueo rápido (PIN / Windows Hello) */
   const markUnlocked = useCallback(() => {
     setError(null);
     setAuthState('unlocked');
   }, []);
 
-  return { authState, error, processing, createVault, unlock, lock, markUnlocked };
+  return { authState, error, processing, createVault, unlock, lock, markUnlocked, recheck };
 }

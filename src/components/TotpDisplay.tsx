@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { useI18n, useTr } from '../i18n';
 
 interface TotpDisplayProps {
   secret: string;
@@ -12,6 +13,8 @@ interface TotpResponse {
 }
 
 export function TotpDisplay({ secret, onCopy }: TotpDisplayProps) {
+  const { locale } = useI18n();
+  const tr = useTr();
   const [code, setCode] = useState<string | null>(null);
   const [remaining, setRemaining] = useState(30);
   const [loading, setLoading] = useState(true);
@@ -33,10 +36,10 @@ export function TotpDisplay({ secret, onCopy }: TotpDisplayProps) {
       setError(null);
       setLoading(false);
     } catch (e) {
-      setError(typeof e === 'string' ? e : 'Error al generar TOTP');
+      setError(typeof e === 'string' ? e : (locale === 'en' ? 'Failed to generate TOTP' : 'Error al generar TOTP'));
       setLoading(false);
     }
-  }, [secret]);
+  }, [secret, locale]);
 
   useEffect(() => {
     fetchCode();
@@ -128,8 +131,8 @@ export function TotpDisplay({ secret, onCopy }: TotpDisplayProps) {
         <button
           className="btn-icon"
           onClick={() => code && onCopy(code)}
-          aria-label="Copiar codigo TOTP"
-          title="Copiar codigo"
+          aria-label={tr('Copiar código TOTP', 'Copy TOTP code')}
+          title={tr('Copiar código', 'Copy code')}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />

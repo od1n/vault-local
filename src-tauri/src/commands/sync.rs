@@ -43,6 +43,12 @@ struct SyncEntry {
     favorite: bool,
     created_at: String,
     updated_at: String,
+    /// Etiquetas (paquetes anteriores a 0.4.0 no las traen)
+    #[serde(default)]
+    tags: Vec<String>,
+    /// Fecha sugerida de cambio de contraseña
+    #[serde(default)]
+    expires_at: Option<String>,
 }
 
 /// Adjunto individual dentro del paquete de sincronización.
@@ -130,6 +136,8 @@ pub fn export_sync_file(
             favorite,
             created_at,
             updated_at,
+            tags: meta.tags.clone(),
+            expires_at: meta.expires_at.clone(),
         });
 
         // Obtener adjuntos de esta entrada
@@ -266,6 +274,9 @@ pub fn import_sync_file(
 
     let mut entry_count: u32 = 0;
     let mut attachment_count: u32 = 0;
+    // Entradas que realmente se insertaron o actualizaron (solo a ellas se aplican
+    // etiquetas y vencimiento del paquete)
+    let mut touched: std::collections::HashSet<&str> = std::collections::HashSet::new();
 
     // Importar entradas
     for sync_entry in &package.entries {
@@ -291,6 +302,7 @@ pub fn import_sync_file(
                         )?;
                         // Si aquí estaba en la papelera, la versión más reciente la revive
                         let _ = repository::restore_entry(&vault.connection, &sync_entry.id);
+                        touched.insert(&sync_entry.id);
                         entry_count += 1;
                     }
                 }
@@ -306,6 +318,7 @@ pub fn import_sync_file(
                         &sync_entry.created_at,
                         &sync_entry.updated_at,
                     )?;
+                    touched.insert(&sync_entry.id);
                     entry_count += 1;
                 }
             }
@@ -321,8 +334,23 @@ pub fn import_sync_file(
                 &sync_entry.created_at,
                 &sync_entry.updated_at,
             )?;
+            touched.insert(&sync_entry.id);
             entry_count += 1;
         }
+    }
+
+    // Etiquetas y vencimiento de las entradas que se insertaron o actualizaron
+    for sync_entry in package
+        .entries
+        .iter()
+        .filter(|e| touched.contains(e.id.as_str()))
+    {
+        repository::set_tags(&vault.connection, &sync_entry.id, &sync_entry.tags)?;
+        let expiry = sync_entry
+            .expires_at
+            .as_deref()
+            .filter(|d| chrono::DateTime::parse_from_rfc3339(d).is_ok());
+        repository::set_expiry(&vault.connection, &sync_entry.id, expiry)?;
     }
 
     // Importar adjuntos

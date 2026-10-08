@@ -1,6 +1,6 @@
 import type { EntryMeta, EntryCategory } from '../types';
 import { CATEGORY_LABELS } from '../types';
-import { useI18n } from '../i18n';
+import { useI18n, useTr } from '../i18n';
 
 interface EntryListProps {
   entries: EntryMeta[];
@@ -85,7 +85,7 @@ const categoryIcons: Record<string, JSX.Element> = {
   ),
 };
 
-function formatRelativeDate(dateStr: string): string {
+function formatRelativeDate(dateStr: string, tr: (es: string, en: string) => string, locale: string): string {
   try {
     const date = new Date(dateStr);
     const now = new Date();
@@ -94,18 +94,19 @@ function formatRelativeDate(dateStr: string): string {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMin < 1) return 'Ahora';
-    if (diffMin < 60) return `Hace ${diffMin} min`;
-    if (diffHours < 24) return `Hace ${diffHours}h`;
-    if (diffDays < 7) return `Hace ${diffDays}d`;
-    return date.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+    if (diffMin < 1) return tr('Ahora', 'Now');
+    if (diffMin < 60) return tr(`Hace ${diffMin} min`, `${diffMin} min ago`);
+    if (diffHours < 24) return tr(`Hace ${diffHours}h`, `${diffHours}h ago`);
+    if (diffDays < 7) return tr(`Hace ${diffDays}d`, `${diffDays}d ago`);
+    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'es', { day: 'numeric', month: 'short' });
   } catch {
     return '';
   }
 }
 
 export function EntryList({ entries, selectedId, onSelect, onToggleFavorite, loading, onNewEntry, onImport, searchActive }: EntryListProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const tr = useTr();
 
   if (loading) {
     return (
@@ -169,9 +170,9 @@ export function EntryList({ entries, selectedId, onSelect, onToggleFavorite, loa
             <div className="entry-card-title">{entry.title}</div>
             <div className="entry-card-meta">
               <span className="entry-card-category">
-                {CATEGORY_LABELS[entry.category as EntryCategory] || entry.category}
+                {t(`category.${entry.category}`, CATEGORY_LABELS[entry.category as EntryCategory] || entry.category)}
               </span>
-              <span className="entry-card-date">{formatRelativeDate(entry.updated_at)}</span>
+              <span className="entry-card-date">{formatRelativeDate(entry.updated_at, tr, locale)}</span>
             </div>
           </div>
           <button
@@ -180,7 +181,7 @@ export function EntryList({ entries, selectedId, onSelect, onToggleFavorite, loa
               e.stopPropagation();
               onToggleFavorite(entry.id);
             }}
-            aria-label={entry.favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+            aria-label={entry.favorite ? tr('Quitar de favoritos', 'Remove from favorites') : tr('Agregar a favoritos', 'Add to favorites')}
           >
             {entry.favorite ? (
               <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">

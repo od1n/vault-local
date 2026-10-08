@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { useTr } from '../i18n';
 
 interface ImportExportDialogProps {
   mode: 'import' | 'export';
@@ -14,38 +15,68 @@ interface ImportResult {
   errors: string[];
 }
 
-type ImportFormat = 'chrome' | 'firefox' | 'bitwarden_csv' | 'bitwarden_json' | 'onepassword' | 'lastpass' | 'keepass' | 'kdbx';
+type ImportFormat = 'vault_local' | 'chrome' | 'firefox' | 'bitwarden_csv' | 'bitwarden_json' | 'onepassword' | 'lastpass' | 'keepass' | 'kdbx';
 type ExportFormat = 'csv' | 'json';
 
-const IMPORT_FORMATS: { value: ImportFormat; label: string }[] = [
-  { value: 'chrome', label: 'Google Chrome / Microsoft Edge' },
-  { value: 'firefox', label: 'Mozilla Firefox' },
-  { value: 'bitwarden_csv', label: 'Bitwarden (CSV)' },
-  { value: 'bitwarden_json', label: 'Bitwarden (JSON)' },
-  { value: 'onepassword', label: '1Password (CSV)' },
-  { value: 'lastpass', label: 'LastPass (CSV)' },
-  { value: 'keepass', label: 'KeePass (CSV)' },
-  { value: 'kdbx', label: 'KeePassXC (.kdbx directo)' },
+// Etiquetas como par [es, en]; se resuelven con tr() dentro del componente.
+const IMPORT_FORMATS: { value: ImportFormat; label: [string, string] }[] = [
+  { value: 'vault_local', label: ['Vault Local (JSON, con etiquetas)', 'Vault Local (JSON, with tags)'] },
+  { value: 'chrome', label: ['Google Chrome / Microsoft Edge', 'Google Chrome / Microsoft Edge'] },
+  { value: 'firefox', label: ['Mozilla Firefox', 'Mozilla Firefox'] },
+  { value: 'bitwarden_csv', label: ['Bitwarden (CSV)', 'Bitwarden (CSV)'] },
+  { value: 'bitwarden_json', label: ['Bitwarden (JSON)', 'Bitwarden (JSON)'] },
+  { value: 'onepassword', label: ['1Password (CSV)', '1Password (CSV)'] },
+  { value: 'lastpass', label: ['LastPass (CSV)', 'LastPass (CSV)'] },
+  { value: 'keepass', label: ['KeePass (CSV)', 'KeePass (CSV)'] },
+  { value: 'kdbx', label: ['KeePassXC (.kdbx directo)', 'KeePassXC (direct .kdbx)'] },
 ];
 
-const EXPORT_FORMATS: { value: ExportFormat; label: string }[] = [
-  { value: 'csv', label: 'CSV (compatible con la mayoría de gestores)' },
-  { value: 'json', label: 'JSON (formato Vault Local)' },
+const EXPORT_FORMATS: { value: ExportFormat; label: [string, string] }[] = [
+  { value: 'csv', label: ['CSV (compatible con la mayoría de gestores)', 'CSV (compatible with most password managers)'] },
+  { value: 'json', label: ['JSON (formato Vault Local)', 'JSON (Vault Local format)'] },
 ];
 
-const IMPORT_HELP: Record<ImportFormat, string> = {
-  chrome: 'En Chrome, ve a chrome://password-manager/settings → Exportar contraseñas',
-  firefox: 'En Firefox, ve a about:logins → ⋯ → Exportar credenciales',
-  bitwarden_csv: 'En Bitwarden, ve a Ajustes → Exportar bóveda → formato CSV',
-  bitwarden_json: 'En Bitwarden, ve a Ajustes → Exportar bóveda → formato JSON',
-  onepassword: 'En 1Password, ve a Archivo → Exportar → formato CSV',
-  lastpass: 'En LastPass, ve a Opciones avanzadas → Exportar',
-  keepass: 'En KeePass, ve a Archivo → Exportar → formato CSV',
-  kdbx: 'Importacion directa de archivos .kdbx. Requiere que KeePassXC este instalado en el sistema.',
+const IMPORT_HELP: Record<ImportFormat, [string, string]> = {
+  vault_local: [
+    'Archivo JSON exportado desde Vault Local (Exportar → JSON). Conserva etiquetas y fechas de cambio de contraseña.',
+    'JSON file exported from Vault Local (Export → JSON). Keeps tags and password change dates.',
+  ],
+  chrome: [
+    'En Chrome, ve a chrome://password-manager/settings → Exportar contraseñas',
+    'In Chrome, go to chrome://password-manager/settings → Export passwords',
+  ],
+  firefox: [
+    'En Firefox, ve a about:logins → ⋯ → Exportar credenciales',
+    'In Firefox, go to about:logins → ⋯ → Export Passwords',
+  ],
+  bitwarden_csv: [
+    'En Bitwarden, ve a Ajustes → Exportar bóveda → formato CSV',
+    'In Bitwarden, go to Settings → Export vault → CSV format',
+  ],
+  bitwarden_json: [
+    'En Bitwarden, ve a Ajustes → Exportar bóveda → formato JSON',
+    'In Bitwarden, go to Settings → Export vault → JSON format',
+  ],
+  onepassword: [
+    'En 1Password, ve a Archivo → Exportar → formato CSV',
+    'In 1Password, go to File → Export → CSV format',
+  ],
+  lastpass: [
+    'En LastPass, ve a Opciones avanzadas → Exportar',
+    'In LastPass, go to Advanced Options → Export',
+  ],
+  keepass: [
+    'En KeePass, ve a Archivo → Exportar → formato CSV',
+    'In KeePass, go to File → Export → CSV format',
+  ],
+  kdbx: [
+    'Importación directa de archivos .kdbx. Requiere que KeePassXC esté instalado en el sistema.',
+    'Direct import of .kdbx files. Requires KeePassXC to be installed on the system.',
+  ],
 };
 
 function getImportFileFilters(format: ImportFormat): { name: string; extensions: string[] }[] {
-  if (format === 'bitwarden_json') {
+  if (format === 'bitwarden_json' || format === 'vault_local') {
     return [{ name: 'JSON', extensions: ['json'] }];
   }
   if (format === 'kdbx') {
@@ -59,6 +90,7 @@ function getExportExtension(format: ExportFormat): string {
 }
 
 export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDialogProps) {
+  const tr = useTr();
   // Import state
   const [importFormat, setImportFormat] = useState<ImportFormat>('chrome');
   const [filePath, setFilePath] = useState<string | null>(null);
@@ -88,14 +120,14 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
         setError(null);
       }
     } catch (err) {
-      setError(`Error al seleccionar archivo: ${err}`);
+      setError(tr(`Error al seleccionar archivo: ${err}`, `Failed to select file: ${err}`));
     }
-  }, [importFormat]);
+  }, [importFormat, tr]);
 
   const handleImport = useCallback(async () => {
     if (!filePath) return;
     if (importFormat === 'kdbx' && !kdbxPassword) {
-      setError('Ingresa la contrasena del archivo KeePassXC.');
+      setError(tr('Ingresa la contraseña del archivo KeePassXC.', 'Enter the KeePassXC file password.'));
       return;
     }
     setLoading(true);
@@ -118,15 +150,15 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
         onComplete();
       }
     } catch (err) {
-      setError(`Error al importar: ${err}`);
+      setError(tr(`Error al importar: ${err}`, `Import failed: ${err}`));
     } finally {
       setLoading(false);
     }
-  }, [filePath, importFormat, kdbxPassword, onComplete]);
+  }, [filePath, importFormat, kdbxPassword, onComplete, tr]);
 
   const handleExport = useCallback(async () => {
     if (!exportPassword) {
-      setError('Ingresa tu contrasena maestra para exportar.');
+      setError(tr('Ingresa tu contraseña maestra para exportar.', 'Enter your master password to export.'));
       return;
     }
     try {
@@ -151,11 +183,11 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
       });
       setExportCount(count);
     } catch (err) {
-      setError(`Error al exportar: ${err}`);
+      setError(tr(`Error al exportar: ${err}`, `Export failed: ${err}`));
     } finally {
       setLoading(false);
     }
-  }, [exportFormat, exportPassword]);
+  }, [exportFormat, exportPassword, tr]);
 
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
@@ -174,7 +206,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
         {/* Header */}
         <div className="modal-header">
           <h2 className="modal-title">
-            {mode === 'import' ? 'Importar credenciales' : 'Exportar bóveda'}
+            {mode === 'import' ? tr('Importar credenciales', 'Import credentials') : tr('Exportar bóveda', 'Export vault')}
           </h2>
           <button className="btn-icon" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -190,7 +222,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
             <>
               {/* Import format selector */}
               <div className="form-group">
-                <label className="form-label">Origen</label>
+                <label className="form-label">{tr('Origen', 'Source')}</label>
                 <select
                   className="select"
                   value={importFormat}
@@ -205,7 +237,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                 >
                   {IMPORT_FORMATS.map((f) => (
                     <option key={f.value} value={f.value}>
-                      {f.label}
+                      {tr(...f.label)}
                     </option>
                   ))}
                 </select>
@@ -218,18 +250,18 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                   <line x1="12" y1="16" x2="12" y2="12" />
                   <line x1="12" y1="8" x2="12.01" y2="8" />
                 </svg>
-                <span>{IMPORT_HELP[importFormat]}</span>
+                <span>{tr(...IMPORT_HELP[importFormat])}</span>
               </div>
 
               {/* KDBX password input */}
               {importFormat === 'kdbx' && !importResult && (
                 <div className="form-group" style={{ marginTop: 16 }}>
-                  <label className="form-label">Contrasena del archivo KeePassXC</label>
+                  <label className="form-label">{tr('Contraseña del archivo KeePassXC', 'KeePassXC file password')}</label>
                   <div className="lock-input-group">
                     <input
                       className="input"
                       type={showKdbxPassword ? 'text' : 'password'}
-                      placeholder="Contrasena maestra del archivo .kdbx"
+                      placeholder={tr('Contraseña maestra del archivo .kdbx', 'Master password of the .kdbx file')}
                       value={kdbxPassword}
                       onChange={(e) => { setKdbxPassword(e.target.value); setError(null); }}
                       disabled={loading}
@@ -239,7 +271,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                       className="lock-toggle-password"
                       onClick={() => setShowKdbxPassword(!showKdbxPassword)}
                       tabIndex={-1}
-                      aria-label={showKdbxPassword ? 'Ocultar' : 'Mostrar'}
+                      aria-label={showKdbxPassword ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                     >
                       {showKdbxPassword ? (
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -257,7 +289,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                     </button>
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
-                    Esta es la contrasena del archivo KeePassXC, no la contrasena de Vault Local. Si KeePassXC no esta instalado, exporta como CSV desde KeePassXC y usa el formato "KeePass (CSV)".
+                    {tr('Esta es la contraseña del archivo KeePassXC, no la contraseña de Vault Local. Si KeePassXC no está instalado, exporta como CSV desde KeePassXC y usa el formato "KeePass (CSV)".', 'This is the KeePassXC file password, not your Vault Local password. If KeePassXC is not installed, export as CSV from KeePassXC and use the "KeePass (CSV)" format.')}
                   </div>
                 </div>
               )}
@@ -265,7 +297,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
               {/* File selection */}
               {!importResult && (
                 <div className="form-group" style={{ marginTop: 20 }}>
-                  <label className="form-label">Archivo</label>
+                  <label className="form-label">{tr('Archivo', 'File')}</label>
                   <div className="ie-file-row">
                     <button
                       className="btn btn-secondary btn-sm"
@@ -276,7 +308,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
                       </svg>
-                      Seleccionar archivo
+                      {tr('Seleccionar archivo', 'Select file')}
                     </button>
                     {filePath && (
                       <span className="ie-file-path" title={filePath}>
@@ -295,7 +327,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>{importResult.imported} entradas importadas</span>
+                      <span>{tr(`${importResult.imported} entradas importadas`, `${importResult.imported} entries imported`)}</span>
                     </div>
                     {importResult.skipped > 0 && (
                       <div className="ie-result-item ie-result-skipped">
@@ -303,13 +335,13 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                           <circle cx="12" cy="12" r="10" />
                           <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
                         </svg>
-                        <span>{importResult.skipped} omitidas</span>
+                        <span>{tr(`${importResult.skipped} omitidas`, `${importResult.skipped} skipped`)}</span>
                       </div>
                     )}
                   </div>
                   {importResult.errors.length > 0 && (
                     <div className="ie-error-list">
-                      <span className="ie-error-list-title">Errores:</span>
+                      <span className="ie-error-list-title">{tr('Errores:', 'Errors:')}</span>
                       <ul>
                         {importResult.errors.map((err, i) => (
                           <li key={i}>{err}</li>
@@ -324,7 +356,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
               {loading && (
                 <div className="ie-loading">
                   <div className="loading-spinner" />
-                  <span>Importando...</span>
+                  <span>{tr('Importando...', 'Importing...')}</span>
                 </div>
               )}
 
@@ -341,20 +373,19 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
                 <p>
-                  El archivo exportado contendrá todas tus credenciales en texto plano.
-                  Guárdalo en un lugar seguro y elimínalo cuando ya no lo necesites.
+                  {tr('El archivo exportado contendrá todas tus credenciales en texto plano. Guárdalo en un lugar seguro y elimínalo cuando ya no lo necesites.', 'The exported file will contain all your credentials in plain text. Store it somewhere safe and delete it when you no longer need it.')}
                 </p>
               </div>
 
               {/* Re-auth password */}
               {exportCount === null && (
                 <div className="form-group" style={{ marginTop: 20 }}>
-                  <label className="form-label">Contrasena maestra</label>
+                  <label className="form-label">{tr('Contraseña maestra', 'Master password')}</label>
                   <div className="lock-input-group">
                     <input
                       className="input"
                       type={showExportPassword ? 'text' : 'password'}
-                      placeholder="Ingresa tu contrasena para confirmar"
+                      placeholder={tr('Ingresa tu contraseña para confirmar', 'Enter your password to confirm')}
                       value={exportPassword}
                       onChange={(e) => { setExportPassword(e.target.value); setError(null); }}
                       disabled={loading}
@@ -364,7 +395,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                       className="lock-toggle-password"
                       onClick={() => setShowExportPassword(!showExportPassword)}
                       tabIndex={-1}
-                      aria-label={showExportPassword ? 'Ocultar' : 'Mostrar'}
+                      aria-label={showExportPassword ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                     >
                       {showExportPassword ? (
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -386,7 +417,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
 
               {/* Export format selector */}
               <div className="form-group" style={{ marginTop: 20 }}>
-                <label className="form-label">Formato</label>
+                <label className="form-label">{tr('Formato', 'Format')}</label>
                 <select
                   className="select"
                   value={exportFormat}
@@ -399,7 +430,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                 >
                   {EXPORT_FORMATS.map((f) => (
                     <option key={f.value} value={f.value}>
-                      {f.label}
+                      {tr(...f.label)}
                     </option>
                   ))}
                 </select>
@@ -413,7 +444,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      <span>{exportCount} entradas exportadas correctamente</span>
+                      <span>{tr(`${exportCount} entradas exportadas correctamente`, `${exportCount} entries exported successfully`)}</span>
                     </div>
                   </div>
                 </div>
@@ -423,7 +454,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
               {loading && (
                 <div className="ie-loading">
                   <div className="loading-spinner" />
-                  <span>Exportando...</span>
+                  <span>{tr('Exportando...', 'Exporting...')}</span>
                 </div>
               )}
 
@@ -437,12 +468,12 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
         <div className="modal-footer">
           {isFinished ? (
             <button className="btn btn-primary" onClick={onClose}>
-              Cerrar
+              {tr('Cerrar', 'Close')}
             </button>
           ) : (
             <>
               <button className="btn btn-secondary" onClick={onClose} disabled={loading}>
-                Cancelar
+                {tr('Cancelar', 'Cancel')}
               </button>
               {mode === 'import' ? (
                 <button
@@ -450,7 +481,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                   onClick={handleImport}
                   disabled={!filePath || loading || (importFormat === 'kdbx' && !kdbxPassword)}
                 >
-                  {loading ? 'Importando...' : 'Importar'}
+                  {loading ? tr('Importando...', 'Importing...') : tr('Importar', 'Import')}
                 </button>
               ) : (
                 <button
@@ -458,7 +489,7 @@ export function ImportExportDialog({ mode, onClose, onComplete }: ImportExportDi
                   onClick={handleExport}
                   disabled={loading || !exportPassword}
                 >
-                  {loading ? 'Exportando...' : 'Exportar'}
+                  {loading ? tr('Exportando...', 'Exporting...') : tr('Exportar', 'Export')}
                 </button>
               )}
             </>

@@ -2,11 +2,11 @@
 // Gestiona el ciclo de vida de la clave maestra y la sesión del vault.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use secrecy::{ExposeSecret, Secret};
 use tauri::Manager;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::crypto::{cipher, kdf};
 use crate::db::repository;
@@ -24,19 +24,143 @@ fn get_app_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| format!("Error al obtener directorio de datos: {}", e))
 }
 
-/// Obtiene la ruta al archivo de la base de datos.
+/// Obtiene la ruta al archivo de la base de datos de la bóveda seleccionada.
 fn get_db_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(get_app_data_dir(app)?.join("vault.db"))
+    Ok(crate::vaults::active_dir(app)?.join("vault.db"))
 }
 
-/// Obtiene la ruta al archivo del salt.
+/// Obtiene la ruta al archivo del salt de la bóveda seleccionada.
 fn get_salt_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(get_app_data_dir(app)?.join("vault.salt"))
+    Ok(crate::vaults::active_dir(app)?.join("vault.salt"))
 }
 
 /// Obtiene la ruta al archivo de estado de bloqueo por intentos fallidos.
 fn get_lockout_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(get_app_data_dir(app)?.join("vault.lock"))
+    Ok(crate::vaults::active_dir(app)?.join("vault.lock"))
+}
+
+/// Ruta del salt de la bóveda ABIERTA (junto a su vault.db).
+pub(crate) fn salt_path_for(db_path: &Path) -> PathBuf {
+    db_path.with_file_name("vault.salt")
+}
+
+/// Comprueba la contraseña maestra de la bóveda guardada en `dir` sin dejarla abierta.
+pub(crate) fn check_password_at(dir: &Path, password: &str) -> Result<(), String> {
+    let salt =
+        fs::read(dir.join("vault.salt")).map_err(|e| format!("Error al leer salt: {}", e))?;
+    if salt.len() != 32 {
+        return Err("Archivo de salt corrupto (tamaño incorrecto)".to_string());
+    }
+    let (mut db_key, enc_key) = kdf::derive_keys_from_password(password.as_bytes(), &salt)?;
+    let conn = repository::open_db(&dir.join("vault.db"), &db_key);
+    db_key.zeroize();
+    let ok = conn.map(|c| verify_token(&c, &enc_key)).unwrap_or(false);
+    let mut enc_key = enc_key;
+    enc_key.zeroize();
+    if ok {
+        Ok(())
+    } else {
+        Err("Contraseña incorrecta".to_string())
+    }
+}
+
+/// Ruta del salt pendiente que se escribe durante un cambio de contraseña.
+fn pending_salt_path(salt_path: &Path) -> PathBuf {
+    salt_path.with_extension("salt.new")
+}
+
+/// Activa el salt nuevo de un cambio de contraseña: escribe los 32 bytes en vault.salt de
+/// forma atómica (temporal + renombrar) y borra el pendiente.
+fn activate_salt(salt_path: &Path, new_salt: &[u8]) -> Result<(), String> {
+    let tmp = salt_path.with_extension("salt.tmp");
+    fs::write(&tmp, new_salt).map_err(|e| format!("Error al guardar nuevo salt: {}", e))?;
+    fs::rename(&tmp, salt_path).map_err(|e| format!("Error al guardar nuevo salt: {}", e))?;
+    let _ = fs::remove_file(pending_salt_path(salt_path));
+    Ok(())
+}
+
+fn read_salt(path: &Path) -> Result<Vec<u8>, String> {
+    let salt = fs::read(path).map_err(|e| format!("Error al leer salt: {}", e))?;
+    if salt.len() != 32 {
+        return Err("Archivo de salt corrupto (tamaño incorrecto)".to_string());
+    }
+    Ok(salt)
+}
+
+/// Conexión abierta con su clave de base y su clave de campos.
+type Opened = (rusqlite::Connection, [u8; 32], [u8; 32]);
+
+/// Abre la bóveda con la contraseña. Devuelve None si la contraseña no es correcta.
+///
+/// El cambio de contraseña escribe primero `vault.salt.new` (salt nuevo + la clave de base
+/// ANTERIOR cifrada con la clave de campos nueva), después confirma el re-cifrado de las
+/// entradas, luego hace PRAGMA rekey y por último renombra el salt. Si se interrumpe en
+/// cualquier punto, aquí se abre con la contraseña que corresponda y se termina el cambio.
+fn open_with_pending(
+    db_path: &Path,
+    salt_path: &Path,
+    password: &[u8],
+) -> Result<Option<Opened>, String> {
+    let pending_path = pending_salt_path(salt_path);
+
+    // 1. Caso normal: salt actual
+    let (mut cur_db, mut cur_enc) =
+        kdf::derive_keys_from_password(password, &read_salt(salt_path)?)?;
+    if let Ok(conn) = repository::open_db(db_path, &cur_db) {
+        if verify_token(&conn, &cur_enc) {
+            if pending_path.exists() {
+                // Un cambio que no llegó a confirmarse: el pendiente sobra
+                let _ = fs::remove_file(&pending_path);
+                crate::emergency::discard_pending(db_path);
+            }
+            let r = Some((conn, cur_db, cur_enc));
+            cur_db.zeroize();
+            cur_enc.zeroize();
+            return Ok(r);
+        }
+    }
+    cur_db.zeroize();
+    cur_enc.zeroize();
+
+    // 2. Cambio de contraseña a medias: probar con el salt pendiente (contraseña NUEVA)
+    let Ok(pending) = fs::read(&pending_path) else {
+        return Ok(None);
+    };
+    if pending.len() < 32 {
+        return Ok(None);
+    }
+    let (new_db, new_enc) = kdf::derive_keys_from_password(password, &pending[..32])?;
+    let old_db: Option<Zeroizing<[u8; 32]>> = cipher::decrypt(&new_enc, &pending[32..])
+        .ok()
+        .filter(|k| k.len() == 32)
+        .map(|k| {
+            let mut a = Zeroizing::new([0u8; 32]);
+            a.copy_from_slice(&k);
+            a
+        });
+
+    // 2a. El rekey ya se hizo; solo faltaba renombrar el salt
+    let conn = match repository::open_db(db_path, &new_db) {
+        Ok(c) if verify_token(&c, &new_enc) => Some(c),
+        _ => None,
+    };
+    // 2b. Las entradas ya usan la clave nueva pero la base sigue con la anterior: rekey
+    let conn = match (conn, old_db) {
+        (Some(c), _) => c,
+        (None, Some(old)) => match repository::open_db(db_path, &old) {
+            Ok(c) if verify_token(&c, &new_enc) => {
+                c.execute_batch(&format!("PRAGMA rekey = \"x'{}'\";", hex::encode(new_db)))
+                    .map_err(|e| format!("Error al terminar el cambio de contraseña: {}", e))?;
+                drop(c);
+                repository::open_db(db_path, &new_db)?
+            }
+            _ => return Ok(None),
+        },
+        (None, None) => return Ok(None),
+    };
+    activate_salt(salt_path, &pending[..32])?;
+    crate::emergency::commit_pending(db_path);
+    Ok(Some((conn, new_db, new_enc)))
 }
 
 /// Verifica si el vault ya fue creado (si existe el archivo de la base de datos).
@@ -69,6 +193,14 @@ pub fn create_vault(
     if db_path.exists() {
         return Err("Ya existe un vault. Elimínelo primero para crear uno nuevo.".to_string());
     }
+    // Las bóvedas adicionales son de Pro (la principal es gratis)
+    if crate::vaults::active_id(&app) != crate::vaults::MAIN_ID {
+        crate::commands::license::require_tier(&app, crate::commands::license::Tier::Pro)?;
+    }
+    let state_open = state.vault.lock().map(|g| g.is_some()).unwrap_or(true);
+    if state_open {
+        return Err("Bloquea la bóveda actual antes de crear otra".to_string());
+    }
 
     // Generar salt aleatorio
     let salt = kdf::generate_salt();
@@ -76,9 +208,9 @@ pub fn create_vault(
     // Derivar claves desde la contraseña
     let (mut db_key, enc_key) = kdf::derive_keys_from_password(password.as_bytes(), &salt)?;
 
-    // Crear el directorio de datos si no existe
-    let app_data_dir = get_app_data_dir(&app)?;
-    fs::create_dir_all(&app_data_dir)
+    // Crear el directorio de la bóveda si no existe
+    let vault_dir = crate::vaults::active_dir(&app)?;
+    fs::create_dir_all(&vault_dir)
         .map_err(|e| format!("Error al crear directorio de datos: {}", e))?;
 
     // Guardar el salt en archivo separado (necesario para desbloquear)
@@ -109,6 +241,8 @@ pub fn create_vault(
         enc_key: Secret::new(EncKey(enc_key)),
         db_key: Secret::new(EncKey(kept_db_key)),
         db_path,
+        name: crate::vaults::active_name(&app),
+        read_only: false,
     };
 
     let mut vault_guard = state
@@ -154,57 +288,18 @@ pub fn unlock_vault(
         return Err("No se encontró un vault. Cree uno primero.".to_string());
     }
 
-    // Leer el salt del archivo
-    let salt = fs::read(&salt_path).map_err(|e| format!("Error al leer salt: {}", e))?;
-
-    if salt.len() != 32 {
-        return Err("Archivo de salt corrupto (tamaño incorrecto)".to_string());
-    }
-
-    // Derivar claves desde la contraseña
-    let (mut db_key, enc_key) = kdf::derive_keys_from_password(password.as_bytes(), &salt)?;
-
-    // Copiar db_key para el servidor IPC antes de zeroizar
-    let ipc_db_key = db_key;
-
-    // Intentar abrir la base de datos (falla si la contraseña es incorrecta)
-    let conn = match repository::open_db(&db_path, &db_key) {
-        Ok(c) => c,
-        Err(_) => {
-            // Registrar intento fallido y persistir
-            lockout.record_failure();
-            let _ = lockout.save(&lockout_path);
-            return Err("Contraseña incorrecta".to_string());
-        }
-    };
-
-    // Zeroizar la clave de la base de datos (la copia para IPC se zeroiza después de iniciar el servidor)
-    db_key.zeroize();
-
-    // Verificar el token de verificación
-    let encrypted_token = repository::get_config(&conn, "verify_token")?
-        .ok_or_else(|| "Token de verificación no encontrado en la base de datos".to_string())?;
-
-    let decrypted_token = match cipher::decrypt(&enc_key, &encrypted_token) {
-        Ok(t) => t,
-        Err(_) => {
-            // Registrar intento fallido y persistir
-            lockout.record_failure();
-            let _ = lockout.save(&lockout_path);
-            return Err("Contraseña incorrecta".to_string());
-        }
-    };
-
-    let token_str = String::from_utf8(decrypted_token)
-        .map_err(|_| "Token de verificación corrupto".to_string())?;
-
-    if token_str != VERIFY_TOKEN {
-        // Registrar intento fallido y persistir
-        lockout.record_failure();
-        let _ = lockout.save(&lockout_path);
-        return Err("Contraseña incorrecta".to_string());
-    }
-
+    // Abrir con el salt actual; si un cambio de contraseña quedó a medias (corte de luz,
+    // antivirus que bloqueó un archivo), también se prueba el salt pendiente y se termina.
+    let (conn, ipc_db_key, enc_key) =
+        match open_with_pending(&db_path, &salt_path, password.as_bytes())? {
+            Some(v) => v,
+            None => {
+                // Registrar intento fallido y persistir
+                lockout.record_failure();
+                let _ = lockout.save(&lockout_path);
+                return Err("Contraseña incorrecta".to_string());
+            }
+        };
     // Desbloqueo exitoso: reiniciar contador de intentos fallidos
     lockout.reset();
     let _ = lockout.save(&lockout_path);
@@ -256,6 +351,8 @@ pub(crate) fn install_unlocked(
             enc_key: Secret::new(EncKey(enc_key)),
             db_key: Secret::new(EncKey(db_key)),
             db_path: db_path.clone(),
+            name: crate::vaults::active_name(app),
+            read_only: false,
         });
     }
 
@@ -337,7 +434,14 @@ pub fn change_master_password(
     new_password: String,
 ) -> Result<(), String> {
     // 1. Verificar la contraseña actual
-    let salt_path = get_salt_path(&app)?;
+    let db_path_open = state
+        .vault
+        .lock()
+        .map_err(|_| "Error al acceder al estado del vault".to_string())?
+        .as_ref()
+        .map(|v| v.db_path.clone())
+        .ok_or("El vault está bloqueado".to_string())?;
+    let salt_path = salt_path_for(&db_path_open);
     let old_salt = fs::read(&salt_path).map_err(|e| format!("Error al leer salt: {}", e))?;
     let (mut old_db_key, old_enc_key) =
         kdf::derive_keys_from_password(current_password.as_bytes(), &old_salt)?;
@@ -350,6 +454,9 @@ pub fn change_master_password(
     let vault = vault_guard
         .as_ref()
         .ok_or("El vault está bloqueado".to_string())?;
+    if vault.read_only {
+        return Err("No disponible en modo solo lectura".to_string());
+    }
 
     // Verificar descifrando el token con la clave derivada de la contraseña actual
     let encrypted_token = repository::get_config(&vault.connection, "verify_token")?
@@ -361,6 +468,21 @@ pub fn change_master_password(
     let new_salt = kdf::generate_salt();
     let (new_db_key, new_enc_key) =
         kdf::derive_keys_from_password(new_password.as_bytes(), &new_salt)?;
+
+    // 2b. Antes de tocar nada: salt pendiente = salt nuevo + clave de base actual cifrada con
+    // la clave de campos nueva. Si el proceso se corta, el próximo desbloqueo con la
+    // contraseña NUEVA termina el cambio (ver open_with_pending).
+    let pending_salt = pending_salt_path(&salt_path);
+    {
+        let mut pending = Vec::with_capacity(32 + 72);
+        pending.extend_from_slice(&new_salt);
+        pending.extend_from_slice(&cipher::encrypt(
+            &new_enc_key,
+            &vault.db_key.expose_secret().0,
+        )?);
+        fs::write(&pending_salt, &pending)
+            .map_err(|e| format!("Error al guardar el salt nuevo: {}", e))?;
+    }
 
     // Los pasos 3 a 5 van en una transacción: si algo falla, no queda nada cifrado a medias
     let tx = vault
@@ -410,19 +532,58 @@ pub fn change_master_password(
 
     // 5b. Re-cifrar el PIN de desbloqueo rápido, si existe
     crate::quick_unlock::reencrypt_pin(&vault.connection, current_enc_key, &new_enc_key)?;
+    // 5c. Re-cifrar la clave de recuperación de emergencia, si existe
+    let recovery_key =
+        crate::emergency::reencrypt_rk(&vault.connection, current_enc_key, &new_enc_key)?;
+    // 5d. Acceso de emergencia con las claves nuevas (se activa junto con el salt)
+    if let Some(rk) = &recovery_key {
+        if let Err(e) =
+            crate::emergency::write_pending(&db_path_open, rk, &new_db_key, &new_enc_key)
+        {
+            eprintln!(
+                "[Emergencia] No se pudo preparar el acceso de emergencia: {}",
+                e
+            );
+        }
+    }
 
-    tx.commit()
-        .map_err(|e| format!("Error al confirmar el re-cifrado: {}", e))?;
+    if let Err(e) = tx.commit() {
+        let _ = fs::remove_file(&pending_salt);
+        crate::emergency::discard_pending(&db_path_open);
+        return Err(format!("Error al confirmar el re-cifrado: {}", e));
+    }
 
-    // 6. Re-cifrar la base de datos con PRAGMA rekey
-    let new_hex_key = hex::encode(new_db_key);
-    vault
-        .connection
-        .execute_batch(&format!("PRAGMA rekey = \"x'{}'\";", new_hex_key))
-        .map_err(|e| format!("Error al re-cifrar la base de datos: {}", e))?;
-
-    // 7. Guardar el nuevo salt en disco
-    fs::write(&salt_path, new_salt).map_err(|e| format!("Error al guardar nuevo salt: {}", e))?;
+    // Desde aquí las entradas usan la clave nueva. Si algo falla, bloquear: el próximo
+    // desbloqueo con la contraseña NUEVA termina el cambio.
+    let finish = |vault: &VaultState| -> Result<(), String> {
+        // 6. Re-cifrar la base de datos con PRAGMA rekey
+        vault
+            .connection
+            .execute_batch(&format!(
+                "PRAGMA rekey = \"x'{}'\";",
+                hex::encode(new_db_key)
+            ))
+            .map_err(|e| format!("Error al re-cifrar la base de datos: {}", e))?;
+        // 7. Activar el salt nuevo y el acceso de emergencia nuevo
+        activate_salt(&salt_path, &new_salt)?;
+        crate::emergency::commit_pending(&db_path_open);
+        Ok(())
+    };
+    if let Err(e) = finish(vault) {
+        *vault_guard = None;
+        drop(vault_guard);
+        crate::quick_unlock::disarm(&state);
+        ipc_server::stop();
+        if let Ok(dir) = get_app_data_dir(&app) {
+            ipc_server::cleanup_token(&dir);
+        }
+        // Ya está bloqueada: esto solo lleva la interfaz a la pantalla de desbloqueo
+        crate::desktop::request_lock(&app, "password-change");
+        return Err(format!(
+            "{}. La bóveda se bloqueó: desbloquéala con la contraseña NUEVA y el cambio se completará.",
+            e
+        ));
+    }
 
     // 8. Actualizar el estado del vault con la nueva clave de cifrado
     let db_path = vault.db_path.clone();
@@ -433,11 +594,26 @@ pub fn change_master_password(
         enc_key: Secret::new(EncKey(new_enc_key)),
         db_key: Secret::new(EncKey(new_db_key)),
         db_path,
+        name: vault.name.clone(),
+        read_only: false,
     };
     *vault_guard = Some(new_vault);
+    drop(vault_guard);
 
     // El material del desbloqueo rápido usa las claves anteriores: anularlo
     crate::quick_unlock::disarm(&state);
+
+    // Reiniciar el servidor de la extensión con las claves nuevas (antes seguía con una
+    // conexión abierta con la clave anterior y la extensión dejaba de funcionar)
+    if let Ok(app_data_dir) = get_app_data_dir(&app) {
+        let mut ipc_db_key = new_db_key;
+        if let Err(e) =
+            ipc_server::start(db_path_open.clone(), &ipc_db_key, new_enc_key, app_data_dir)
+        {
+            eprintln!("[IPC] Error al reiniciar servidor IPC: {}", e);
+        }
+        ipc_db_key.zeroize();
+    }
 
     // 9. Zeroizar contraseñas y claves temporales
     let mut current_password = current_password;
@@ -460,5 +636,82 @@ pub fn get_ipc_token(app: tauri::AppHandle) -> Result<Option<String>, String> {
         Ok(Some(token.trim().to_string()))
     } else {
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Prepara una bóveda con contraseña "vieja" y deja un cambio a "nueva" detenido en
+    /// la etapa indicada: 0 = antes de confirmar, 1 = confirmado sin rekey, 2 = rekey sin renombrar.
+    fn bóveda_con_cambio_a_medias(etapa: u8) -> (PathBuf, PathBuf, PathBuf) {
+        let dir = std::env::temp_dir().join(format!("vl-auth-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+        let db_path = dir.join("vault.db");
+        let salt_path = dir.join("vault.salt");
+        let old_salt = kdf::generate_salt();
+        fs::write(&salt_path, old_salt).unwrap();
+        let (old_db, old_enc) = kdf::derive_keys_from_password(b"vieja", &old_salt).unwrap();
+        let conn = repository::open_db(&db_path, &old_db).unwrap();
+        repository::init_tables(&conn).unwrap();
+        repository::save_config(
+            &conn,
+            "verify_token",
+            &cipher::encrypt(&old_enc, VERIFY_TOKEN.as_bytes()).unwrap(),
+        )
+        .unwrap();
+
+        let new_salt = kdf::generate_salt();
+        let (new_db, new_enc) = kdf::derive_keys_from_password(b"nueva", &new_salt).unwrap();
+        let mut pending = new_salt.to_vec();
+        pending.extend_from_slice(&cipher::encrypt(&new_enc, &old_db).unwrap());
+        fs::write(pending_salt_path(&salt_path), pending).unwrap();
+        if etapa >= 1 {
+            repository::save_config(
+                &conn,
+                "verify_token",
+                &cipher::encrypt(&new_enc, VERIFY_TOKEN.as_bytes()).unwrap(),
+            )
+            .unwrap();
+        }
+        if etapa >= 2 {
+            conn.execute_batch(&format!("PRAGMA rekey = \"x'{}'\";", hex::encode(new_db)))
+                .unwrap();
+        }
+        drop(conn);
+        (dir, db_path, salt_path)
+    }
+
+    #[test]
+    fn cambio_interrumpido_antes_de_confirmar_sigue_la_vieja() {
+        let (dir, db, salt) = bóveda_con_cambio_a_medias(0);
+        assert!(open_with_pending(&db, &salt, b"nueva").unwrap().is_none());
+        assert!(open_with_pending(&db, &salt, b"vieja").unwrap().is_some());
+        assert!(
+            !pending_salt_path(&salt).exists(),
+            "el pendiente sobrante se borra"
+        );
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn cambio_interrumpido_sin_rekey_se_termina_con_la_nueva() {
+        let (dir, db, salt) = bóveda_con_cambio_a_medias(1);
+        assert!(open_with_pending(&db, &salt, b"vieja").unwrap().is_none());
+        assert!(open_with_pending(&db, &salt, b"nueva").unwrap().is_some());
+        assert!(!pending_salt_path(&salt).exists());
+        // Ya terminado: abre directo con la nueva
+        assert!(open_with_pending(&db, &salt, b"nueva").unwrap().is_some());
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn cambio_interrumpido_tras_rekey_se_termina_con_la_nueva() {
+        let (dir, db, salt) = bóveda_con_cambio_a_medias(2);
+        assert!(open_with_pending(&db, &salt, b"nueva").unwrap().is_some());
+        assert!(open_with_pending(&db, &salt, b"nueva").unwrap().is_some());
+        assert!(open_with_pending(&db, &salt, b"vieja").unwrap().is_none());
+        let _ = fs::remove_dir_all(dir);
     }
 }

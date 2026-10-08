@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useVault } from '../hooks/useVault';
 import { useLicense, tierLabel } from '../hooks/useLicense';
-import { useI18n } from '../i18n';
+import { useI18n, useTr } from '../i18n';
 import { CategoryFilter } from './CategoryFilter';
 import { SearchBar } from './SearchBar';
 import { EntryList } from './EntryList';
@@ -28,7 +28,7 @@ import { ShareDialog } from './extras/ShareDialog';
 import { BackupSettings } from './BackupSettings';
 import { Onboarding } from './Onboarding';
 import { SecurityAlert } from './SecurityAlert';
-import type { EntryCategory, EntryMeta, NewEntry, UpdateEntry } from '../types';
+import type { EntryCategory, EntryMeta, NewEntry, SessionInfo, UpdateEntry } from '../types';
 
 interface AuditSummary {
   total_entries: number;
@@ -100,6 +100,13 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     onLock,
   });
   const { t, locale, setLocale } = useI18n();
+  const tr = useTr();
+  // Bóveda abierta (nombre) y si es un acceso de emergencia (solo lectura)
+  const [session, setSession] = useState<SessionInfo | null>(null);
+  useEffect(() => {
+    invoke<SessionInfo>('get_session_info').then(setSession).catch(() => setSession(null));
+  }, []);
+  const readOnly = session?.read_only ?? false;
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,6 +168,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
 
   // Mostrar onboarding si no hay entradas y no se ha completado antes
   useEffect(() => {
+    if (readOnly) return;
     if (allEntries.length === 0 && allEntries !== undefined) {
       try {
         if (localStorage.getItem('vault-local-onboarding-done') !== 'true') {
@@ -170,7 +178,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
         // localStorage no disponible
       }
     }
-  }, [allEntries]);
+  }, [allEntries, readOnly]);
 
   const handleOnboardingComplete = useCallback(() => {
     setShowOnboarding(false);
@@ -300,7 +308,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
       }
       if (mod && e.key === 'n') {
         e.preventDefault();
-        handleNewEntry();
+        if (!readOnly) handleNewEntry();
       }
       if (mod && e.key === 'l') {
         e.preventDefault();
@@ -313,9 +321,9 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
         const k = e.key.toLowerCase();
         const hasSelection = !!window.getSelection()?.toString();
         const map: Record<string, ['username' | 'password' | 'totp', string]> = {
-          c: ['password', 'Contraseña'],
-          b: ['username', 'Usuario'],
-          t: ['totp', 'Código TOTP'],
+          c: ['password', tr('Contraseña', 'Password')],
+          b: ['username', tr('Usuario', 'Username')],
+          t: ['totp', tr('Código TOTP', 'TOTP code')],
         };
         if (map[k] && !(k === 'c' && hasSelection)) {
           e.preventDefault();
@@ -352,7 +360,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showSettings, showBackup, showAudit, showSshAgent, selectedEntry, clearSelected, quickCopy, showToast]);
+  }, [readOnly, handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showSettings, showBackup, showAudit, showSshAgent, selectedEntry, clearSelected, quickCopy, showToast, locale]);
 
   return (
     <div className="dashboard">
@@ -373,7 +381,12 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               fill="none"
             />
           </svg>
-          <span className="sidebar-header-title">Vault Local</span>
+          <span className="sidebar-header-title" title={session?.name}>
+            Vault Local
+            {session && (session.vault_count > 1 || session.read_only) && (
+              <span className="sidebar-vault-name">{session.name}</span>
+            )}
+          </span>
           <button
             className="lang-toggle"
             onClick={() => setLocale(locale === 'es' ? 'en' : 'es')}
@@ -393,8 +406,8 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             )}
           </button>
           {isPremium ? (
-            <span className="premium-badge" onClick={() => setShowLicense(true)} style={{ cursor: 'pointer' }} title={license.days_left !== null ? `Vence en ${license.days_left} día(s)` : undefined}>
-              {tierLabel(license)}{license.days_left !== null && license.days_left <= 14 ? ` · ${license.days_left}d` : ''}
+            <span className="premium-badge" onClick={() => setShowLicense(true)} style={{ cursor: 'pointer' }} title={license.days_left !== null ? tr(`Vence en ${license.days_left} día(s)`, `Expires in ${license.days_left} day(s)`) : undefined}>
+              {tierLabel(license, locale)}{license.days_left !== null && license.days_left <= 14 ? ` · ${license.days_left}d` : ''}
             </span>
           ) : (
             <span className="upgrade-link" onClick={() => setShowLicense(true)}>{t('dashboard.upgrade')}</span>
@@ -427,7 +440,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           <button
             className={`category-item ${sidebarFilter === 'expiring' ? 'active' : ''}`}
             onClick={() => handleSidebarFilter('expiring')}
-            title="Entradas cuya fecha para cambiar la contraseña vence en 14 días o menos"
+            title={tr('Entradas cuya fecha para cambiar la contraseña vence en 14 días o menos', 'Entries whose password change date is due in 14 days or less')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -435,7 +448,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-            <span className="category-item-label">Por vencer</span>
+            <span className="category-item-label">{tr('Por vencer', 'Expiring')}</span>
             <span className="category-item-count" style={expiringCount > 0 ? { color: 'var(--warning)' } : undefined}>{expiringCount}</span>
           </button>
           <button
@@ -447,13 +460,13 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
               <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
             </svg>
-            <span className="category-item-label">Papelera</span>
+            <span className="category-item-label">{tr('Papelera', 'Trash')}</span>
           </button>
 
           {tagCounts.length > 0 && (
             <>
               <div className="sidebar-filter-divider" />
-              <div className="sidebar-section-label">Etiquetas</div>
+              <div className="sidebar-section-label">{tr('Etiquetas', 'Tags')}</div>
               {tagCounts.map(([tag, count]) => (
                 <button
                   key={tag}
@@ -482,7 +495,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="sidebar-ie-actions">
+          {!readOnly && <div className="sidebar-ie-actions">
             <button className="sidebar-ie-btn" onClick={() => setImportExportMode('import')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -499,16 +512,16 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               </svg>
               {t('dashboard.export')}
             </button>
-            <button className="sidebar-ie-btn" onClick={() => setShowShareImport(true)} title="Recibir una entrada compartida (.vlshare)">
+            <button className="sidebar-ie-btn" onClick={() => setShowShareImport(true)} title={tr('Recibir una entrada compartida (.vlshare)', 'Receive a shared entry (.vlshare)')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
                 <polyline points="16 6 12 2 8 6" />
                 <line x1="12" y1="2" x2="12" y2="15" />
               </svg>
-              Recibir
+              {tr('Recibir', 'Receive')}
             </button>
-          </div>
-          <button className="sidebar-lock-btn" onClick={() => (isPro ? setShowSync(true) : setShowLicense(true))}>
+          </div>}
+          {!readOnly && <button className="sidebar-lock-btn" onClick={() => (isPro ? setShowSync(true) : setShowLicense(true))}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6" />
               <path d="M1 20v-6h6" />
@@ -516,7 +529,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <path d="M20.49 15a9 9 0 01-14.85 3.36L1 14" />
             </svg>
             {t('dashboard.sync')}
-          </button>
+          </button>}
           <button
             className="sidebar-lock-btn"
             onClick={() => { setShowSshAgent(!showSshAgent); setShowAudit(false); }}
@@ -541,16 +554,16 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
             </svg>
-            Ajustes
+            {tr('Ajustes', 'Settings')}
           </button>
-          <button className="sidebar-lock-btn" onClick={() => setShowChangePassword(true)}>
+          {!readOnly && <button className="sidebar-lock-btn" onClick={() => setShowChangePassword(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
               <circle cx="12" cy="16" r="1" />
             </svg>
             {t('dashboard.change_password')}
-          </button>
+          </button>}
           <button className="sidebar-lock-btn" onClick={onLock}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -577,14 +590,23 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             </svg>
             {t('dashboard.audit')}
           </button>
-          <button className="btn btn-primary btn-sm" onClick={handleNewEntry}>
+          {!readOnly && <button className="btn btn-primary btn-sm" onClick={handleNewEntry}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             {t('dashboard.new_entry')}
-          </button>
+          </button>}
         </div>
+        {readOnly && (
+          <div className="readonly-banner">
+            <strong>{tr('Acceso de emergencia · solo lectura', 'Emergency access · read-only')}</strong>{' '}
+            {tr(
+              `Estás viendo «${session?.name}». Puedes ver y copiar los datos, pero no modificarlos. Si necesitas seguir usándolos, cópialos a una bóveda propia.`,
+              `You are viewing “${session?.name}”. You can view and copy data but not change it. To keep using it, copy it into your own vault.`,
+            )}
+          </div>
+        )}
 
         <div className="main-body">
           {auditSummary && !auditDismissed && !showAudit && (
@@ -627,10 +649,10 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                     entries={displayedEntries}
                     selectedId={selectedEntry?.id || null}
                     onSelect={handleEntrySelect}
-                    onToggleFavorite={toggleFavorite}
+                    onToggleFavorite={readOnly ? () => {} : toggleFavorite}
                     loading={loading && sidebarFilter === null}
-                    onNewEntry={handleNewEntry}
-                    onImport={() => setImportExportMode('import')}
+                    onNewEntry={readOnly ? () => {} : handleNewEntry}
+                    onImport={readOnly ? () => {} : () => setImportExportMode('import')}
                     searchActive={!!searchTerm}
                   />
                 </div>
@@ -644,7 +666,8 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                   onDelete={handleDelete}
                   onClose={clearSelected}
                   onToggleFavorite={toggleFavorite}
-                  extras={
+                  readOnly={readOnly}
+                  extras={readOnly ? undefined : (
                     <EntryExtras
                       entry={selectedEntry}
                       isPremium={isPremium}
@@ -653,7 +676,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                       onDuplicated={(id) => refreshAll(id)}
                       notify={showToast}
                     />
-                  }
+                  )}
                 />
               ) : (
                 <div className="no-selection">
@@ -751,8 +774,8 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
         <LockWarning secondsLeft={warningLeft} onStillHere={touch} onLockNow={onLock} onUpgrade={() => setShowLicense(true)} />
       )}
       {pausedUntil !== null && pausedUntil > Date.now() && (
-        <div className="lock-paused-pill" onClick={resumeLock} title="Haz clic para reanudar el bloqueo automático">
-          Bloqueo pausado hasta {new Date(pausedUntil).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })} · Reanudar
+        <div className="lock-paused-pill" onClick={resumeLock} title={tr('Haz clic para reanudar el bloqueo automático', 'Click to resume auto-lock')}>
+          {tr('Bloqueo pausado hasta', 'Lock paused until')} {new Date(pausedUntil).toLocaleTimeString(locale === 'en' ? 'en-US' : 'es', { hour: '2-digit', minute: '2-digit' })} · {tr('Reanudar', 'Resume')}
         </div>
       )}
       <ClipboardBar onUpgrade={() => setShowLicense(true)} />

@@ -1,3 +1,4 @@
+import { useI18n, useTr } from '../i18n';
 import { useState, useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -14,6 +15,8 @@ interface EntryDetailProps {
   onToggleFavorite: (id: string) => void;
   /** Contenido extra (etiquetas, vencimiento, acciones) que se muestra al inicio del detalle */
   extras?: React.ReactNode;
+  /** Bóveda abierta con el acceso de emergencia: sin editar ni borrar */
+  readOnly?: boolean;
 }
 
 const categoryIcons: Record<string, JSX.Element> = {
@@ -79,9 +82,9 @@ const categoryIcons: Record<string, JSX.Element> = {
   ),
 };
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   try {
-    return new Date(dateStr).toLocaleString('es', {
+    return new Date(dateStr).toLocaleString(locale === 'en' ? 'en-US' : 'es', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -132,7 +135,9 @@ function getFileIcon(mimeType: string): JSX.Element {
   );
 }
 
-export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite, extras }: EntryDetailProps) {
+export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite, extras, readOnly }: EntryDetailProps) {
+  const { t, locale } = useI18n();
+  const tr = useTr();
   const [revealedFields, setRevealedFields] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
@@ -242,12 +247,12 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
             </div>
             <div className="field-actions">
               {copiedField === fieldId ? (
-                <span className="copied-badge">Copiado{countdown > 0 ? ` (${countdown}s)` : ''}</span>
+                <span className="copied-badge">{tr('Copiado', 'Copied')}{countdown > 0 ? ` (${countdown}s)` : ''}</span>
               ) : (
                 <button
                   className="btn-icon"
                   onClick={() => field.sensitive ? copyFieldToClipboard(entry.id, index, fieldId, field.name) : copyToClipboard(field.value, fieldId, field.name)}
-                  aria-label="Copiar"
+                  aria-label={tr('Copiar', 'Copy')}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -259,7 +264,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 <button
                   className="btn-icon"
                   onClick={() => toggleReveal(index)}
-                  aria-label={isRevealed ? 'Ocultar' : 'Mostrar'}
+                  aria-label={isRevealed ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                 >
                   {isRevealed ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -291,13 +296,13 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               </div>
               <div className="field-actions">
                 {copiedField === fieldId ? (
-                  <span className="copied-badge">Copiado{countdown > 0 ? ` (${countdown}s)` : ''}</span>
+                  <span className="copied-badge">{tr('Copiado', 'Copied')}{countdown > 0 ? ` (${countdown}s)` : ''}</span>
                 ) : (
                   <button
                     className="btn-icon"
                     onClick={() => copyFieldToClipboard(entry.id, index, fieldId, field.name)}
-                    aria-label="Copiar frase completa"
-                    title="Copiar frase completa"
+                    aria-label={tr('Copiar frase completa', 'Copy full phrase')}
+                    title={tr('Copiar frase completa', 'Copy full phrase')}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -308,7 +313,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 <button
                   className="btn-icon"
                   onClick={() => toggleReveal(index)}
-                  aria-label={isRevealed ? 'Ocultar' : 'Mostrar'}
+                  aria-label={isRevealed ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                 >
                   {isRevealed ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -352,12 +357,12 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
             </div>
             <div className="field-actions">
               {copiedField === fieldId ? (
-                <span className="copied-badge">Copiado{countdown > 0 ? ` (${countdown}s)` : ''}</span>
+                <span className="copied-badge">{tr('Copiado', 'Copied')}{countdown > 0 ? ` (${countdown}s)` : ''}</span>
               ) : (
                 <button
                   className="btn-icon"
                   onClick={() => copyFieldToClipboard(entry.id, index, fieldId, field.name)}
-                  aria-label="Copiar respuesta"
+                  aria-label={tr('Copiar respuesta', 'Copy answer')}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -368,7 +373,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               <button
                 className="btn-icon"
                 onClick={() => toggleReveal(index)}
-                aria-label={isRevealed ? 'Ocultar' : 'Mostrar'}
+                aria-label={isRevealed ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
               >
                 {isRevealed ? (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -396,7 +401,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               <div className="field-info">
                 <div className="field-name">{field.name}</div>
                 <div className="field-value" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  Sin configurar
+                  {tr('Sin configurar', 'Not configured')}
                 </div>
               </div>
             </div>
@@ -431,13 +436,13 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               </div>
               <div className="field-actions">
                 {copiedField === fieldId ? (
-                  <span className="copied-badge">Copiado{countdown > 0 ? ` (${countdown}s)` : ''}</span>
+                  <span className="copied-badge">{tr('Copiado', 'Copied')}{countdown > 0 ? ` (${countdown}s)` : ''}</span>
                 ) : (
                   <button
                     className="btn-icon"
                     onClick={() => copyFieldToClipboard(entry.id, index, fieldId, field.name)}
-                    aria-label="Copiar clave"
-                    title="Copiar clave"
+                    aria-label={tr('Copiar clave', 'Copy key')}
+                    title={tr('Copiar clave', 'Copy key')}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -448,7 +453,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 <button
                   className="btn-icon"
                   onClick={() => toggleReveal(index)}
-                  aria-label={isRevealed ? 'Ocultar' : 'Mostrar'}
+                  aria-label={isRevealed ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                 >
                   {isRevealed ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -482,7 +487,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                   <rect x="2" y="4" width="20" height="16" rx="2" />
                   <path d="M7 15h0M2 8h20" />
                 </svg>
-                {addedToAgent ? 'Remover del agente' : 'Agregar al agente'}
+                {addedToAgent ? tr('Remover del agente', 'Remove from agent') : tr('Agregar al agente', 'Add to agent')}
               </button>
             </div>
             {/* Valor de la clave */}
@@ -510,12 +515,12 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
             </div>
             <div className="field-actions">
               {copiedField === fieldId ? (
-                <span className="copied-badge">Copiado{countdown > 0 ? ` (${countdown}s)` : ''}</span>
+                <span className="copied-badge">{tr('Copiado', 'Copied')}{countdown > 0 ? ` (${countdown}s)` : ''}</span>
               ) : (
                 <button
                   className="btn-icon"
                   onClick={() => field.sensitive ? copyFieldToClipboard(entry.id, index, fieldId, field.name) : copyToClipboard(field.value, fieldId, field.name)}
-                  aria-label="Copiar"
+                  aria-label={tr('Copiar', 'Copy')}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -527,7 +532,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 <button
                   className="btn-icon"
                   onClick={() => toggleReveal(index)}
-                  aria-label={isRevealed ? 'Ocultar' : 'Mostrar'}
+                  aria-label={isRevealed ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
                 >
                   {isRevealed ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -561,14 +566,15 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
           <div className="detail-header-info">
             <div className="detail-title">{entry.title}</div>
             <div className="detail-category-badge">
-              {CATEGORY_LABELS[entry.category as EntryCategory] || entry.category}
+              {t(`category.${entry.category}`, CATEGORY_LABELS[entry.category as EntryCategory] || entry.category)}
             </div>
           </div>
           <div className="detail-header-actions">
             <button
               className={`btn-icon ${entry.favorite ? 'active' : ''}`}
-              onClick={() => onToggleFavorite(entry.id)}
-              aria-label={entry.favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+              onClick={() => !readOnly && onToggleFavorite(entry.id)}
+              disabled={readOnly}
+              aria-label={entry.favorite ? tr('Quitar de favoritos', 'Remove from favorites') : tr('Agregar a favoritos', 'Add to favorites')}
               style={entry.favorite ? { color: 'var(--warning)' } : undefined}
             >
               {entry.favorite ? (
@@ -581,7 +587,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 </svg>
               )}
             </button>
-            <button className="btn-icon" onClick={onClose} aria-label="Cerrar">
+            <button className="btn-icon" onClick={onClose} aria-label={tr('Cerrar', 'Close')}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -594,14 +600,14 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
           {extras}
           {entry.fields.length > 0 && (
             <div className="detail-section">
-              <div className="detail-section-title">Campos</div>
+              <div className="detail-section-title">{tr('Campos', 'Fields')}</div>
               {entry.fields.map((field, index) => renderField(field, index))}
             </div>
           )}
 
           {entry.notes && (
             <div className="detail-section">
-              <div className="detail-section-title">Notas</div>
+              <div className="detail-section-title">{tr('Notas', 'Notes')}</div>
               <div className="detail-notes">{entry.notes}</div>
             </div>
           )}
@@ -609,7 +615,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
           {/* Attachments Section */}
           {attachments.length > 0 && (
             <div className="detail-section">
-              <div className="detail-section-title">Archivos adjuntos</div>
+              <div className="detail-section-title">{tr('Archivos adjuntos', 'Attachments')}</div>
               <div className="attachment-list">
                 {attachments.map((att) => (
                   <div className="attachment-item" key={att.id}>
@@ -622,8 +628,8 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                       <button
                         className="btn-icon"
                         onClick={() => handleDownloadAttachment(att)}
-                        aria-label="Descargar"
-                        title="Descargar"
+                        aria-label={tr('Descargar', 'Download')}
+                        title={tr('Descargar', 'Download')}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -634,8 +640,8 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                       <button
                         className="btn-icon"
                         onClick={() => setDeleteAttachmentId(att.id)}
-                        aria-label="Eliminar adjunto"
-                        title="Eliminar"
+                        aria-label={tr('Eliminar adjunto', 'Delete attachment')}
+                        title={tr('Eliminar', 'Delete')}
                         style={{ color: 'var(--danger)' }}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -651,27 +657,27 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
           )}
 
           <div className="detail-timestamps">
-            <span>Creado: {formatDate(entry.created_at)}</span>
-            <span>Modificado: {formatDate(entry.updated_at)}</span>
+            <span>{tr('Creado:', 'Created:')} {formatDate(entry.created_at, locale)}</span>
+            <span>{tr('Modificado:', 'Modified:')} {formatDate(entry.updated_at, locale)}</span>
           </div>
         </div>
 
-        <div className="detail-footer">
+        {!readOnly && <div className="detail-footer">
           <button className="btn btn-secondary" onClick={onEdit}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
-            Editar
+            {tr('Editar', 'Edit')}
           </button>
           <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3,6 5,6 21,6" />
               <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
-            Eliminar
+            {tr('Eliminar', 'Delete')}
           </button>
-        </div>
+        </div>}
       </div>
 
       {showDeleteConfirm && (
@@ -684,16 +690,19 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                <div className="confirm-dialog-title">Eliminar entrada</div>
+                <div className="confirm-dialog-title">{tr('Eliminar entrada', 'Delete entry')}</div>
                 <div className="confirm-dialog-text">
-                  «{entry.title}» se enviará a la papelera. Podrás restaurarla durante 30 días; después se borra definitivamente.
+                  {tr(
+                    `«${entry.title}» se enviará a la papelera. Podrás restaurarla durante 30 días; después se borra definitivamente.`,
+                    `“${entry.title}” will be moved to the trash. You can restore it for 30 days; after that it is permanently deleted.`
+                  )}
                 </div>
                 <div className="confirm-dialog-actions">
                   <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>
-                    Cancelar
+                    {tr('Cancelar', 'Cancel')}
                   </button>
                   <button className="btn btn-danger" onClick={handleDelete}>
-                    Eliminar
+                    {tr('Eliminar', 'Delete')}
                   </button>
                 </div>
               </div>
@@ -712,16 +721,16 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                   <line x1="12" y1="9" x2="12" y2="13" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-                <div className="confirm-dialog-title">Eliminar adjunto</div>
+                <div className="confirm-dialog-title">{tr('Eliminar adjunto', 'Delete attachment')}</div>
                 <div className="confirm-dialog-text">
-                  ¿Estás seguro de que deseas eliminar este archivo adjunto? Esta acción no se puede deshacer.
+                  {tr('¿Estás seguro de que deseas eliminar este archivo adjunto? Esta acción no se puede deshacer.', 'Are you sure you want to delete this attachment? This action cannot be undone.')}
                 </div>
                 <div className="confirm-dialog-actions">
                   <button className="btn btn-secondary" onClick={() => setDeleteAttachmentId(null)}>
-                    Cancelar
+                    {tr('Cancelar', 'Cancel')}
                   </button>
                   <button className="btn btn-danger" onClick={() => handleDeleteAttachment(deleteAttachmentId)}>
-                    Eliminar
+                    {tr('Eliminar', 'Delete')}
                   </button>
                 </div>
               </div>

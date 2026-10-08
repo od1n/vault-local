@@ -42,6 +42,9 @@
   "dashboard.theme_dark": "Dark theme",
   "dashboard.select_hint": "Select an entry to view details",
 
+  "category.card": "Cards",
+  "category.wifi": "Wi-Fi",
+  "category.identity": "Identities",
   "category.web": "Websites",
   "category.bank": "Banks",
   "category.wallet": "Wallets",

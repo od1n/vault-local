@@ -50,6 +50,33 @@ fn get_config_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(get_app_data_dir(app)?.join("backup_config.json"))
 }
 
+/// Directorio de la bóveda seleccionada (origen de los respaldos).
+fn vault_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    crate::vaults::active_dir(app)
+}
+
+/// Carpeta de respaldos de la bóveda seleccionada: la principal usa la carpeta elegida
+/// (como siempre) y cada bóveda adicional una subcarpeta con su identificador.
+fn vault_backup_dir(app: &tauri::AppHandle, base: &Path) -> PathBuf {
+    let id = crate::vaults::active_id(app);
+    if id == crate::vaults::MAIN_ID {
+        base.to_path_buf()
+    } else {
+        base.join(id)
+    }
+}
+
+/// Copia también el archivo de acceso de emergencia, si existe (sin él, las partes impresas
+/// no sirven para abrir el respaldo).
+fn copy_recovery(src_dir: &Path, dest_db: &Path) {
+    let rec = src_dir.join("vault.recovery");
+    if rec.exists() {
+        if let Err(e) = fs::copy(&rec, dest_db.with_extension("recovery")) {
+            eprintln!("[Backup] Error al copiar vault.recovery: {}", e);
+        }
+    }
+}
+
 /// Lee la configuración de respaldos desde disco.
 fn read_config(app: &tauri::AppHandle) -> Result<BackupConfig, String> {
     let config_path = get_config_path(app)?;
@@ -167,15 +194,16 @@ pub fn perform_backup(app: tauri::AppHandle) -> Result<String, String> {
         return Err("No se ha configurado un directorio de respaldos".to_string());
     }
 
-    let backup_dir = Path::new(&config.backup_dir);
+    let backup_dir_buf = vault_backup_dir(&app, Path::new(&config.backup_dir));
+    let backup_dir = backup_dir_buf.as_path();
     if !backup_dir.exists() {
         fs::create_dir_all(backup_dir)
             .map_err(|e| format!("Error al crear directorio de respaldos: {}", e))?;
     }
 
-    let app_data_dir = get_app_data_dir(&app)?;
-    let db_source = app_data_dir.join("vault.db");
-    let salt_source = app_data_dir.join("vault.salt");
+    let source_dir = vault_dir(&app)?;
+    let db_source = source_dir.join("vault.db");
+    let salt_source = source_dir.join("vault.salt");
 
     if !db_source.exists() {
         return Err("No se encontró el archivo vault.db".to_string());
@@ -192,6 +220,7 @@ pub fn perform_backup(app: tauri::AppHandle) -> Result<String, String> {
     // Copiar archivos
     fs::copy(&db_source, &db_dest).map_err(|e| format!("Error al copiar vault.db: {}", e))?;
     fs::copy(&salt_source, &salt_dest).map_err(|e| format!("Error al copiar vault.salt: {}", e))?;
+    copy_recovery(&source_dir, &db_dest);
 
     // Actualizar último respaldo
     config.last_backup = Some(Local::now().to_rfc3339());
@@ -214,6 +243,7 @@ fn rotate_backups(backup_dir: &Path, max_backups: u32) -> Result<(), String> {
         let salt_path = backup_dir.join(format!("vault_backup_{}.salt", oldest));
         let _ = fs::remove_file(&db_path);
         let _ = fs::remove_file(&salt_path);
+        let _ = fs::remove_file(db_path.with_extension("recovery"));
     }
 
     Ok(())
@@ -228,7 +258,8 @@ pub fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupInfo>, String> {
         return Ok(Vec::new());
     }
 
-    let backup_dir = Path::new(&config.backup_dir);
+    let backup_dir_buf = vault_backup_dir(&app, Path::new(&config.backup_dir));
+    let backup_dir = backup_dir_buf.as_path();
     let timestamps = list_backup_timestamps(backup_dir)?;
 
     let mut backups = Vec::new();
@@ -277,21 +308,34 @@ pub fn restore_backup(
         return Err("No se encontró el archivo de respaldo".to_string());
     }
 
-    // Derivar la ruta del .salt desde el .db
-    let backup_salt_path = backup_path.replace(".db", ".salt");
-    let backup_salt = Path::new(&backup_salt_path);
+    // Derivar la ruta del .salt desde el .db (solo la extensión: la carpeta puede contener ".db")
+    let backup_salt_buf = backup_db.with_extension("salt");
+    let backup_salt = backup_salt_buf.as_path();
     if !backup_salt.exists() {
         return Err("No se encontró el archivo salt del respaldo".to_string());
     }
 
-    let app_data_dir = get_app_data_dir(&app)?;
-    let db_dest = app_data_dir.join("vault.db");
-    let salt_dest = app_data_dir.join("vault.salt");
+    let dest_dir = vault_dir(&app)?;
+    fs::create_dir_all(&dest_dir).map_err(|e| format!("Error al crear directorio: {}", e))?;
+    let db_dest = dest_dir.join("vault.db");
+    let salt_dest = dest_dir.join("vault.salt");
 
     // Copiar archivos de respaldo sobre los actuales
     fs::copy(backup_db, &db_dest).map_err(|e| format!("Error al restaurar vault.db: {}", e))?;
     fs::copy(backup_salt, &salt_dest)
         .map_err(|e| format!("Error al restaurar vault.salt: {}", e))?;
+    // El acceso de emergencia debe corresponder al respaldo restaurado
+    let backup_rec = backup_db.with_extension("recovery");
+    let rec_dest = dest_dir.join("vault.recovery");
+    if backup_rec.exists() {
+        fs::copy(&backup_rec, &rec_dest)
+            .map_err(|e| format!("Error al restaurar vault.recovery: {}", e))?;
+    } else if rec_dest.exists() {
+        // El archivo actual no corresponde a las claves del respaldo
+        let _ = fs::remove_file(&rec_dest);
+    }
+    // El desbloqueo rápido corresponde a las claves anteriores
+    crate::quick_unlock::disarm(&state);
 
     Ok(())
 }
@@ -305,7 +349,7 @@ pub fn auto_backup(app: &tauri::AppHandle) {
                 return;
             }
 
-            let app_data_dir = match get_app_data_dir(app) {
+            let source_dir = match vault_dir(app) {
                 Ok(d) => d,
                 Err(e) => {
                     eprintln!("[Backup] Error al obtener directorio de datos: {}", e);
@@ -313,8 +357,8 @@ pub fn auto_backup(app: &tauri::AppHandle) {
                 }
             };
 
-            let backup_dir_str = config.backup_dir.clone();
-            let backup_dir = Path::new(&backup_dir_str);
+            let backup_dir_buf = vault_backup_dir(app, Path::new(&config.backup_dir));
+            let backup_dir = backup_dir_buf.as_path();
             if !backup_dir.exists() {
                 if let Err(e) = fs::create_dir_all(backup_dir) {
                     eprintln!("[Backup] Error al crear directorio de respaldos: {}", e);
@@ -322,8 +366,8 @@ pub fn auto_backup(app: &tauri::AppHandle) {
                 }
             }
 
-            let db_source = app_data_dir.join("vault.db");
-            let salt_source = app_data_dir.join("vault.salt");
+            let db_source = source_dir.join("vault.db");
+            let salt_source = source_dir.join("vault.salt");
 
             if !db_source.exists() || !salt_source.exists() {
                 eprintln!("[Backup] Archivos del vault no encontrados");
@@ -344,6 +388,7 @@ pub fn auto_backup(app: &tauri::AppHandle) {
                 let _ = fs::remove_file(&db_dest);
                 return;
             }
+            copy_recovery(&source_dir, &db_dest);
 
             // Actualizar configuración con el timestamp del último respaldo
             let mut config = config;

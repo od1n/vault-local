@@ -5,6 +5,8 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useTheme } from '../hooks/useTheme';
 import type { EntryCategory, EntryMeta } from '../types';
 import { CATEGORY_LABELS } from '../types';
+import { useI18n, useTr } from '../i18n';
+import { I18nProvider } from '../i18n/I18nProvider';
 import '../App.css';
 
 type What = 'username' | 'password' | 'totp';
@@ -15,7 +17,18 @@ type What = 'username' | 'password' | 'totp';
  * Ctrl+Enter: escritura automática · Esc: cerrar
  */
 export function QuickSearch() {
+  // Esta ventana se monta fuera de App, así que necesita su propio proveedor de idioma.
+  return (
+    <I18nProvider>
+      <QuickSearchInner />
+    </I18nProvider>
+  );
+}
+
+function QuickSearchInner() {
   useTheme();
+  const tr = useTr();
+  const { t, locale, setLocale } = useI18n();
   const [entries, setEntries] = useState<EntryMeta[]>([]);
   const [locked, setLocked] = useState(false);
   const [query, setQuery] = useState('');
@@ -24,6 +37,13 @@ export function QuickSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
+    // La ventana queda viva entre aperturas: tomar el idioma elegido en la ventana principal.
+    try {
+      const saved = localStorage.getItem('vault-local-locale');
+      if ((saved === 'es' || saved === 'en') && saved !== locale) setLocale(saved);
+    } catch {
+      // localStorage no disponible
+    }
     setQuery('');
     setSelected(0);
     setMessage(null);
@@ -43,7 +63,7 @@ export function QuickSearch() {
       setLocked(true);
     }
     setTimeout(() => inputRef.current?.focus(), 30);
-  }, []);
+  }, [locale, setLocale]);
 
   useEffect(() => {
     load();
@@ -84,7 +104,7 @@ export function QuickSearch() {
       await invoke('quick_copy', { entryId: entry.id, what });
       close();
     } catch (e) {
-      setMessage(typeof e === 'string' ? e : 'No se pudo copiar');
+      setMessage(typeof e === 'string' ? e : tr('No se pudo copiar', 'Could not copy'));
     }
   };
 
@@ -94,7 +114,7 @@ export function QuickSearch() {
     try {
       await invoke('quick_auto_type', { entryId: entry.id, sequence: null });
     } catch (e) {
-      setMessage(typeof e === 'string' ? e : 'No se pudo escribir');
+      setMessage(typeof e === 'string' ? e : tr('No se pudo escribir', 'Could not type'));
     }
   };
 
@@ -128,11 +148,11 @@ export function QuickSearch() {
     return (
       <div className="quick-root">
         <div className="quick-locked">
-          <p>La bóveda está bloqueada.</p>
+          <p>{tr('La bóveda está bloqueada.', 'The vault is locked.')}</p>
           <button className="btn btn-primary" onClick={() => invoke('show_main_window')}>
-            Abrir Vault Local para desbloquear
+            {tr('Abrir Vault Local para desbloquear', 'Open Vault Local to unlock')}
           </button>
-          <p className="quick-hint">Esc para cerrar</p>
+          <p className="quick-hint">{tr('Esc para cerrar', 'Esc to close')}</p>
         </div>
         <input ref={inputRef} onKeyDown={onKeyDown} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} aria-hidden />
       </div>
@@ -144,7 +164,7 @@ export function QuickSearch() {
       <input
         ref={inputRef}
         className="quick-input"
-        placeholder="Buscar en la bóveda…"
+        placeholder={tr('Buscar en la bóveda…', 'Search the vault…')}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -165,14 +185,14 @@ export function QuickSearch() {
             onDoubleClick={() => copy('password')}
           >
             <span className="quick-item-title">{e.favorite ? '★ ' : ''}{e.title}</span>
-            <span className="quick-item-cat">{CATEGORY_LABELS[e.category as EntryCategory] || e.category}</span>
+            <span className="quick-item-cat">{t(`category.${e.category}`, CATEGORY_LABELS[e.category as EntryCategory] || e.category)}</span>
           </li>
         ))}
-        {results.length === 0 && <li className="quick-empty">Sin resultados</li>}
+        {results.length === 0 && <li className="quick-empty">{tr('Sin resultados', 'No results')}</li>}
       </ul>
       {message && <div className="quick-message">{message}</div>}
       <div className="quick-hint">
-        <b>Enter</b> contraseña · <b>Ctrl+U</b> usuario · <b>Ctrl+T</b> TOTP · <b>Ctrl+Enter</b> escribir automáticamente · <b>Esc</b> cerrar
+        <b>Enter</b> {tr('contraseña', 'password')} · <b>Ctrl+U</b> {tr('usuario', 'username')} · <b>Ctrl+T</b> TOTP · <b>Ctrl+Enter</b> {tr('escribir automáticamente', 'auto-type')} · <b>Esc</b> {tr('cerrar', 'close')}
       </div>
     </div>
   );

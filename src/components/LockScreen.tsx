@@ -1,5 +1,5 @@
 import { useState, useCallback, type FormEvent, type KeyboardEvent } from 'react';
-import { useI18n } from '../i18n';
+import { useI18n, useTr } from '../i18n';
 
 interface LockScreenProps {
   mode: 'setup' | 'unlock';
@@ -9,6 +9,14 @@ interface LockScreenProps {
   processing: boolean;
   /** Panel de desbloqueo rápido (PIN / Windows Hello), si está disponible */
   quickPanel?: React.ReactNode;
+  /** Selector de bóveda (bóvedas múltiples) */
+  vaultSwitcher?: React.ReactNode;
+  /** Enlaces debajo del formulario (acceso de emergencia) */
+  footer?: React.ReactNode;
+  /** Subtítulo alternativo al crear una bóveda adicional */
+  setupSubtitle?: string;
+  /** Cancelar la creación de una bóveda adicional */
+  onCancelSetup?: () => void;
 }
 
 function calcStrength(password: string): number {
@@ -25,8 +33,9 @@ function calcStrength(password: string): number {
 const strengthColors = ['', '#ff4c4c', '#ffb74d', '#ffb74d', '#4caf50'];
 const strengthWidths = ['0%', '25%', '50%', '75%', '100%'];
 
-export function LockScreen({ mode, onUnlock, onSetup, error, processing, quickPanel }: LockScreenProps) {
+export function LockScreen({ mode, onUnlock, onSetup, error, processing, quickPanel, vaultSwitcher, footer, setupSubtitle, onCancelSetup }: LockScreenProps) {
   const { t, locale, setLocale } = useI18n();
+  const tr = useTr();
   const strengthLabels = ['', t('lock.strength.very_weak'), t('lock.strength.weak'), t('lock.strength.acceptable'), t('lock.strength.very_strong')];
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -87,7 +96,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing, quickPa
           <span className="lock-logo-title">{t('lock.title')}</span>
           <span className="lock-logo-subtitle">
             {mode === 'setup'
-              ? t('lock.subtitle.setup')
+              ? setupSubtitle || t('lock.subtitle.setup')
               : t('lock.subtitle.unlock')}
           </span>
           <button
@@ -100,6 +109,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing, quickPa
           </button>
         </div>
 
+        {mode === 'unlock' && vaultSwitcher}
         {mode === 'unlock' && quickPanel}
         <form className="lock-form" onSubmit={handleSubmit}>
           <div className="lock-input-group">
@@ -205,7 +215,13 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing, quickPa
               t('lock.unlock')
             )}
           </button>
+          {onCancelSetup && (
+            <button type="button" className="btn btn-secondary lock-submit" onClick={onCancelSetup} disabled={processing}>
+              {tr('Cancelar', 'Cancel')}
+            </button>
+          )}
         </form>
+        {footer}
       </div>
     </div>
   );

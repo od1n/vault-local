@@ -1,6 +1,7 @@
 import { useState, useCallback, type FormEvent } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useToast } from './Toast';
+import { useTr } from '../i18n';
 
 interface ChangePasswordDialogProps {
   onClose: () => void;
@@ -17,11 +18,12 @@ function calcStrength(password: string): number {
   return Math.min(4, score);
 }
 
-const strengthLabels = ['', 'Muy debil', 'Debil', 'Buena', 'Muy fuerte'];
 const strengthColors = ['', '#ff4c4c', '#ffb74d', '#ffb74d', '#4caf50'];
 const strengthWidths = ['0%', '25%', '50%', '75%', '100%'];
 
 export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
+  const tr = useTr();
+  const strengthLabels = ['', tr('Muy débil', 'Very weak'), tr('Débil', 'Weak'), tr('Buena', 'Good'), tr('Muy fuerte', 'Very strong')];
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -39,29 +41,29 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
     setError(null);
 
     if (!currentPassword) {
-      setError('Ingresa tu contrasena actual.');
+      setError(tr('Ingresa tu contraseña actual.', 'Enter your current password.'));
       return;
     }
     if (newPassword.length < 8) {
-      setError('La nueva contrasena debe tener al menos 8 caracteres.');
+      setError(tr('La nueva contraseña debe tener al menos 8 caracteres.', 'The new password must be at least 8 characters long.'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Las contrasenas nuevas no coinciden.');
+      setError(tr('Las contraseñas nuevas no coinciden.', 'The new passwords do not match.'));
       return;
     }
 
     setLoading(true);
     try {
       await invoke('change_master_password', { currentPassword, newPassword });
-      showToast('Contrasena maestra actualizada correctamente', 'success');
+      showToast(tr('Contraseña maestra actualizada correctamente', 'Master password updated successfully'), 'success');
       onClose();
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Error al cambiar la contrasena. Verifica tu contrasena actual.');
+      setError(typeof err === 'string' ? err : tr('Error al cambiar la contraseña. Verifica tu contraseña actual.', 'Failed to change the password. Check your current password.'));
     } finally {
       setLoading(false);
     }
-  }, [currentPassword, newPassword, confirmPassword, onClose, showToast]);
+  }, [currentPassword, newPassword, confirmPassword, onClose, showToast, tr]);
 
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget && !loading) {
@@ -75,7 +77,7 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
       className="lock-toggle-password"
       onClick={onToggle}
       tabIndex={-1}
-      aria-label={show ? 'Ocultar' : 'Mostrar'}
+      aria-label={show ? tr('Ocultar', 'Hide') : tr('Mostrar', 'Show')}
     >
       {show ? (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -97,8 +99,8 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
     <div className="modal-overlay" onClick={handleOverlayClick}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div className="modal-header">
-          <h2 className="modal-title">Cambiar contrasena maestra</h2>
-          <button className="btn-icon" onClick={onClose} disabled={loading} aria-label="Cerrar">
+          <h2 className="modal-title">{tr('Cambiar contraseña maestra', 'Change master password')}</h2>
+          <button className="btn-icon" onClick={onClose} disabled={loading} aria-label={tr('Cerrar', 'Close')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -113,16 +115,16 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
-            <p>Este proceso re-cifrara toda la boveda. No cierres la aplicacion hasta que termine.</p>
+            <p>{tr('Este proceso re-cifrara toda la bóveda. No cierres la aplicación hasta que termine.', 'This process will re-encrypt the entire vault. Do not close the app until it finishes.')}</p>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Contrasena actual</label>
+            <label className="form-label">{tr('Contraseña actual', 'Current password')}</label>
             <div className="lock-input-group">
               <input
                 className="input"
                 type={showCurrent ? 'text' : 'password'}
-                placeholder="Ingresa tu contrasena actual"
+                placeholder={tr('Ingresa tu contraseña actual', 'Enter your current password')}
                 value={currentPassword}
                 onChange={(e) => { setCurrentPassword(e.target.value); setError(null); }}
                 disabled={loading}
@@ -133,12 +135,12 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Nueva contrasena</label>
+            <label className="form-label">{tr('Nueva contraseña', 'New password')}</label>
             <div className="lock-input-group">
               <input
                 className="input"
                 type={showNew ? 'text' : 'password'}
-                placeholder="Ingresa la nueva contrasena"
+                placeholder={tr('Ingresa la nueva contraseña', 'Enter the new password')}
                 value={newPassword}
                 onChange={(e) => { setNewPassword(e.target.value); setError(null); }}
                 disabled={loading}
@@ -164,12 +166,12 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Confirmar nueva contrasena</label>
+            <label className="form-label">{tr('Confirmar nueva contraseña', 'Confirm new password')}</label>
             <div className="lock-input-group">
               <input
                 className="input"
                 type={showConfirm ? 'text' : 'password'}
-                placeholder="Repite la nueva contrasena"
+                placeholder={tr('Repite la nueva contraseña', 'Repeat the new password')}
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
                 disabled={loading}
@@ -183,7 +185,7 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose} disabled={loading}>
-            Cancelar
+            {tr('Cancelar', 'Cancel')}
           </button>
           <button
             className="btn btn-primary"
@@ -193,10 +195,10 @@ export function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
             {loading ? (
               <>
                 <span className="loading-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                Re-cifrando...
+                {tr('Re-cifrando...', 'Re-encrypting...')}
               </>
             ) : (
-              'Cambiar contrasena'
+              tr('Cambiar contraseña', 'Change password')
             )}
           </button>
         </div>
