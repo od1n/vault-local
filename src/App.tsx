@@ -1,5 +1,8 @@
 import { useAuth } from './hooks/useAuth';
-import { useInactivity } from './hooks/useInactivity';
+import { useEffect } from 'react';
+import { listen } from '@tauri-apps/api/event';
+import { SettingsProvider } from './hooks/useSettings';
+import { ClipboardProvider } from './hooks/useClipboard';
 import { useTheme } from './hooks/useTheme';
 import { LockScreen } from './components/LockScreen';
 import { Dashboard } from './components/Dashboard';
@@ -13,11 +16,16 @@ function AppContent() {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
 
-  useInactivity(() => {
-    if (authState === 'unlocked') {
+  // El sistema pide bloquear (suspensión, bloqueo de sesión, minimizar, bandeja)
+  useEffect(() => {
+    if (authState !== 'unlocked') return;
+    const un = listen('request-lock', () => {
       lock();
-    }
-  }, 300000);
+    });
+    return () => {
+      un.then((f) => f());
+    };
+  }, [authState, lock]);
 
   if (authState === 'loading') {
     return (
@@ -68,7 +76,11 @@ function AppContent() {
 function App() {
   return (
     <I18nProvider>
-      <AppContent />
+      <SettingsProvider>
+        <ClipboardProvider>
+          <AppContent />
+        </ClipboardProvider>
+      </SettingsProvider>
     </I18nProvider>
   );
 }

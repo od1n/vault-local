@@ -220,7 +220,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               ) : (
                 <button
                   className="btn-icon"
-                  onClick={() => field.sensitive ? copyFieldToClipboard(entry.id, index, fieldId) : copyToClipboard(field.value, fieldId)}
+                  onClick={() => field.sensitive ? copyFieldToClipboard(entry.id, index, fieldId, field.name) : copyToClipboard(field.value, fieldId, field.name)}
                   aria-label="Copiar"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -269,7 +269,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 ) : (
                   <button
                     className="btn-icon"
-                    onClick={() => copyFieldToClipboard(entry.id, index, fieldId)}
+                    onClick={() => copyFieldToClipboard(entry.id, index, fieldId, field.name)}
                     aria-label="Copiar frase completa"
                     title="Copiar frase completa"
                   >
@@ -330,7 +330,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               ) : (
                 <button
                   className="btn-icon"
-                  onClick={() => copyFieldToClipboard(entry.id, index, fieldId)}
+                  onClick={() => copyFieldToClipboard(entry.id, index, fieldId, field.name)}
                   aria-label="Copiar respuesta"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -382,7 +382,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               <div className="field-name">{field.name}</div>
               <TotpDisplay
                 secret={field.value}
-                onCopy={(code) => copyToClipboard(code, fieldId)}
+                onCopy={(code) => copyToClipboard(code, fieldId, `${field.name} (TOTP)`)}
               />
             </div>
           </div>
@@ -409,7 +409,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 ) : (
                   <button
                     className="btn-icon"
-                    onClick={() => copyFieldToClipboard(entry.id, index, fieldId)}
+                    onClick={() => copyFieldToClipboard(entry.id, index, fieldId, field.name)}
                     aria-label="Copiar clave"
                     title="Copiar clave"
                   >
@@ -488,7 +488,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
               ) : (
                 <button
                   className="btn-icon"
-                  onClick={() => field.sensitive ? copyFieldToClipboard(entry.id, index, fieldId) : copyToClipboard(field.value, fieldId)}
+                  onClick={() => field.sensitive ? copyFieldToClipboard(entry.id, index, fieldId, field.name) : copyToClipboard(field.value, fieldId, field.name)}
                   aria-label="Copiar"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

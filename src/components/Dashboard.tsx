@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { useVault } from '../hooks/useVault';
 import { useLicense, tierLabel } from '../hooks/useLicense';
 import { useI18n } from '../i18n';
@@ -14,6 +15,13 @@ import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { AuditPanel } from './AuditPanel';
 import { SshAgentPanel } from './SshAgentPanel';
 import { LicenseDialog } from './LicenseDialog';
+import { SettingsDialog } from './SettingsDialog';
+import { ClipboardBar } from './ClipboardBar';
+import { LockWarning } from './LockWarning';
+import { useSettings } from '../hooks/useSettings';
+import { useAutoLock } from '../hooks/useAutoLock';
+import { useClipboard } from '../hooks/useClipboard';
+import { useToast } from './Toast';
 import { BackupSettings } from './BackupSettings';
 import { Onboarding } from './Onboarding';
 import { SecurityAlert } from './SecurityAlert';
@@ -51,7 +59,39 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     clearSelected,
   } = useVault();
 
-  const { license, isPremium, isPro, activate, deactivate } = useLicense();
+  const { license, isPremium, isPro, activate: activateLicense, deactivate: deactivateLicense } = useLicense();
+  const { settings, pausedUntil, resumeLock, refresh: refreshSettings } = useSettings();
+  const [showSettings, setShowSettings] = useState(false);
+  const { quickCopy } = useClipboard();
+  const { showToast } = useToast();
+  // Avisar si el atajo global no se pudo registrar
+  useEffect(() => {
+    const un = listen<string>('shortcut-error', (e) => showToast(e.payload, 'error'));
+    return () => {
+      un.then((f) => f());
+    };
+  }, [showToast]);
+  const activate = useCallback(async (key: string) => {
+    const r = await activateLicense(key);
+    await refreshSettings();
+    return r;
+  }, [activateLicense, refreshSettings]);
+  const deactivate = useCallback(async () => {
+    const r = await deactivateLicense();
+    await refreshSettings();
+    return r;
+  }, [deactivateLicense, refreshSettings]);
+  // Si la licencia cambia (vence o se activa), recalcular los ajustes efectivos
+  useEffect(() => {
+    refreshSettings();
+  }, [license.tier, refreshSettings]);
+  const { warningLeft, touch } = useAutoLock({
+    enabled: true,
+    minutes: settings.auto_lock_minutes,
+    warningSecs: settings.lock_warning_secs,
+    pausedUntil,
+    onLock,
+  });
   const { t, locale, setLocale } = useI18n();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -234,6 +274,25 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
         e.preventDefault();
         onLock();
       }
+      // Copiar desde la entrada seleccionada: Ctrl+C contraseña, Ctrl+B usuario, Ctrl+T TOTP
+      const target = e.target as HTMLElement | null;
+      const typing = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if (mod && !e.shiftKey && selectedEntry && !typing) {
+        const k = e.key.toLowerCase();
+        const hasSelection = !!window.getSelection()?.toString();
+        const map: Record<string, ['username' | 'password' | 'totp', string]> = {
+          c: ['password', 'Contraseña'],
+          b: ['username', 'Usuario'],
+          t: ['totp', 'Código TOTP'],
+        };
+        if (map[k] && !(k === 'c' && hasSelection)) {
+          e.preventDefault();
+          const [what, label] = map[k];
+          quickCopy(selectedEntry.id, what, label).then((r) => {
+            if (!r.success && r.error) showToast(r.error, 'error');
+          });
+        }
+      }
       if (e.key === 'Escape') {
         if (showForm) {
           setShowForm(false);
@@ -246,6 +305,8 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           setShowChangePassword(false);
         } else if (showLicense) {
           setShowLicense(false);
+        } else if (showSettings) {
+          setShowSettings(false);
         } else if (showBackup) {
           setShowBackup(false);
         } else if (showAudit) {
@@ -259,7 +320,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showBackup, showAudit, showSshAgent, selectedEntry, clearSelected]);
+  }, [handleNewEntry, onLock, showForm, importExportMode, showSync, showChangePassword, showLicense, showSettings, showBackup, showAudit, showSshAgent, selectedEntry, clearSelected, quickCopy, showToast]);
 
   return (
     <div className="dashboard">
@@ -388,6 +449,13 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
             {t('dashboard.backup')}
+          </button>
+          <button className="sidebar-lock-btn" onClick={() => setShowSettings(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            Ajustes
           </button>
           <button className="sidebar-lock-btn" onClick={() => setShowChangePassword(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -562,6 +630,25 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
           onClose={() => setShowBackup(false)}
         />
       )}
+
+      {/* Ajustes */}
+      {showSettings && (
+        <SettingsDialog
+          onClose={() => setShowSettings(false)}
+          onUpgrade={() => { setShowSettings(false); setShowLicense(true); }}
+        />
+      )}
+
+      {/* Aviso de bloqueo, pausa activa y barra del portapapeles */}
+      {warningLeft !== null && (
+        <LockWarning secondsLeft={warningLeft} onStillHere={touch} onLockNow={onLock} onUpgrade={() => setShowLicense(true)} />
+      )}
+      {pausedUntil !== null && pausedUntil > Date.now() && (
+        <div className="lock-paused-pill" onClick={resumeLock} title="Haz clic para reanudar el bloqueo automático">
+          Bloqueo pausado hasta {new Date(pausedUntil).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })} · Reanudar
+        </div>
+      )}
+      <ClipboardBar onUpgrade={() => setShowLicense(true)} />
 
       {/* Onboarding */}
       {showOnboarding && (

@@ -8,6 +8,7 @@ pub mod backup;
 pub mod clipboard;
 pub mod import_export;
 pub mod license;
+pub mod quick;
 pub mod ssh_agent;
 pub mod sync;
 pub mod totp;

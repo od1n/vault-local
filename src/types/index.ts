@@ -159,3 +159,37 @@ export const CATEGORY_DEFAULTS: Record<EntryCategory, EntryField[]> = {
   ],
   other: [],
 };
+
+// --- Ajustes ---
+export interface AppSettings {
+  auto_lock_minutes: number;
+  lock_warning_secs: number;
+  clipboard_clear_secs: number;
+  lock_on_sleep: boolean;
+  lock_on_session_lock: boolean;
+  lock_on_minimize: boolean;
+  tray_enabled: boolean;
+  close_to_tray: boolean;
+  quick_search_enabled: boolean;
+  quick_search_shortcut: string;
+  copy_sequence: boolean;
+  auto_type_sequence: string;
+}
+
+export interface SettingsLimits {
+  premium: boolean;
+  max_auto_lock_minutes: number;
+  max_clipboard_secs: number;
+  max_lock_pause_minutes: number;
+}
+
+export interface SettingsResponse {
+  effective: AppSettings;
+  saved: AppSettings;
+  limits: SettingsLimits;
+}
+
+export interface ClipboardStatus {
+  active: boolean;
+  seconds_left: number;
+}

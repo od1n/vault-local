@@ -266,6 +266,11 @@ pub fn lock_vault(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> R
     // Ejecutar respaldo automático antes de cerrar la conexión (no bloqueante)
     super::backup::auto_backup(&app);
 
+    // Al bloquear: cancelar la copia en secuencia, borrar lo copiado y ocultar la búsqueda rápida
+    super::quick::cancel_sequence();
+    super::clipboard::clear_owned();
+    crate::desktop::hide_quick(&app);
+
     // Detener el servidor IPC y limpiar token
     ipc_server::stop();
     if let Ok(app_data_dir) = get_app_data_dir(&app) {

@@ -4,9 +4,11 @@
 mod commands;
 mod crypto;
 mod db;
+mod desktop;
 pub mod ipc_server;
 mod lockout;
 pub mod security;
+mod settings;
 mod state;
 
 use std::fs;
@@ -145,9 +147,23 @@ pub fn run() {
             // Mostrar la ventana (estaba oculta para evitar flash)
             let _ = window.show();
 
+            // Vigilar suspensión y bloqueo de sesión; aplicar bandeja y atajo global
+            desktop::start_watcher(app.handle().clone());
+            desktop::apply_settings(app.handle());
+
             Ok(())
         })
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        desktop::on_quick_shortcut(app);
+                    }
+                })
+                .build(),
+        )
         .on_window_event(|window, event| {
+            desktop::on_window_event(window, event);
             // Guardar estado al cerrar, mover o redimensionar
             if matches!(
                 event,
@@ -176,6 +192,18 @@ pub fn run() {
             // Portapapeles
             commands::clipboard::copy_to_clipboard,
             commands::clipboard::copy_field_to_clipboard,
+            commands::clipboard::extend_clipboard,
+            commands::clipboard::clear_clipboard_now,
+            commands::clipboard::get_clipboard_status,
+            // Ajustes
+            settings::get_settings,
+            settings::update_settings,
+            settings::request_lock_pause,
+            // Búsqueda rápida, copia en secuencia y escritura automática
+            commands::quick::quick_copy,
+            commands::quick::quick_auto_type,
+            desktop::hide_quick_window,
+            desktop::show_main_window,
             // Importar/Exportar
             commands::import_export::import_entries,
             commands::import_export::export_entries,

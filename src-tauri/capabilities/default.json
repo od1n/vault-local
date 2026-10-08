@@ -1,6 +1,6 @@
 {
   "identifier": "default",
   "description": "Permisos por defecto para Vault Local",
-  "windows": ["main"],
+  "windows": ["main", "quick"],
   "permissions": ["core:default", "dialog:default"]
 }
