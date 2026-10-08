@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useVault } from '../hooks/useVault';
-import { useLicense } from '../hooks/useLicense';
+import { useLicense, tierLabel } from '../hooks/useLicense';
 import { useI18n } from '../i18n';
 import { CategoryFilter } from './CategoryFilter';
 import { SearchBar } from './SearchBar';
@@ -51,7 +51,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
     clearSelected,
   } = useVault();
 
-  const { isPremium, licenseKey, activatedAt, activate, deactivate } = useLicense();
+  const { license, isPremium, isPro, activate, deactivate } = useLicense();
   const { t, locale, setLocale } = useI18n();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -300,7 +300,9 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             )}
           </button>
           {isPremium ? (
-            <span className="premium-badge" onClick={() => setShowLicense(true)} style={{ cursor: 'pointer' }}>Premium</span>
+            <span className="premium-badge" onClick={() => setShowLicense(true)} style={{ cursor: 'pointer' }} title={license.days_left !== null ? `Vence en ${license.days_left} día(s)` : undefined}>
+              {tierLabel(license)}{license.days_left !== null && license.days_left <= 14 ? ` · ${license.days_left}d` : ''}
+            </span>
           ) : (
             <span className="upgrade-link" onClick={() => setShowLicense(true)}>{t('dashboard.upgrade')}</span>
           )}
@@ -359,7 +361,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               {t('dashboard.export')}
             </button>
           </div>
-          <button className="sidebar-lock-btn" onClick={() => setShowSync(true)}>
+          <button className="sidebar-lock-btn" onClick={() => (isPro ? setShowSync(true) : setShowLicense(true))}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6" />
               <path d="M1 20v-6h6" />
@@ -547,9 +549,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
       {/* License Dialog */}
       {showLicense && (
         <LicenseDialog
-          isPremium={isPremium}
-          licenseKey={licenseKey}
-          activatedAt={activatedAt}
+          license={license}
           onActivate={activate}
           onDeactivate={deactivate}
           onClose={() => setShowLicense(false)}

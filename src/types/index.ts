@@ -51,10 +51,20 @@ export interface HibpResult {
 }
 
 // --- License Types ---
+export type LicenseTier = 'free' | 'premium' | 'pro' | 'owner';
+
 export interface LicenseInfo {
   is_premium: boolean;
+  is_pro: boolean;
+  tier: LicenseTier;
+  /** none | active | expired | invalid */
+  status: 'none' | 'active' | 'expired' | 'invalid';
+  trial: boolean;
+  email: string | null;
   license_key: string | null;
   activated_at: string | null;
+  expires_at: string | null;
+  days_left: number | null;
 }
 
 export interface AttachmentMeta {

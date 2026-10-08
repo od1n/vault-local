@@ -41,10 +41,12 @@ const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024;
 /// Los metadatos del adjunto creado (sin datos binarios).
 #[tauri::command]
 pub fn add_attachment(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     entry_id: String,
     file_path: String,
 ) -> Result<AttachmentMeta, String> {
+    crate::commands::license::require_tier(&app, crate::commands::license::Tier::Premium)?;
     // Validar la ruta del archivo antes de leer (protección contra path traversal)
     let validated_path = validate_file_path(&file_path)?;
 

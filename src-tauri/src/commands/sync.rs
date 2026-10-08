@@ -92,10 +92,12 @@ macro_rules! with_vault {
 /// de sincronización mediante Argon2id.
 #[tauri::command]
 pub fn export_sync_file(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     file_path: String,
     sync_password: String,
 ) -> Result<SyncStats, String> {
+    crate::commands::license::require_tier(&app, crate::commands::license::Tier::Pro)?;
     // Validar la ruta del archivo destino
     let validated_path = validate_file_path(&file_path)?;
 
@@ -204,11 +206,13 @@ pub fn export_sync_file(
 /// En modo "replace": elimina todas las entradas existentes antes de importar.
 #[tauri::command]
 pub fn import_sync_file(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     file_path: String,
     sync_password: String,
     mode: String,
 ) -> Result<SyncStats, String> {
+    crate::commands::license::require_tier(&app, crate::commands::license::Tier::Pro)?;
     // Validar la ruta del archivo origen
     let validated_path = validate_file_path(&file_path)?;
 

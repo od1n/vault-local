@@ -1456,16 +1456,16 @@
         <!-- Vault Pro -->
         <div class="pricing-card fade-in">
           <div class="pricing-tier">Vault Pro</div>
-          <div class="pricing-price">$39 <span>pago unico</span></div>
-          <p class="pricing-desc">Todo Premium. Para siempre tuyo.</p>
+          <div class="pricing-price">$39 <span>/ año</span></div>
+          <p class="pricing-desc">Todo Premium, más sincronización cifrada.</p>
           <ul class="pricing-features">
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Licencia perpetua
+              Licencia anual
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              1 año de actualizaciones
+              Actualizaciones incluidas
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1481,7 +1481,7 @@
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Sin suscripcion
+              Sin cobros automáticos
             </li>
           </ul>
           <a href="#payment" class="btn btn-secondary">Comprar Vault Pro</a>
@@ -1541,6 +1541,35 @@
         </svg>
         Recibiras tu clave de licencia por email despues del pago
       </p>
+      <div id="promo" class="promo-box fade-in" style="max-width:520px;margin:32px auto 0;padding:20px;border:1px solid rgba(255,255,255,0.12);border-radius:12px;text-align:center;">
+        <h3 style="margin:0 0 6px;">¿Tienes un código promocional?</h3>
+        <p style="margin:0 0 14px;font-size:14px;opacity:.8;">Escribe tu correo y el código. Te enviaremos por correo una licencia Premium de prueba válida por 30 días.</p>
+        <form id="promo-form" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+          <input id="promo-email" type="email" required placeholder="Tu correo" autocomplete="email" style="flex:1 1 200px;min-width:0;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:inherit;">
+          <input id="promo-code" type="text" required placeholder="Código" style="flex:1 1 120px;min-width:0;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:inherit;text-transform:uppercase;">
+          <button type="submit" class="btn btn-primary">Canjear</button>
+        </form>
+        <p id="promo-msg" style="margin:10px 0 0;font-size:13px;min-height:1em;"></p>
+      </div>
+      <script>
+      (function() {
+        var form = document.getElementById('promo-form');
+        var msg = document.getElementById('promo-msg');
+        if (!form) return;
+        var T = { sending: 'Enviando…', ok: 'Listo: revisa tu correo (también la carpeta de spam).', invalid_code: 'El código no es válido o ya venció.', invalid_email: 'Escribe un correo válido.', error: 'No pudimos enviar el correo. Inténtalo más tarde.' };
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          var btn = form.querySelector('button');
+          btn.disabled = true; msg.textContent = T.sending;
+          fetch('/api/redeem-promo', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: document.getElementById('promo-email').value, code: document.getElementById('promo-code').value }) })
+          .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
+          .then(function(res) { msg.textContent = res[0] ? T.ok : (T[res[1].error] || T.error); })
+          .catch(function() { msg.textContent = T.error; })
+          .finally(function() { btn.disabled = false; });
+        });
+      })();
+      </script>
     </div>
   </section>
 
@@ -1778,7 +1807,7 @@
           return actions.order.create({
             purchase_units: [{
               amount: { value: '39.00', currency_code: 'USD' },
-              description: 'Vault Local Pro - Licencia perpetua'
+              description: 'Vault Local Pro - Licencia anual'
             }]
           });
         },

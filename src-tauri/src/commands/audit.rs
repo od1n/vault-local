@@ -415,7 +415,11 @@ fn sha1_hex(input: &str) -> String {
 ///
 /// Se aplica un retardo de 100ms entre peticiones para respetar los límites de la API.
 #[tauri::command]
-pub fn check_hibp(state: tauri::State<'_, AppState>) -> Result<Vec<HibpResult>, String> {
+pub fn check_hibp(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<HibpResult>, String> {
+    crate::commands::license::require_tier(&app, crate::commands::license::Tier::Premium)?;
     // Obtener el vault desbloqueado
     let guard = state
         .vault

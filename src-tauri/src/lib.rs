@@ -207,7 +207,6 @@ pub fn run() {
             commands::license::activate_license,
             commands::license::check_license,
             commands::license::deactivate_license,
-            commands::license::generate_license_key,
             // Respaldos
             commands::backup::configure_backup,
             commands::backup::get_backup_config,

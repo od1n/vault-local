@@ -1,137 +1,107 @@
-// Vercel Serverless Function — handles PayPal webhook for automatic license delivery
-// PayPal sends a POST here when a payment is captured
+// Vercel Serverless Function: webhook de PayPal -> licencia anual firmada (Ed25519) -> correo.
+//
+// Seguridad:
+//  1. Se verifica la firma del aviso con la API de PayPal (verify-webhook-signature).
+//     Sin esto cualquiera podía enviar un aviso falso y recibir una licencia.
+//  2. Solo se acepta PAYMENT.CAPTURE.COMPLETED (dinero realmente cobrado).
+//  3. El correo y el monto se leen de la orden consultada directamente a PayPal,
+//     no del cuerpo del aviso.
+//  4. El id de licencia es el id de la orden: si PayPal reenvía el aviso, se emite la misma licencia.
+//
+// Variables de entorno en Vercel:
+//   PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID
+//   PAYPAL_API_BASE (opcional; por defecto https://api-m.paypal.com, en pruebas https://api-m.sandbox.paypal.com)
+//   LICENSE_PRIVATE_KEY, RESEND_API_KEY, RESEND_FROM
 
-const crypto = require('crypto');
+import { PLANS, YEAR, signLicense, sendLicenseEmail } from './_license.js';
 
-// License signing key — MUST match the one in src-tauri/src/commands/license.rs
-// In production, use environment variables
-const LICENSE_SIGNING_KEY = 'vault-local-license-signing-key-v1-CHANGE-IN-PRODUCTION';
+const API = process.env.PAYPAL_API_BASE || 'https://api-m.paypal.com';
 
-function generateLicenseKey() {
-  // Generate UUID v4
-  const uuid = crypto.randomUUID().replace(/-/g, '');
-  // Split into 4 groups of 8 hex chars
-  const groups = [uuid.slice(0, 8), uuid.slice(8, 16), uuid.slice(16, 24), uuid.slice(24, 32)];
-  // HMAC-SHA256 signature
-  const hmac = crypto.createHmac('sha256', LICENSE_SIGNING_KEY);
-  hmac.update(uuid);
-  const signature = hmac.digest('hex').slice(0, 8);
-  // Format: VL-group1-group2-group3-group4-signature
-  return `VL-${groups.join('-')}-${signature}`;
+async function getAccessToken() {
+  const auth = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString('base64');
+  const r = await fetch(`${API}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=client_credentials',
+  });
+  if (!r.ok) throw new Error(`OAuth PayPal falló: ${r.status}`);
+  return (await r.json()).access_token;
+}
+
+async function verifySignature(req, token) {
+  const h = (name) => req.headers[name];
+  const r = await fetch(`${API}/v1/notifications/verify-webhook-signature`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      auth_algo: h('paypal-auth-algo'),
+      cert_url: h('paypal-cert-url'),
+      transmission_id: h('paypal-transmission-id'),
+      transmission_sig: h('paypal-transmission-sig'),
+      transmission_time: h('paypal-transmission-time'),
+      webhook_id: process.env.PAYPAL_WEBHOOK_ID,
+      webhook_event: req.body,
+    }),
+  });
+  if (!r.ok) return false;
+  return (await r.json()).verification_status === 'SUCCESS';
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
   try {
-    const event = req.body;
+    const token = await getAccessToken();
+    if (!(await verifySignature(req, token))) {
+      console.error('Aviso de PayPal con firma inválida: ignorado');
+      return res.status(400).json({ error: 'invalid signature' });
+    }
 
-    // Verify this is a payment capture event
-    if (event.event_type !== 'CHECKOUT.ORDER.APPROVED' && event.event_type !== 'PAYMENT.CAPTURE.COMPLETED') {
+    const event = req.body;
+    if (event.event_type !== 'PAYMENT.CAPTURE.COMPLETED') {
       return res.status(200).json({ status: 'ignored', event_type: event.event_type });
     }
 
-    // Extract payment details
-    let email = '';
-    let amount = '';
-    let description = '';
-    let orderId = '';
-
-    if (event.resource) {
-      // PAYMENT.CAPTURE.COMPLETED
-      if (event.resource.payer) {
-        email = event.resource.payer.email_address || '';
-      }
-      if (event.resource.amount) {
-        amount = event.resource.amount.value || '';
-      }
-      orderId = event.resource.id || '';
-
-      // Try to get from purchase_units
-      if (event.resource.purchase_units && event.resource.purchase_units[0]) {
-        const pu = event.resource.purchase_units[0];
-        description = pu.description || '';
-        if (!email && pu.payee) email = pu.payee.email_address || '';
-        if (!amount && pu.amount) amount = pu.amount.value || '';
-      }
+    const capture = event.resource || {};
+    const orderId = capture.supplementary_data?.related_ids?.order_id;
+    if (!orderId || capture.status !== 'COMPLETED') {
+      return res.status(200).json({ status: 'not_completed' });
     }
+
+    // Consultar la orden directamente a PayPal
+    const r = await fetch(`${API}/v2/checkout/orders/${encodeURIComponent(orderId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) throw new Error(`No se pudo leer la orden ${orderId}: ${r.status}`);
+    const order = await r.json();
+
+    const email = order.payer?.email_address;
+    const amount = capture.amount?.value;
+    const currency = capture.amount?.currency_code;
+    const plan = currency === 'USD' ? PLANS[amount] : undefined;
 
     if (!email) {
-      console.error('No email found in webhook payload');
+      console.error(`Orden ${orderId} sin correo del pagador`);
       return res.status(200).json({ status: 'no_email' });
     }
-
-    // Generate license key
-    const licenseKey = generateLicenseKey();
-
-    // Determine plan type from amount
-    let planName = 'Vault Local Premium';
-    if (parseFloat(amount) >= 30) {
-      planName = 'Vault Local Pro';
+    if (!plan) {
+      console.error(`Orden ${orderId}: monto ${amount} ${currency} no corresponde a ningún plan`);
+      return res.status(200).json({ status: 'unknown_amount' });
     }
 
-    // Log the license for manual backup
-    console.log(`=== NEW LICENSE ===`);
-    console.log(`Email: ${email}`);
-    console.log(`Plan: ${planName}`);
-    console.log(`Amount: $${amount}`);
-    console.log(`Order: ${orderId}`);
-    console.log(`License Key: ${licenseKey}`);
-    console.log(`==================`);
+    const iat = Math.floor(new Date(capture.create_time || Date.now()).getTime() / 1000);
+    const exp = iat + YEAR;
+    const licenseKey = signLicense({ id: `pp-${orderId}`, email, tier: plan.tier, iat, exp });
 
-    // Send email via Resend (if RESEND_API_KEY env var is set)
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
-      try {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'Vault Local <noreply@vault-local.vercel.app>',
-            to: email,
-            subject: `Tu clave de ${planName}`,
-            html: `
-              <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h1 style="color: #4c8dff;">Vault Local</h1>
-                <h2>Gracias por tu compra</h2>
-                <p>Tu clave de licencia para <strong>${planName}</strong>:</p>
-                <div style="background: #0f1117; color: #e8eaed; padding: 20px; border-radius: 8px; font-family: monospace; font-size: 16px; text-align: center; letter-spacing: 1px; margin: 20px 0;">
-                  ${licenseKey}
-                </div>
-                <h3>Como activar</h3>
-                <ol>
-                  <li>Abre Vault Local</li>
-                  <li>Click en "Actualizar" en el sidebar</li>
-                  <li>Pega tu clave de licencia</li>
-                  <li>Click en "Activar"</li>
-                </ol>
-                <p style="color: #888; font-size: 13px;">Orden: ${orderId}<br>Monto: $${amount} USD</p>
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                <p style="color: #888; font-size: 12px;">Si tienes alguna pregunta, responde a este email.</p>
-              </div>
-            `,
-          }),
-        });
-        console.log(`Email sent to ${email}`);
-      } catch (emailErr) {
-        console.error('Failed to send email:', emailErr);
-      }
-    }
+    // Respaldo en los registros de Vercel por si el correo falla
+    console.log(`LICENCIA ${plan.tier} | ${email} | orden ${orderId} | ${licenseKey}`);
 
-    return res.status(200).json({
-      status: 'success',
-      email,
-      plan: planName,
-      // Don't expose the license key in the response for security
-    });
-
+    const sent = await sendLicenseEmail({ to: email, planName: plan.name, licenseKey, expiresAt: exp });
+    return res.status(200).json({ status: 'success', email_sent: sent });
   } catch (err) {
-    console.error('Webhook error:', err);
+    console.error('Error en webhook:', err);
+    // 500 hace que PayPal reintente más tarde
     return res.status(500).json({ error: 'Internal error' });
   }
 }

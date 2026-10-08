@@ -2,23 +2,29 @@ import { useState, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { LicenseInfo } from '../types';
 
+const EMPTY: LicenseInfo = {
+  is_premium: false,
+  is_pro: false,
+  tier: 'free',
+  status: 'none',
+  trial: false,
+  email: null,
+  license_key: null,
+  activated_at: null,
+  expires_at: null,
+  days_left: null,
+};
+
 export function useLicense() {
-  const [isPremium, setIsPremium] = useState(false);
-  const [licenseKey, setLicenseKey] = useState<string | null>(null);
-  const [activatedAt, setActivatedAt] = useState<string | null>(null);
+  const [license, setLicense] = useState<LicenseInfo>(EMPTY);
   const [loading, setLoading] = useState(true);
 
   const checkLicense = useCallback(async () => {
     try {
       setLoading(true);
-      const info = await invoke<LicenseInfo>('check_license');
-      setIsPremium(info.is_premium);
-      setLicenseKey(info.license_key || null);
-      setActivatedAt(info.activated_at || null);
+      setLicense(await invoke<LicenseInfo>('check_license'));
     } catch {
-      setIsPremium(false);
-      setLicenseKey(null);
-      setActivatedAt(null);
+      setLicense(EMPTY);
     } finally {
       setLoading(false);
     }
@@ -26,6 +32,9 @@ export function useLicense() {
 
   useEffect(() => {
     checkLicense();
+    // Revisar el vencimiento cada hora mientras la app está abierta
+    const id = setInterval(checkLicense, 60 * 60 * 1000);
+    return () => clearInterval(id);
   }, [checkLicense]);
 
   const activate = useCallback(async (key: string): Promise<{ success: boolean; error?: string }> => {
@@ -48,5 +57,20 @@ export function useLicense() {
     }
   }, [checkLicense]);
 
-  return { isPremium, licenseKey, activatedAt, loading, activate, deactivate, refresh: checkLicense };
+  return {
+    license,
+    isPremium: license.is_premium,
+    isPro: license.is_pro,
+    loading,
+    activate,
+    deactivate,
+    refresh: checkLicense,
+  };
+}
+
+export function tierLabel(license: LicenseInfo): string {
+  if (license.tier === 'owner') return 'Owner';
+  if (license.tier === 'pro') return 'Pro';
+  if (license.tier === 'premium') return license.trial ? 'Premium (prueba)' : 'Premium';
+  return 'Gratis';
 }

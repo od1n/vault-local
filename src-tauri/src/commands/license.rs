@@ -1,261 +1,350 @@
-// Sistema de licencias offline para Vault Local.
-// Usa HMAC-SHA256 para generar y verificar claves de licencia sin necesidad de conexión a internet.
+// Sistema de licencias offline para Vault Local (formato v2, firmas Ed25519).
 //
-// Formato de clave: VL-{UUID_PARTE1}-{UUID_PARTE2}-{UUID_PARTE3}-{UUID_PARTE4}-{HMAC_PREFIJO}
-// Ejemplo: VL-a1b2c3d4-e5f6a7b8-c9d0e1f2-a3b4c5d6-7f8e9d0c
+// Por qué Ed25519 y no HMAC:
+// con HMAC la misma clave sirve para firmar y para verificar, así que tenía que viajar
+// dentro del ejecutable y cualquiera podía extraerla y fabricar licencias. Con Ed25519
+// la app solo contiene la clave PÚBLICA (sirve para verificar, no para firmar). La clave
+// privada vive únicamente en el servidor de licencias (variable de entorno de Vercel)
+// y en la carpeta privada del autor, nunca en este repositorio.
 //
-// La verificación es completamente offline: se recalcula el HMAC del UUID
-// y se compara con el prefijo incluido en la clave.
+// Formato de la clave:  VL2-<payload base64url>.<firma base64url>
+// El payload es un JSON firmado:
+//   { "v":2, "id":"...", "email":"...", "tier":"premium|pro|owner",
+//     "trial":false, "iat":1760000000, "exp":1791536000 | null }
+//
+// La verificación es completamente offline.
 
 use std::fs;
 
-use chrono::Utc;
-use hmac::{Hmac, Mac};
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine;
+use chrono::{TimeZone, Utc};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
 use tauri::Manager;
-use uuid::Uuid;
 
-/// Clave de firma embebida en el binario para verificación de licencias.
-/// IMPORTANTE: En producción, esta clave debe ser diferente y solo conocida
-/// por el servidor de licencias. Cambiarla antes de distribuir la aplicación.
-const LICENSE_SIGNING_KEY: &[u8] = b"vault-local-license-signing-key-v1-CHANGE-IN-PRODUCTION";
+/// Clave pública Ed25519 para verificar licencias (32 bytes).
+/// La clave privada correspondiente NO está en el repositorio.
+const LICENSE_PUBLIC_KEY: [u8; 32] = [
+    0x0e, 0x28, 0x6f, 0x19, 0x69, 0x1d, 0x59, 0xfb, 0x82, 0x58, 0xa2, 0x26, 0x5c, 0xfb, 0xa5, 0xd0,
+    0xae, 0x5e, 0xaf, 0xeb, 0xc1, 0xc2, 0x02, 0xd1, 0x29, 0xc5, 0x44, 0x84, 0x47, 0xdf, 0xdd, 0x1b,
+];
 
-/// Prefijo que identifica las claves de licencia de Vault Local.
-const LICENSE_PREFIX: &str = "VL-";
-
-/// Longitud del prefijo HMAC incluido en la clave (8 caracteres hexadecimales).
-const HMAC_PREFIX_LEN: usize = 8;
+/// Prefijo que identifica las claves de licencia v2.
+const LICENSE_PREFIX: &str = "VL2-";
 
 /// Nombre del archivo donde se persiste la licencia activada.
 const LICENSE_FILENAME: &str = "license.json";
 
-/// Información de la licencia del usuario.
-#[derive(Serialize, Deserialize)]
-pub struct LicenseInfo {
-    /// Indica si el usuario tiene licencia premium activa
-    pub is_premium: bool,
-    /// Clave de licencia activada (None si no hay licencia)
-    pub license_key: Option<String>,
-    /// Fecha de activación en formato ISO 8601 (None si no hay licencia)
-    pub activated_at: Option<String>,
+/// Tolerancia para relojes adelantados al validar la fecha de emisión (1 día).
+const CLOCK_SKEW_SECS: i64 = 86_400;
+
+/// Nivel de licencia. El orden importa: un nivel superior incluye a los inferiores.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Tier {
+    Free,
+    Premium,
+    Pro,
+    Owner,
 }
 
-/// Datos persistidos en el archivo license.json.
+/// Contenido firmado de una licencia.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct LicensePayload {
+    v: u8,
+    id: String,
+    email: String,
+    tier: Tier,
+    #[serde(default)]
+    trial: bool,
+    iat: i64,
+    exp: Option<i64>,
+}
+
+/// Información de la licencia que se entrega al frontend.
+#[derive(Serialize)]
+pub struct LicenseInfo {
+    /// true si el nivel efectivo es Premium o superior
+    pub is_premium: bool,
+    /// true si el nivel efectivo es Pro o superior
+    pub is_pro: bool,
+    /// Nivel efectivo (free si no hay licencia o está vencida)
+    pub tier: Tier,
+    /// "none" | "active" | "expired" | "invalid"
+    pub status: String,
+    /// true si es una licencia de prueba (código promocional)
+    pub trial: bool,
+    /// Correo al que está emitida la licencia
+    pub email: Option<String>,
+    /// Clave de licencia completa (el frontend la enmascara)
+    pub license_key: Option<String>,
+    /// Fecha de activación en este equipo (ISO 8601)
+    pub activated_at: Option<String>,
+    /// Fecha de vencimiento (ISO 8601). None = sin vencimiento
+    pub expires_at: Option<String>,
+    /// Días restantes (None si no vence o no hay licencia)
+    pub days_left: Option<i64>,
+}
+
+/// Datos persistidos en license.json.
 #[derive(Serialize, Deserialize)]
 struct LicenseFile {
-    /// Clave de licencia completa (incluyendo prefijo VL-)
     key: String,
-    /// Fecha de activación en formato ISO 8601
     activated_at: String,
+    /// Mayor marca de tiempo observada; se usa para detectar que alguien atrasó el reloj
+    #[serde(default)]
+    last_seen: i64,
 }
 
-/// Obtiene la ruta al archivo de licencia en el directorio de datos de la aplicación.
 fn get_license_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
-    let app_data_dir = app
+    let dir = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("Error al obtener directorio de datos: {}", e))?;
-    Ok(app_data_dir.join(LICENSE_FILENAME))
+    Ok(dir.join(LICENSE_FILENAME))
 }
 
-/// Calcula el HMAC-SHA256 de los bytes del UUID con la clave de firma.
-/// Retorna el hash completo en hexadecimal minúsculas.
-fn compute_hmac(uuid_hex: &str) -> Result<String, String> {
-    let mut mac = Hmac::<Sha256>::new_from_slice(LICENSE_SIGNING_KEY)
-        .map_err(|e| format!("Error al inicializar HMAC: {}", e))?;
-    mac.update(uuid_hex.as_bytes());
-    let resultado = mac.finalize().into_bytes();
-    Ok(hex::encode(resultado))
-}
+/// Verifica la firma y decodifica el payload. No revisa vencimiento.
+fn decode_and_verify(license_key: &str) -> Result<LicensePayload, String> {
+    let key = license_key.trim();
+    let body = key
+        .strip_prefix(LICENSE_PREFIX)
+        .ok_or("Clave de licencia inválida: debe empezar con 'VL2-'")?;
 
-/// Verifica si una clave de licencia es válida.
-///
-/// Proceso:
-/// 1. Quitar el prefijo "VL-"
-/// 2. Separar las partes por "-": las primeras 4 son el UUID, la última es el prefijo HMAC
-/// 3. Recalcular HMAC-SHA256(clave_firma, uuid_hex)
-/// 4. Comparar los primeros 8 caracteres hex del HMAC con el prefijo proporcionado
-fn verify_license_key(license_key: &str) -> Result<bool, String> {
-    // Verificar que la clave empieza con el prefijo correcto
-    if !license_key.starts_with(LICENSE_PREFIX) {
-        return Err("Clave de licencia inválida: debe empezar con 'VL-'".to_string());
+    let (payload_b64, sig_b64) = body
+        .split_once('.')
+        .ok_or("Clave de licencia inválida: formato incorrecto")?;
+
+    let payload_bytes = URL_SAFE_NO_PAD
+        .decode(payload_b64)
+        .map_err(|_| "Clave de licencia inválida: contenido dañado")?;
+    let sig_bytes = URL_SAFE_NO_PAD
+        .decode(sig_b64)
+        .map_err(|_| "Clave de licencia inválida: firma dañada")?;
+    let sig_arr: [u8; 64] = sig_bytes
+        .try_into()
+        .map_err(|_| "Clave de licencia inválida: longitud de firma incorrecta")?;
+
+    let verifying_key = VerifyingKey::from_bytes(&LICENSE_PUBLIC_KEY)
+        .map_err(|_| "Error interno: clave pública inválida")?;
+    verifying_key
+        .verify(&payload_bytes, &Signature::from_bytes(&sig_arr))
+        .map_err(|_| "Clave de licencia inválida: la firma no corresponde")?;
+
+    let payload: LicensePayload = serde_json::from_slice(&payload_bytes)
+        .map_err(|_| "Clave de licencia inválida: contenido ilegible")?;
+
+    if payload.v != 2 {
+        return Err("Versión de licencia no soportada".to_string());
     }
-
-    // Quitar el prefijo "VL-" y separar por guiones
-    let sin_prefijo = &license_key[LICENSE_PREFIX.len()..];
-    let partes: Vec<&str> = sin_prefijo.split('-').collect();
-
-    // Debe tener exactamente 5 partes: 4 del UUID + 1 del HMAC
-    if partes.len() != 5 {
-        return Err(
-            "Clave de licencia inválida: formato incorrecto (se esperan 5 segmentos después de VL-)"
-                .to_string(),
-        );
+    if payload.tier == Tier::Free {
+        return Err("Clave de licencia inválida".to_string());
     }
-
-    // Las primeras 4 partes forman el UUID (sin guiones)
-    let uuid_hex = partes[..4].join("");
-    // La última parte es el prefijo del HMAC
-    let hmac_prefijo = partes[4];
-
-    // Validar que el prefijo HMAC tiene la longitud correcta
-    if hmac_prefijo.len() != HMAC_PREFIX_LEN {
-        return Err(format!(
-            "Clave de licencia inválida: el código de verificación debe tener {} caracteres",
-            HMAC_PREFIX_LEN
-        ));
-    }
-
-    // Recalcular el HMAC y comparar el prefijo
-    let hmac_completo = compute_hmac(&uuid_hex)?;
-    let hmac_calculado_prefijo = &hmac_completo[..HMAC_PREFIX_LEN];
-
-    Ok(hmac_prefijo.to_lowercase() == hmac_calculado_prefijo.to_lowercase())
+    Ok(payload)
 }
 
-/// Códigos promocionales válidos (código → descripción).
-/// Se verifican antes de la validación HMAC estándar.
-const PROMO_CODES: &[(&str, &str)] = &[("PRODUCTHUNT2026", "Product Hunt Launch 2026")];
-
-/// Verifica si un código es un código promocional válido.
-fn is_valid_promo_code(code: &str) -> bool {
-    let code_upper = code.to_uppercase();
-    PROMO_CODES.iter().any(|(promo, _)| *promo == code_upper)
+fn iso(ts: i64) -> Option<String> {
+    Utc.timestamp_opt(ts, 0).single().map(|d| d.to_rfc3339())
 }
 
-/// Activa una licencia premium en la aplicación.
-///
-/// Acepta tanto claves de licencia HMAC-firmadas (VL-...) como códigos promocionales.
-/// Si es válida, la persiste en el archivo license.json del directorio de datos.
-///
-/// Retorna la información de la licencia activada.
-#[tauri::command]
-pub fn activate_license(app: tauri::AppHandle, license_key: String) -> Result<LicenseInfo, String> {
-    // Limpiar espacios en la clave
-    let clave_limpia = license_key.trim().to_string();
+fn empty_info(status: &str) -> LicenseInfo {
+    LicenseInfo {
+        is_premium: false,
+        is_pro: false,
+        tier: Tier::Free,
+        status: status.to_string(),
+        trial: false,
+        email: None,
+        license_key: None,
+        activated_at: None,
+        expires_at: None,
+        days_left: None,
+    }
+}
 
-    // Verificar si es un código promocional válido
-    let es_promo = is_valid_promo_code(&clave_limpia);
+/// Construye la información de licencia evaluando el vencimiento contra `now`.
+fn build_info(payload: &LicensePayload, key: &str, activated_at: &str, now: i64) -> LicenseInfo {
+    let expired = payload.exp.map(|exp| now >= exp).unwrap_or(false);
+    let tier = if expired { Tier::Free } else { payload.tier };
+    LicenseInfo {
+        is_premium: tier >= Tier::Premium,
+        is_pro: tier >= Tier::Pro,
+        tier,
+        status: if expired { "expired" } else { "active" }.to_string(),
+        trial: payload.trial,
+        email: Some(payload.email.clone()),
+        license_key: Some(key.to_string()),
+        activated_at: Some(activated_at.to_string()),
+        expires_at: payload.exp.and_then(iso),
+        days_left: payload
+            .exp
+            .map(|exp| ((exp - now) as f64 / 86_400.0).ceil() as i64),
+    }
+}
 
-    // Si no es promo, verificar como clave HMAC estándar
-    if !es_promo {
-        let es_valida = verify_license_key(&clave_limpia)?;
-        if !es_valida {
-            return Err("Clave de licencia inválida".to_string());
+/// Lee la licencia guardada, la verifica y devuelve su información.
+/// También actualiza la marca `last_seen` para detectar relojes atrasados.
+fn load_license(app: &tauri::AppHandle) -> LicenseInfo {
+    let path = match get_license_path(app) {
+        Ok(p) => p,
+        Err(_) => return empty_info("none"),
+    };
+    let contenido = match fs::read_to_string(&path) {
+        Ok(c) => c,
+        Err(_) => return empty_info("none"),
+    };
+    let mut datos: LicenseFile = match serde_json::from_str(&contenido) {
+        Ok(d) => d,
+        Err(_) => return empty_info("invalid"),
+    };
+    let payload = match decode_and_verify(&datos.key) {
+        Ok(p) => p,
+        // Incluye las claves del formato anterior (HMAC), que ya no se aceptan
+        Err(_) => return empty_info("invalid"),
+    };
+
+    // Si el reloj del sistema va por detrás de lo ya observado, usar lo observado.
+    let real_now = Utc::now().timestamp();
+    let now = real_now.max(datos.last_seen);
+    if real_now > datos.last_seen {
+        datos.last_seen = real_now;
+        if let Ok(json) = serde_json::to_string_pretty(&datos) {
+            let _ = fs::write(&path, json);
         }
     }
 
-    // Preparar los datos de la licencia
-    let ahora = Utc::now().to_rfc3339();
-    let datos_licencia = LicenseFile {
-        key: clave_limpia.clone(),
-        activated_at: ahora.clone(),
-    };
+    build_info(&payload, &datos.key, &datos.activated_at, now)
+}
 
-    // Persistir en disco
-    let ruta_licencia = get_license_path(&app)?;
+/// Nivel de licencia efectivo. Lo usan otros módulos del backend para limitar funciones.
+pub fn current_tier(app: &tauri::AppHandle) -> Tier {
+    load_license(app).tier
+}
 
-    // Asegurar que el directorio existe
-    if let Some(directorio) = ruta_licencia.parent() {
-        fs::create_dir_all(directorio)
-            .map_err(|e| format!("Error al crear directorio de datos: {}", e))?;
+/// Devuelve error si el nivel efectivo es menor que `min`. Se usa en los comandos de pago
+/// para que el límite no dependa solo de la interfaz.
+pub fn require_tier(app: &tauri::AppHandle, min: Tier) -> Result<(), String> {
+    if current_tier(app) >= min {
+        Ok(())
+    } else if min >= Tier::Pro {
+        Err("Esta función requiere una licencia Pro".to_string())
+    } else {
+        Err("Esta función requiere una licencia Premium".to_string())
+    }
+}
+
+/// Activa una licencia: verifica la firma, revisa el vencimiento y la guarda.
+#[tauri::command]
+pub fn activate_license(app: tauri::AppHandle, license_key: String) -> Result<LicenseInfo, String> {
+    let clave = license_key.split_whitespace().collect::<String>();
+    let payload = decode_and_verify(&clave)?;
+    let now = Utc::now().timestamp();
+
+    if payload.iat > now + CLOCK_SKEW_SECS {
+        return Err(
+            "La fecha de tu equipo parece incorrecta. Corrígela y vuelve a intentarlo.".to_string(),
+        );
+    }
+    if let Some(exp) = payload.exp {
+        if now >= exp {
+            return Err(format!(
+                "Esta licencia venció el {}. Renueva tu plan en https://vault-local.vercel.app",
+                iso(exp).unwrap_or_default().get(..10).unwrap_or("")
+            ));
+        }
     }
 
-    let json = serde_json::to_string_pretty(&datos_licencia)
-        .map_err(|e| format!("Error al serializar datos de licencia: {}", e))?;
-    fs::write(&ruta_licencia, json).map_err(|e| format!("Error al guardar licencia: {}", e))?;
+    let path = get_license_path(&app)?;
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)
+            .map_err(|e| format!("Error al crear directorio de datos: {}", e))?;
+    }
+    let activated_at = Utc::now().to_rfc3339();
+    let datos = LicenseFile {
+        key: clave.clone(),
+        activated_at: activated_at.clone(),
+        last_seen: now,
+    };
+    let json = serde_json::to_string_pretty(&datos)
+        .map_err(|e| format!("Error al serializar licencia: {}", e))?;
+    fs::write(&path, json).map_err(|e| format!("Error al guardar licencia: {}", e))?;
 
-    Ok(LicenseInfo {
-        is_premium: true,
-        license_key: Some(clave_limpia),
-        activated_at: Some(ahora),
-    })
+    Ok(build_info(&payload, &clave, &activated_at, now))
 }
 
 /// Consulta el estado actual de la licencia.
-///
-/// Lee el archivo license.json, re-verifica la clave almacenada y retorna
-/// el estado. Si no hay licencia o la verificación falla, retorna is_premium = false.
 #[tauri::command]
 pub fn check_license(app: tauri::AppHandle) -> Result<LicenseInfo, String> {
-    let ruta_licencia = get_license_path(&app)?;
-
-    // Si no existe el archivo, no hay licencia
-    if !ruta_licencia.exists() {
-        return Ok(LicenseInfo {
-            is_premium: false,
-            license_key: None,
-            activated_at: None,
-        });
-    }
-
-    // Leer y deserializar el archivo
-    let contenido = fs::read_to_string(&ruta_licencia)
-        .map_err(|e| format!("Error al leer archivo de licencia: {}", e))?;
-    let datos: LicenseFile = serde_json::from_str(&contenido)
-        .map_err(|e| format!("Error al parsear archivo de licencia: {}", e))?;
-
-    // Re-verificar la clave almacenada para detectar manipulación
-    let es_valida =
-        is_valid_promo_code(&datos.key) || verify_license_key(&datos.key).unwrap_or(false);
-
-    if es_valida {
-        Ok(LicenseInfo {
-            is_premium: true,
-            license_key: Some(datos.key),
-            activated_at: Some(datos.activated_at),
-        })
-    } else {
-        // La clave almacenada no es válida (posible manipulación del archivo)
-        Ok(LicenseInfo {
-            is_premium: false,
-            license_key: None,
-            activated_at: None,
-        })
-    }
+    Ok(load_license(&app))
 }
 
-/// Desactiva la licencia premium eliminando el archivo license.json.
+/// Desactiva la licencia eliminando license.json.
 #[tauri::command]
 pub fn deactivate_license(app: tauri::AppHandle) -> Result<(), String> {
-    let ruta_licencia = get_license_path(&app)?;
-
-    if ruta_licencia.exists() {
-        fs::remove_file(&ruta_licencia)
-            .map_err(|e| format!("Error al eliminar archivo de licencia: {}", e))?;
+    let path = get_license_path(&app)?;
+    if path.exists() {
+        fs::remove_file(&path).map_err(|e| format!("Error al eliminar licencia: {}", e))?;
     }
-
     Ok(())
 }
 
-/// Genera una clave de licencia válida para testing y desarrollo.
-///
-/// **ADVERTENCIA**: En producción, esta función NO debe estar disponible en el cliente.
-/// La generación de claves debe realizarse exclusivamente en un servidor seguro
-/// que posea la clave de firma.
-///
-/// Genera un UUID v4 aleatorio y calcula el HMAC-SHA256 correspondiente.
-#[tauri::command]
-pub fn generate_license_key() -> Result<String, String> {
-    // Generar un UUID v4 aleatorio
-    let uuid = Uuid::new_v4();
-    let uuid_str = uuid.to_string().replace('-', "");
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // Calcular el HMAC del UUID
-    let hmac_completo = compute_hmac(&uuid_str)?;
-    let hmac_prefijo = &hmac_completo[..HMAC_PREFIX_LEN];
+    /// Licencia real emitida con tools/issue-license.mjs (nivel pro, vencía al día siguiente).
+    const LICENCIA_PRUEBA: &str = "VL2-eyJ2IjoyLCJpZCI6Im1hbnVhbC05ZWZhMzdlNC05MmZmLTQzYTMtYWVkNS04ZGVkOGYxN2MyZjgiLCJlbWFpbCI6InBydWViYUBleGFtcGxlLmNvbSIsInRpZXIiOiJwcm8iLCJ0cmlhbCI6ZmFsc2UsImlhdCI6MTc5MTQ3ODQ5MSwiZXhwIjoxNzkxNTY0ODkxfQ.r0EXC_Jz36oA1C9uZnwcdGFkAXyWnRiti_RwIhJ6lY9M6kpSxd_dfZ3lT3ECUeBBUpgysTIpgJWQAuaEUoGyBA";
 
-    // Formatear la clave: VL-{8chars}-{8chars}-{8chars}-{8chars}-{8chars_hmac}
-    // El UUID tiene 32 caracteres hex, se divide en 4 grupos de 8
-    let clave = format!(
-        "VL-{}-{}-{}-{}-{}",
-        &uuid_str[0..8],
-        &uuid_str[8..16],
-        &uuid_str[16..24],
-        &uuid_str[24..32],
-        hmac_prefijo
-    );
+    #[test]
+    fn acepta_licencia_firmada_y_detecta_vencimiento() {
+        let p = decode_and_verify(LICENCIA_PRUEBA).expect("la firma debe validar");
+        assert_eq!(p.tier, Tier::Pro);
+        assert_eq!(p.email, "prueba@example.com");
+        assert!(build_info(&p, LICENCIA_PRUEBA, "", p.iat + 10).is_pro);
+        assert_eq!(
+            build_info(&p, LICENCIA_PRUEBA, "", p.exp.unwrap()).tier,
+            Tier::Free
+        );
+    }
 
-    Ok(clave)
+    #[test]
+    fn rechaza_payload_alterado_con_firma_real() {
+        // Mismo contenido pero con "owner" en lugar de "pro": la firma ya no corresponde
+        let (cuerpo, firma) = LICENCIA_PRUEBA[4..].split_once('.').unwrap();
+        let json = String::from_utf8(URL_SAFE_NO_PAD.decode(cuerpo).unwrap()).unwrap();
+        let alterado = URL_SAFE_NO_PAD.encode(json.replace("\"pro\"", "\"owner\""));
+        assert!(decode_and_verify(&format!("VL2-{}.{}", alterado, firma)).is_err());
+    }
+
+    #[test]
+    fn rechaza_formato_anterior_hmac() {
+        assert!(decode_and_verify("VL-a1b2c3d4-e5f6a7b8-c9d0e1f2-a3b4c5d6-7f8e9d0c").is_err());
+    }
+
+    #[test]
+    fn rechaza_firma_alterada() {
+        let payload = URL_SAFE_NO_PAD
+            .encode(br#"{"v":2,"id":"x","email":"a@b.c","tier":"owner","iat":0,"exp":null}"#);
+        let firma = URL_SAFE_NO_PAD.encode([0u8; 64]);
+        assert!(decode_and_verify(&format!("VL2-{}.{}", payload, firma)).is_err());
+    }
+
+    #[test]
+    fn vencimiento_baja_a_free() {
+        let p = LicensePayload {
+            v: 2,
+            id: "x".into(),
+            email: "a@b.c".into(),
+            tier: Tier::Pro,
+            trial: false,
+            iat: 0,
+            exp: Some(100),
+        };
+        let activa = build_info(&p, "k", "", 50);
+        assert!(activa.is_pro && activa.is_premium);
+        let vencida = build_info(&p, "k", "", 100);
+        assert_eq!(vencida.tier, Tier::Free);
+        assert_eq!(vencida.status, "expired");
+    }
 }
