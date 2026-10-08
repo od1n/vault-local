@@ -310,14 +310,15 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 ### Actual: PayPal (pago único anual, renovación manual)
 - Checkout en la página: Premium $15/año, Pro $39/año
 - Webhook en Vercel: verifica el aviso con PayPal → consulta la orden → firma licencia Ed25519 de 1 año → correo con Resend
-- PENDIENTE de configurar: variables de entorno nuevas y webhook (ver `website/api/README.md`)
+- App Live de PayPal en la cuenta de negocio (Client ID `BAA3vJK3…dw_A`, webhook `707402621N091604W`, evento PAYMENT.CAPTURE.COMPLETED). Variables `PAYPAL_*` cargadas en Vercel.
+- 2026-10-08: compra real de $15 cobrada (neto $13.89) pero NO llegó el correo de licencia: revisar Logs de Vercel (`paypal-webhook`). Pendiente.
 
 ### Planes
 | Plan | Precio | Incluye |
 |---|---|---|
-| Gratis | $0 | Todo el gestor; tiempos de bloqueo ≤ 5 min y portapapeles ≤ 15 s; papelera, etiquetas, kit de emergencia, bloqueo al suspender/Win+L, recibir entradas compartidas |
+| Gratis | $0 | Todo el gestor; tiempos de bloqueo ≤ 5 min y portapapeles ≤ 15 s; papelera, etiquetas, kit de emergencia, acceso de emergencia 2 de 3, bloqueo al suspender/Win+L, recibir entradas compartidas |
 | Premium | $15/año | Tiempos hasta 8 h / 5 min, pausar bloqueo, +30 s portapapeles, bandeja, búsqueda rápida global, copia en secuencia, escritura automática, desbloqueo rápido PIN/Windows Hello, historial de contraseñas, vencimientos, compartir cifrado, QR Wi-Fi, HIBP, auditoría detallada, adjuntos |
-| Pro | $39/año | Premium + sincronización cifrada |
+| Pro | $39/año | Premium + sincronización cifrada + bóvedas múltiples |
 | Owner | — | Todo, sin vencimiento (solo para el autor) |
 
 ### Pendiente: Binance Pay
@@ -330,24 +331,18 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 
 ## 9. Lo que Falta por Hacer
 
-### Antes de publicar v0.3.0 (en este orden)
-- [ ] Configurar en Vercel las variables de `website/api/README.md` (sobre todo `LICENSE_PRIVATE_KEY`, `PAYPAL_*`, `RESEND_FROM`, `PROMO_CODES`)
-- [x] Dominio de correo: `vinculo.dev` verificado en Resend; remitente `licencias@vinculo.dev`
-- [ ] Crear el webhook de PayPal apuntando a `/api/paypal-webhook` con el evento `PAYMENT.CAPTURE.COMPLETED`
-- [ ] Hacer una compra de prueba (sandbox o $15 real reembolsado) y comprobar que llega el correo
-- [x] Probar en Windows (`npm run tauri dev`) y activar la licencia `owner`
-- [x] Tag v0.3.0 publicado con instaladores para Windows, macOS y Linux
-- [ ] Probar el canje en https://vault-local.vercel.app/prueba.html?codigo=PRODUCTHUNT2026 una vez cargadas las variables en Vercel
-- [ ] Al publicar una versión: `@tauri-apps/api` (npm) debe tener la misma versión menor que la biblioteca `tauri` de Rust, o la publicación falla
+### PayPal y publicación v0.4.0
+- [x] Webhook Live y variables `PAYPAL_*` en Vercel; Client ID real en las 4 páginas; botones rotulados por plan
+- [ ] Correo de licencia tras la compra real: no llegó → revisar Logs de Vercel y reenviar el aviso desde PayPal
+- [ ] Probar el canje en https://vault-local.vercel.app/prueba.html?codigo=PRODUCTHUNT2026
+- [ ] Publicar v0.4.0 (tag) y probar en Windows: bóvedas múltiples, acceso de emergencia (generar hojas y abrir con 2), cambio de contraseña
+- [ ] Al publicar una versión: `@tauri-apps/api` (npm) debe tener la misma versión menor que la biblioteca `tauri` de Rust
 
 ### Desarrollo
-- [ ] Traducir al inglés los textos nuevos (hoy solo en español; la app ya mezclaba idiomas)
-- [ ] "Bóvedas múltiples" aparece en el plan Pro de la página pero NO está implementado: implementarlo o quitarlo
-- [ ] El cambio de contraseña maestra no reinicia el servidor IPC de la extensión con las claves nuevas (revisar)
 - [ ] Reembolsos y contracargos de PayPal no revocan la licencia (las licencias offline no se pueden revocar; solo vencen)
 - [ ] Límite de canjes de promoción global (hoy es por instancia de Vercel; haría falta Vercel KV)
-- [ ] Comprobar en sandbox que la verificación del webhook de PayPal acepta el aviso tal como lo entrega Vercel
-- [ ] Etiquetas y vencimientos no viajan en la sincronización cifrada ni en exportar/importar
+- [ ] Actualizaciones automáticas de la app (tauri-plugin-updater con firma); hoy se descarga a mano
+- [ ] Mensajes de error del backend (Rust) solo en español
 - [ ] Video demo
 - [ ] Firma de código (diferido hasta tener ingresos; ~$200-400/año)
 
@@ -397,6 +392,9 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 30. **Plantillas** Tarjeta, Wi-Fi e Identidad
 31. **Desbloqueo rápido** con PIN o Windows Hello (solo en memoria, caduca)
 32. **Kit de emergencia** imprimible
+33. **Bóvedas múltiples** (Pro) — cada una con contraseña y archivo propios (`vaults/<id>/`), selector en el desbloqueo; abrir las existentes no requiere licencia
+34. **Acceso de emergencia** (gratis) — clave de recuperación dividida con Shamir 2 de 3 (24 palabras BIP39 + QR por hoja), `vault.recovery` junto a la base; abre en solo lectura (`PRAGMA query_only`); sobrevive al cambio de contraseña; los respaldos lo incluyen
+35. **Cambio de contraseña a prueba de cortes** — `vault.salt.new` con la clave anterior envuelta; el siguiente desbloqueo con la contraseña nueva termina el cambio
 
 ---
 
@@ -408,6 +406,7 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 | v0.1.1 | Correcciones, PayPal integration, promo codes |
 | v0.1.3 | i18n, CI multiplataforma, Vercel analytics |
 | v0.2.0 (no publicar) | Auto-backup, alertas seguridad, landings EN/PT/DE, fixes clippy/fmt/audit, Node 24 |
+| v0.4.0 | Bóvedas múltiples (Pro), acceso de emergencia 2 de 3, interfaz en inglés, cambio de contraseña atómico, etiquetas en sync/exportación |
 | v0.3.0 | Licencias Ed25519 + planes anuales, tiempos configurables, portapapeles seguro, bandeja, búsqueda rápida, escritura automática, papelera, etiquetas, historial, compartir, desbloqueo rápido |
 
 ---
