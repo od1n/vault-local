@@ -54,6 +54,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
     const email = String(body.email || '').trim().toLowerCase();
     const code = String(body.code || '').trim().toUpperCase();
+    const lang = body.lang === 'en' ? 'en' : 'es';
 
     if (!EMAIL_RE.test(email) || email.length > 200) {
       return res.status(400).json({ error: 'invalid_email' });
@@ -80,7 +81,11 @@ export default async function handler(req, res) {
 
     const sent = await sendLicenseEmail({
       to: email,
-      planName: `Vault Local Pro (prueba de ${TRIAL_DAYS} días, todas las funciones)`,
+      lang,
+      planName:
+        lang === 'en'
+          ? `Vault Local Pro (${TRIAL_DAYS}-day trial, all features)`
+          : `Vault Local Pro (prueba de ${TRIAL_DAYS} días, todas las funciones)`,
       licenseKey,
       expiresAt: exp,
     });

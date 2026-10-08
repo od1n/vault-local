@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Try Vault Local free for 30 days</title>
+<meta name="description" content="Try Vault Local free for 30 days">
+<link rel="alternate" hreflang="es" href="https://vault-local.vercel.app/prueba.html">
+<link rel="alternate" hreflang="en" href="https://vault-local.vercel.app/trial.html">
+<style>
+:root{--bg:#0f1117;--card:#1a1d2e;--border:#2a2e45;--text:#e8eaed;--muted:#9aa0a6;--accent:#4c8dff;--ok:#4caf50;--warn:#ffb74d;--danger:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6}
+a{color:var(--accent)}
+.wrap{max-width:820px;margin:0 auto;padding:24px 16px 64px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.2;margin:28px 0 12px}
+.lead{font-size:17px;color:var(--text)}
+.note{color:var(--muted);font-size:14px}
+.step{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:22px}
+.step h2{display:flex;align-items:center;gap:12px;font-size:20px;margin:0 0 10px}
+.num{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.step ol,.step ul{padding-left:22px;margin:8px 0}
+.step li{margin:8px 0}
+form{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+label{font-size:14px;color:var(--muted)}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:16px}
+button,.btn{display:inline-block;padding:12px 18px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:15px;font-weight:600;text-decoration:none;cursor:pointer;text-align:center}
+button[type=submit],.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.6;cursor:wait}
+.msg{padding:12px;border-radius:10px;font-size:15px;display:none}
+.msg.ok{display:block;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.4)}
+.msg.err{display:block;background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.4)}
+.dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.dl .os{border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.dl .os.mine{border-color:var(--accent);box-shadow:0 0 0 2px rgba(76,141,255,.25)}
+.dl h3{margin:0;font-size:16px}
+.ver{font-size:13px;color:var(--muted)}
+code,kbd{background:#0b0d14;border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-size:.92em;word-break:break-all}
+.warn{border-left:3px solid var(--warn);padding:8px 12px;background:rgba(255,183,77,.08);border-radius:6px}
+details{border-top:1px solid var(--border);padding:12px 0}
+summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="en.html">← Back to the main page</a><a href="prueba.html" id="other-lang">Español</a></div>
+  <h1>Try Vault Local free for 30 days</h1>
+  <p class="lead">Vault Local stores all your passwords on your own computer, encrypted, with no accounts and no cloud. This trial gives you <strong>every feature</strong> for 30 days. No credit card needed.</p>
+  <p class="note">When the 30 days end, the app <strong>keeps working for free</strong> and you lose nothing. Only the paid features turn off until you buy a plan.</p>
+  <p class="note"><strong>It takes about 10 minutes. Follow the steps in order.</strong></p>
+
+  <section class="step" id="paso1">
+    <h2><span class="num">1</span>Request your trial license</h2>
+    <p>Enter your email and the promo code you were given. If you arrived through a link that already includes the code, it is filled in for you.</p>
+    <form id="f">
+      <label for="email">Your email</label>
+      <input id="email" type="email" required autocomplete="email" placeholder="nombre@gmail.com">
+      <label for="code">Promo code</label>
+      <input id="code" type="text" required autocapitalize="characters" style="text-transform:uppercase">
+      <button type="submit">Send me the license</button>
+    </form>
+    <div id="msg" class="msg" role="status" style="margin-top:12px"></div>
+  </section>
+
+  <section class="step" id="paso2">
+    <h2><span class="num">2</span>Download the app</h2>
+    <p>Click the button for your system — we detect yours and highlight it in blue. The file is saved in your <strong>Downloads</strong> folder.</p>
+    <div class="dl">
+      <div class="os" id="os-win"><h3>Windows</h3><a class="btn primary" id="dl-win" href="https://github.com/od1n/vault-local/releases/latest">Download for Windows</a><span class="ver">Looking for the latest version…</span></div>
+      <div class="os" id="os-mac"><h3>macOS</h3><a class="btn primary" id="dl-mac" href="https://github.com/od1n/vault-local/releases/latest">Download for macOS</a><span class="ver"></span></div>
+      <div class="os" id="os-lin"><h3>Linux</h3><a class="btn primary" id="dl-appimage" href="https://github.com/od1n/vault-local/releases/latest">Download AppImage</a><a class="btn" id="dl-deb" href="https://github.com/od1n/vault-local/releases/latest">Download .deb</a><span class="ver"></span></div>
+    </div>
+    <p class="note">If the buttons don't work, open <a href="https://github.com/od1n/vault-local/releases/latest">https://github.com/od1n/vault-local/releases/latest</a> and download the file ending in <code>_x64-setup.exe</code> (Windows), <code>.dmg</code> (macOS) or <code>.AppImage</code> (Linux).</p>
+  </section>
+
+  <section class="step" id="paso3">
+    <h2><span class="num">3</span>Install the app</h2>
+    <h3 style="margin:6px 0">Windows</h3>
+    <ol><li>Open your <strong>Downloads</strong> folder and double-click the file that starts with <code>Vault.Local</code> and ends in <code>_x64-setup.exe</code>.</li><li>Windows may show a blue window saying <strong>“Windows protected your PC”</strong>. This is normal: the app does not have a paid digital signature yet. Click <strong>“More info”</strong> and then <strong>“Run anyway”</strong>.</li><li>If Windows asks <strong>“Do you want to allow this app to make changes to your device?”</strong>, click <strong>Yes</strong>.</li><li>In the installer click <strong>Next</strong>, then <strong>Install</strong> and finally <strong>Finish</strong>. Vault Local opens by itself. Later you can find it in the Start menu by typing <em>Vault Local</em>.</li></ol>
+    <p><strong>macOS:</strong> open the <code>.dmg</code> file from Downloads and drag Vault Local into <strong>Applications</strong>. The first time, in Applications <strong>right-click Vault Local → Open</strong>, and click <strong>Open</strong> again in the warning (only needed once).</p>
+    <p><strong>Linux:</strong> right-click the <code>.AppImage</code> → Properties → Permissions → check “Allow executing as program”, then double-click it. Or install the <code>.deb</code> by double-clicking it.</p>
+  </section>
+
+  <section class="step" id="paso4">
+    <h2><span class="num">4</span>Create your vault and master password</h2>
+    <ol><li>The first time, Vault Local asks you to create a <strong>master password</strong>. It is the only password you need to remember: it protects all the others.</li><li>Type it in <strong>Master password</strong>, repeat it in <strong>Confirm password</strong> and click <strong>Create Vault</strong>.</li></ol>
+    <p class="warn"><strong>Very important:</strong> nobody can recover it if you forget it — not even us — because it never leaves your computer. Write it on paper and keep it somewhere safe. A long phrase you remember (for example, four random words) is better than something short and odd.</p>
+  </section>
+
+  <section class="step" id="paso5">
+    <h2><span class="num">5</span>Activate your trial license</h2>
+    <ol><li>Open the email from step 1. Inside there is a dark box with a long text starting with <code>VL2-</code>: that is your key.</li><li>Select <strong>all</strong> the text in the box (from <code>VL2-</code> to the end) and copy it with <kbd>Ctrl</kbd>+<kbd>C</kbd> (on Mac, <kbd>⌘</kbd>+<kbd>C</kbd>). If it breaks into several lines, that's fine: the app joins it.</li><li>In Vault Local, look at the <strong>top left</strong>, next to the sun or moon icon, and click <strong>Upgrade</strong>.</li><li>A window opens (for now it is in Spanish). Click the box under <strong>Clave de licencia</strong> (license key), paste with <kbd>Ctrl</kbd>+<kbd>V</kbd> (on Mac, <kbd>⌘</kbd>+<kbd>V</kbd>) and click <strong>Activar</strong> (activate).</li><li>Done: at the top left you will see <strong>Pro (prueba)</strong> (“trial”). Click it any time to see how many days are left.</li></ol>
+  </section>
+
+  <section class="step" id="paso6">
+    <h2><span class="num">6</span>Recommended first steps</h2>
+    <ul><li>Click <strong>+ New entry</strong> (top right) to save your first password, or use <strong>Import</strong> (bottom left) if you already have passwords in Chrome, Firefox, Bitwarden or KeePass.</li><li>Click <strong>Ajustes</strong> (settings, bottom left) and turn on <strong>Búsqueda rápida con atajo global</strong> (quick search): press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> to find and copy passwords from any program.</li><li>In <strong>Ajustes → Kit de emergencia</strong> (emergency kit) click <strong>Abrir e imprimir</strong> and keep the printed sheet with your written master password.</li><li>In <strong>Backups</strong> choose a folder (ideally a USB drive or a OneDrive/Google Drive folder) so an encrypted copy is saved automatically.</li></ul>
+  </section>
+
+  <section class="step" id="faq">
+    <h2>Frequently asked questions</h2>
+    <details><summary>I didn't get the email</summary><p>Wait 5 minutes and check Spam, Junk and Promotions. If you mistyped your email, go back to step 1 and request it again.</p></details><details><summary>The app says “signature does not match” or “wrong format”</summary><p>The key got cut when copying. Go back to the email, select from <code>VL2-</code> to the very last character of the box and paste again.</p></details><details><summary>The app says the computer date looks wrong</summary><p>Your computer's date or time is wrong. On Windows: right-click the clock (bottom right) → Adjust date and time → turn on “Set time automatically”. Then activate again.</p></details><details><summary>Are my passwords uploaded to the internet?</summary><p>No. Everything is stored encrypted on your computer. The license is checked offline; only step 1 uses the internet, to send you the email.</p></details><details><summary>What happens after 30 days?</summary><p>The app keeps working on the free plan with all your passwords. To keep every feature, buy a plan in <a href="en.html#pricing">the pricing section</a>.</p></details><details><summary>I installed it on another computer</summary><p>You can use the same key from the email: repeat steps 2 to 5 on the other computer.</p></details>
+  </section>
+</div>
+<script>
+(function(){
+  var T = {"sending": "Sending…", "ok": "Done! In a few minutes you will get an email from <strong>licencias@vinculo.dev</strong> with the subject “Your Vault Local Pro key”. If you don't see it, check your <strong>Spam</strong> or <strong>Promotions</strong> folders. Meanwhile, go on to step 2.", "e_code": "The code is invalid or has expired. Check the spelling (upper or lower case doesn't matter).", "e_email": "That email doesn't look valid. Check it, for example: name@gmail.com", "e_many": "Too many requests in a row. Wait an hour and try again.", "e_gen": "We could not send the email. Please try again in a few minutes.", "send": "Send me the license", "lang": "en"};
+  // Prellenar el código desde el enlace: ?codigo=XXXX (o ?code=XXXX)
+  var p = new URLSearchParams(location.search);
+  var c = p.get('codigo') || p.get('code');
+  if (c) document.getElementById('code').value = c.toUpperCase();
+
+  var form = document.getElementById('f'), msg = document.getElementById('msg');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = form.querySelector('button');
+    btn.disabled = true; btn.textContent = T.sending;
+    msg.className = 'msg'; msg.innerHTML = '';
+    fetch('/api/redeem-promo', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email: document.getElementById('email').value, code: document.getElementById('code').value, lang: T.lang})})
+    .then(function(r){ return r.json().then(function(j){ return [r.ok, j]; }); })
+    .then(function(res){
+      if (res[0]) { msg.className = 'msg ok'; msg.innerHTML = T.ok; }
+      else { msg.className = 'msg err'; msg.innerHTML = ({invalid_code:T.e_code, invalid_email:T.e_email, too_many:T.e_many})[res[1].error] || T.e_gen; }
+    })
+    .catch(function(){ msg.className = 'msg err'; msg.innerHTML = T.e_gen; })
+    .finally(function(){ btn.disabled = false; btn.textContent = T.send; });
+  });
+
+  // Marcar el sistema del visitante
+  var ua = navigator.userAgent, mine = /Windows/.test(ua) ? 'win' : /Mac/.test(ua) ? 'mac' : /Linux/.test(ua) ? 'lin' : '';
+  if (mine) document.getElementById('os-' + mine).classList.add('mine');
+
+  // Enlaces directos a la última versión publicada en GitHub
+  fetch('https://api.github.com/repos/od1n/vault-local/releases/latest')
+    .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+    .then(function(rel){
+      var find = function(re){ var a = (rel.assets || []).find(function(x){ return re.test(x.name); }); return a && a.browser_download_url; };
+      var map = {'dl-win': /_x64-setup\.exe$/, 'dl-mac': /\.dmg$/, 'dl-appimage': /\.AppImage$/, 'dl-deb': /\.deb$/};
+      Object.keys(map).forEach(function(id){ var u = find(map[id]); if (u) document.getElementById(id).href = u; });
+      document.querySelectorAll('.ver').forEach(function(el){ el.textContent = 'v' + String(rel.tag_name || '').replace(/^v/, ''); });
+    })
+    .catch(function(){ document.querySelectorAll('.ver').forEach(function(el){ el.textContent = ''; }); });
+})();
+</script>
+<script>
+  // Mantener el código al cambiar de idioma
+  (function(){ var a = document.getElementById('other-lang'); if (location.search) a.href += location.search; })();
+</script>
+</body>
+</html>

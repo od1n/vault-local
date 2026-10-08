@@ -1550,6 +1550,7 @@
           <button type="submit" class="btn btn-primary">Canjear</button>
         </form>
         <p id="promo-msg" style="margin:10px 0 0;font-size:13px;min-height:1em;"></p>
+        <p style="margin:8px 0 0;font-size:13px;opacity:.8;">¿Es tu primera vez? Mira la <a href="prueba.html">guía paso a paso para activar la prueba</a>.</p>
       </div>
       <script>
       (function() {
@@ -1562,7 +1563,7 @@
           var btn = form.querySelector('button');
           btn.disabled = true; msg.textContent = T.sending;
           fetch('/api/redeem-promo', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: document.getElementById('promo-email').value, code: document.getElementById('promo-code').value }) })
+            body: JSON.stringify({ email: document.getElementById('promo-email').value, code: document.getElementById('promo-code').value, lang: 'es' }) })
           .then(function(r) { return r.json().then(function(j) { return [r.ok, j]; }); })
           .then(function(res) { msg.textContent = res[0] ? T.ok : (T[res[1].error] || T.error); })
           .catch(function() { msg.textContent = T.error; })
@@ -1830,5 +1831,22 @@
   </script>
 
   <script defer src="/_vercel/insights/script.js"></script>
+
+<script>
+  // Botones de descarga: siempre a la última versión publicada en GitHub
+  (function(){
+    fetch('https://api.github.com/repos/od1n/vault-local/releases/latest')
+      .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+      .then(function(rel){
+        var pats = [/_x64-setup\.exe$/, /_x64_en-US\.msi$/, /\.dmg$/, /\.AppImage$/, /\.deb$/];
+        document.querySelectorAll('a[href*="/releases/download/"]').forEach(function(a){
+          var re = pats.find(function(p){ return p.test(a.getAttribute('href')); });
+          var asset = re && (rel.assets || []).find(function(x){ return re.test(x.name); });
+          if (asset) a.href = asset.browser_download_url;
+        });
+      })
+      .catch(function(){});
+  })();
+</script>
 </body>
 </html>

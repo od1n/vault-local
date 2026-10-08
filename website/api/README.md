@@ -26,8 +26,9 @@ y pulsa **Save**. Al terminar, vuelve a desplegar: pestaña **Deployments** → 
 | `PAYPAL_CLIENT_SECRET` | Secret de la app Live | Mismo lugar, botón **Show** bajo *Secret key 1* |
 | `PAYPAL_WEBHOOK_ID` | ID del webhook | Mismo lugar, sección **Webhooks** de tu app (columna *Webhook ID*) |
 | `RESEND_API_KEY` | Clave de Resend | https://resend.com/api-keys |
-| `RESEND_FROM` | p. ej. `Vault Local <licencias@tudominio.com>` | Debe ser un dominio verificado en https://resend.com/domains. Resend no permite enviar desde `vercel.app` |
-| `PROMO_CODES` | p. ej. `PRODUCTHUNT2026:2026-12-31` | Lista separada por comas de `CÓDIGO:última-fecha-de-canje` |
+| `RESEND_FROM` | `Vault Local <licencias@vinculo.dev>` | `vinculo.dev` ya está verificado en https://resend.com/domains, así que sirve cualquier dirección `@vinculo.dev` sin pasos extra |
+| `RESEND_REPLY_TO` | (opcional) tu correo real, p. ej. `x0d1ns0x@gmail.com` | Si alguien responde al correo de la licencia, la respuesta llega aquí en vez de perderse |
+| `PROMO_CODES` | p. ej. `PRODUCTHUNT2026:2026-12-31` | Lista separada por comas de `CÓDIGO:última-fecha-de-canje` (formato año-mes-día). Cada canje da Pro de prueba por 30 días |
 | `PAYPAL_API_BASE` | (opcional) `https://api-m.sandbox.paypal.com` | Solo para pruebas con el entorno sandbox de PayPal |
 
 ## Webhook en PayPal
@@ -46,3 +47,22 @@ y pulsa **Save**. Al terminar, vuelve a desplegar: pestaña **Deployments** → 
   que empieza con `LICENCIA`, para enviarla a mano.
 - Para emitir licencias manuales (por ejemplo, la tuya de tipo `owner`) usa
   `tools/issue-license.mjs` desde tu equipo; ver `RESUMEN_PROYECTO.md`.
+
+## Cómo compartir la prueba de 30 días con alguien
+
+Envíale este enlace (por WhatsApp, correo, redes):
+
+- En español: `https://vault-local.vercel.app/prueba.html?codigo=PRODUCTHUNT2026`
+- En inglés: `https://vault-local.vercel.app/trial.html?code=PRODUCTHUNT2026`
+
+El enlace ya trae el código escrito. La página explica a la persona, paso a paso:
+pedir la licencia, descargar, instalar (incluido el aviso azul de Windows), crear la
+contraseña maestra, activar la licencia y qué hacer al terminar los 30 días. El correo
+que recibe repite los pasos de activación.
+
+Para un código nuevo (por ejemplo, para un grupo o una campaña), agrégalo a `PROMO_CODES`
+separado por coma (`PRODUCTHUNT2026:2026-12-31,AMIGOS:2027-03-31`), guarda, haz **Redeploy**
+y comparte el enlace con `?codigo=AMIGOS`.
+
+Los botones de descarga de todas las páginas buscan solos la versión más reciente publicada en
+https://github.com/od1n/vault-local/releases/latest, así que no hay que editarlos en cada versión.
