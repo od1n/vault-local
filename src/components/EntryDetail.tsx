@@ -12,6 +12,8 @@ interface EntryDetailProps {
   onDelete: (id: string) => void;
   onClose: () => void;
   onToggleFavorite: (id: string) => void;
+  /** Contenido extra (etiquetas, vencimiento, acciones) que se muestra al inicio del detalle */
+  extras?: React.ReactNode;
 }
 
 const categoryIcons: Record<string, JSX.Element> = {
@@ -106,7 +108,7 @@ function getFileIcon(mimeType: string): JSX.Element {
   );
 }
 
-export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite }: EntryDetailProps) {
+export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite, extras }: EntryDetailProps) {
   const [revealedFields, setRevealedFields] = useState<Set<number>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
@@ -565,6 +567,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
         </div>
 
         <div className="detail-body">
+          {extras}
           {entry.fields.length > 0 && (
             <div className="detail-section">
               <div className="detail-section-title">Campos</div>
@@ -659,7 +662,7 @@ export function EntryDetail({ entry, onEdit, onDelete, onClose, onToggleFavorite
                 </svg>
                 <div className="confirm-dialog-title">Eliminar entrada</div>
                 <div className="confirm-dialog-text">
-                  ¿Estás seguro de que deseas eliminar "{entry.title}"? Esta acción no se puede deshacer.
+                  «{entry.title}» se enviará a la papelera. Podrás restaurarla durante 30 días; después se borra definitivamente.
                 </div>
                 <div className="confirm-dialog-actions">
                   <button className="btn btn-secondary" onClick={() => setShowDeleteConfirm(false)}>

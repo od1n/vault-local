@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useSettings } from '../hooks/useSettings';
+import { EmergencyKit } from './extras/EmergencyKit';
 import type { AppSettings } from '../types';
 
 interface Props {
@@ -49,6 +50,7 @@ export function SettingsDialog({ onClose, onUpgrade }: Props) {
   const [shortcut, setShortcut] = useState(saved.quick_search_shortcut);
   const [sequence, setSequence] = useState(saved.auto_type_sequence);
   const premium = limits.premium;
+  const [showKit, setShowKit] = useState(false);
 
   // Partimos de los valores efectivos para no reenviar valores de pago guardados
   // cuando la licencia ya no los permite.
@@ -191,6 +193,14 @@ export function SettingsDialog({ onClose, onUpgrade }: Props) {
               </div>
             </Row>
           </div>
+
+          <div className="settings-section">
+            <h3>Recuperación</h3>
+            <Row label="Kit de emergencia" hint="Hoja para imprimir con la ubicación de tus datos y los pasos para recuperarlos. No incluye secretos.">
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowKit(true)}>Abrir e imprimir</button>
+            </Row>
+          </div>
+          {showKit && <EmergencyKit onClose={() => setShowKit(false)} />}
 
           {error && (
             <div style={{ padding: '8px 12px', background: 'rgba(255, 76, 76, 0.08)', borderRadius: 'var(--radius)', color: 'var(--danger)', fontSize: 13 }}>

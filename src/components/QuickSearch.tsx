@@ -28,8 +28,13 @@ export function QuickSearch() {
     setMessage(null);
     try {
       const list = await invoke<EntryMeta[]>('get_entries', { category: null, search: null });
-      // Favoritas primero, luego las modificadas más recientemente
-      list.sort((a, b) => Number(b.favorite) - Number(a.favorite));
+      // Favoritas primero, luego las más usadas y las usadas más recientemente
+      list.sort(
+        (a, b) =>
+          Number(b.favorite) - Number(a.favorite) ||
+          b.use_count - a.use_count ||
+          (b.last_used_at || '').localeCompare(a.last_used_at || '')
+      );
       setEntries(list);
       setLocked(false);
     } catch {
@@ -55,7 +60,12 @@ export function QuickSearch() {
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = q
-      ? entries.filter((e) => e.title.toLowerCase().includes(q) || e.category.toLowerCase().includes(q))
+      ? entries.filter(
+          (e) =>
+            e.title.toLowerCase().includes(q) ||
+            e.category.toLowerCase().includes(q) ||
+            e.tags.some((t) => t.toLowerCase().includes(q))
+        )
       : entries;
     return list.slice(0, 9);
   }, [entries, query]);

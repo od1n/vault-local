@@ -2747,3 +2747,142 @@ a {
   margin: auto;
   text-align: center;
 }
+
+/* --- Extras de la entrada (etiquetas, vencimiento, acciones) --- */
+.entry-extras {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+
+.entry-extras-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.entry-extras-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 150px;
+}
+
+.entry-extras-expiry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.entry-extras-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.tag-chip button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tag-input {
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  min-width: 180px;
+  outline: none;
+}
+
+.expiry-badge {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.expiry-badge.soon {
+  color: var(--warning);
+}
+
+.expiry-badge.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* --- Papelera --- */
+.trash-panel {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.trash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* --- Kit de emergencia (impresión) --- */
+.emergency-kit {
+  background: #fff;
+  color: #111;
+  padding: 32px;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.emergency-kit h1 {
+  margin-top: 0;
+}
+
+.emergency-kit .kit-box {
+  border: 2px dashed #888;
+  border-radius: 8px;
+  min-height: 56px;
+  margin: 8px 0 18px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .emergency-kit,
+  .emergency-kit * {
+    visibility: visible;
+  }
+  .emergency-kit {
+    position: absolute;
+    inset: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

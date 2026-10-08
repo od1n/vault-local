@@ -161,7 +161,22 @@ pub fn copy_field_to_clipboard(
     #[allow(unused_variables)] clear_after_secs: Option<u64>,
 ) -> Result<ClipboardStatus, String> {
     let value = read_field(&state, &entry_id, field_index)?;
-    copy_secret(&app, &value)
+    let status = copy_secret(&app, &value)?;
+    mark_used(&state, &entry_id);
+    Ok(status)
+}
+
+/// Registra el uso de una entrada (para "Recientes" y el orden de la búsqueda rápida).
+pub fn mark_used(state: &AppState, entry_id: &str) {
+    if let Ok(guard) = state.vault.lock() {
+        if let Some(vault) = guard.as_ref() {
+            let _ = repository::touch_usage(
+                &vault.connection,
+                entry_id,
+                &chrono::Utc::now().to_rfc3339(),
+            );
+        }
+    }
 }
 
 /// Lee y descifra el valor de un campo de una entrada.

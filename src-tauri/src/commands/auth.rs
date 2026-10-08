@@ -331,7 +331,8 @@ pub fn change_master_password(
 
     // 3. Re-cifrar TODAS las entradas con la nueva enc_key
     let current_enc_key = &vault.enc_key.expose_secret().0;
-    let entries_meta = repository::list_entries(&vault.connection, None, None)?;
+    // Incluye la papelera: si no, esas entradas quedarían cifradas con la clave anterior
+    let entries_meta = repository::list_entries_including_deleted(&vault.connection)?;
 
     for entry_meta in &entries_meta {
         let (_cat, _title, encrypted_data, _fav, _created, updated) =

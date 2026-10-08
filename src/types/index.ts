@@ -1,4 +1,4 @@
-export type EntryCategory = 'web' | 'bank' | 'wallet' | 'note' | 'passkey' | 'other';
+export type EntryCategory = 'web' | 'bank' | 'card' | 'wallet' | 'wifi' | 'identity' | 'note' | 'passkey' | 'other';
 
 export interface EntryField {
   name: string;
@@ -83,6 +83,17 @@ export interface EntryMeta {
   favorite: boolean;
   created_at: string;
   updated_at: string;
+  tags: string[];
+  last_used_at: string | null;
+  use_count: number;
+  expires_at: string | null;
+  deleted_at: string | null;
+}
+
+export interface HistoryItem {
+  field: string;
+  value: string;
+  changed_at: string;
 }
 
 export interface Entry {
@@ -94,6 +105,9 @@ export interface Entry {
   favorite: boolean;
   created_at: string;
   updated_at: string;
+  tags: string[];
+  expires_at: string | null;
+  history_count: number;
 }
 
 export interface NewEntry {
@@ -102,6 +116,7 @@ export interface NewEntry {
   fields: EntryField[];
   notes?: string;
   favorite?: boolean;
+  tags?: string[];
 }
 
 export interface UpdateEntry {
@@ -123,6 +138,9 @@ export interface PasswordGenOptions {
 export const CATEGORY_LABELS: Record<EntryCategory, string> = {
   web: 'Sitios Web',
   bank: 'Bancos',
+  card: 'Tarjetas',
+  wifi: 'Wi-Fi',
+  identity: 'Identidades',
   wallet: 'Wallets',
   note: 'Notas',
   passkey: 'Passkeys',
@@ -141,6 +159,27 @@ export const CATEGORY_DEFAULTS: Record<EntryCategory, EntryField[]> = {
     { name: 'Número de ruta', value: '', sensitive: true, field_type: 'password' },
     { name: 'PIN', value: '', sensitive: true, field_type: 'password' },
     { name: '¿Cuál es el nombre de tu mascota?', value: '', sensitive: true, field_type: 'security_qa' },
+  ],
+  card: [
+    { name: 'Titular', value: '', sensitive: false, field_type: 'text' },
+    { name: 'Número de tarjeta', value: '', sensitive: true, field_type: 'password' },
+    { name: 'Vencimiento (MM/AA)', value: '', sensitive: false, field_type: 'text' },
+    { name: 'Código de seguridad (CVV)', value: '', sensitive: true, field_type: 'password' },
+    { name: 'PIN', value: '', sensitive: true, field_type: 'password' },
+  ],
+  wifi: [
+    { name: 'Nombre de la red (SSID)', value: '', sensitive: false, field_type: 'text' },
+    { name: 'Contraseña', value: '', sensitive: true, field_type: 'password' },
+    { name: 'Seguridad (WPA, WEP o nopass)', value: 'WPA', sensitive: false, field_type: 'text' },
+  ],
+  identity: [
+    { name: 'Nombre completo', value: '', sensitive: false, field_type: 'text' },
+    { name: 'Documento de identidad', value: '', sensitive: true, field_type: 'password' },
+    { name: 'Pasaporte', value: '', sensitive: true, field_type: 'password' },
+    { name: 'Fecha de nacimiento', value: '', sensitive: false, field_type: 'text' },
+    { name: 'Dirección', value: '', sensitive: false, field_type: 'textarea' },
+    { name: 'Teléfono', value: '', sensitive: false, field_type: 'text' },
+    { name: 'Correo', value: '', sensitive: false, field_type: 'text' },
   ],
   wallet: [
     { name: 'Dirección', value: '', sensitive: false, field_type: 'text' },

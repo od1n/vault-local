@@ -28,7 +28,52 @@ pub fn open_db(db_path: &Path, db_key: &[u8; 32]) -> Result<Connection, String> 
     conn.execute_batch("PRAGMA foreign_keys = ON;")
         .map_err(|e| format!("Error al habilitar claves foráneas: {}", e))?;
 
+    migrate(&conn)?;
+
     Ok(conn)
+}
+
+/// Columnas agregadas después de la versión 0.2.0. Se agregan si faltan.
+const ENTRY_COLUMNS_V3: &[(&str, &str)] = &[
+    ("tags", "TEXT NOT NULL DEFAULT '[]'"),
+    ("deleted_at", "TEXT"),
+    ("last_used_at", "TEXT"),
+    ("use_count", "INTEGER NOT NULL DEFAULT 0"),
+    ("expires_at", "TEXT"),
+];
+
+/// Actualiza el esquema de bases de datos creadas con versiones anteriores.
+pub fn migrate(conn: &Connection) -> Result<(), String> {
+    let table_exists: bool = conn
+        .query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='entries'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .map(|n| n > 0)
+        .map_err(|e| format!("Error al revisar el esquema: {}", e))?;
+    if !table_exists {
+        return Ok(());
+    }
+
+    let mut stmt = conn
+        .prepare("PRAGMA table_info(entries)")
+        .map_err(|e| format!("Error al revisar columnas: {}", e))?;
+    let existing: Vec<String> = stmt
+        .query_map([], |r| r.get::<_, String>(1))
+        .map_err(|e| format!("Error al revisar columnas: {}", e))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("Error al revisar columnas: {}", e))?;
+
+    for (name, def) in ENTRY_COLUMNS_V3 {
+        if !existing.iter().any(|c| c == name) {
+            conn.execute_batch(&format!("ALTER TABLE entries ADD COLUMN {} {};", name, def))
+                .map_err(|e| format!("Error al migrar la columna {}: {}", name, e))?;
+        }
+    }
+    conn.execute_batch("CREATE INDEX IF NOT EXISTS idx_entries_deleted ON entries(deleted_at);")
+        .map_err(|e| format!("Error al crear índice: {}", e))?;
+    Ok(())
 }
 
 /// Inicializa las tablas del vault si no existen.
@@ -67,7 +112,8 @@ pub fn init_tables(conn: &Connection) -> Result<(), String> {
         CREATE INDEX IF NOT EXISTS idx_attachments_entry ON attachments(entry_id);
         ",
     )
-    .map_err(|e| format!("Error al crear tablas: {}", e))
+    .map_err(|e| format!("Error al crear tablas: {}", e))?;
+    migrate(conn)
 }
 
 /// Guarda un valor de configuración en vault_config.
@@ -125,16 +171,37 @@ pub fn insert_entry(
     Ok(())
 }
 
-/// Lista las entradas con filtros opcionales de categoría y búsqueda.
-/// Retorna solo metadatos (sin datos cifrados) para la vista de lista.
+/// Columnas de metadatos que se leen para EntryMeta.
+const META_COLUMNS: &str =
+    "id, category, title, favorite, created_at, updated_at, tags, last_used_at, use_count, expires_at, deleted_at";
+
+fn row_to_meta(row: &rusqlite::Row) -> rusqlite::Result<EntryMeta> {
+    let tags_json: String = row.get(6)?;
+    Ok(EntryMeta {
+        id: row.get(0)?,
+        category: row.get(1)?,
+        title: row.get(2)?,
+        favorite: row.get::<_, i32>(3)? != 0,
+        created_at: row.get(4)?,
+        updated_at: row.get(5)?,
+        tags: serde_json::from_str(&tags_json).unwrap_or_default(),
+        last_used_at: row.get(7)?,
+        use_count: row.get::<_, i64>(8)?.max(0) as u32,
+        expires_at: row.get(9)?,
+        deleted_at: row.get(10)?,
+    })
+}
+
+/// Lista las entradas (fuera de la papelera) con filtros opcionales de categoría y búsqueda.
+/// La búsqueda revisa el título y las etiquetas. Retorna solo metadatos.
 pub fn list_entries(
     conn: &Connection,
     category: Option<&str>,
     search: Option<&str>,
 ) -> Result<Vec<EntryMeta>, String> {
-    // Construir consulta dinámicamente según los filtros
-    let mut sql = String::from(
-        "SELECT id, category, title, favorite, created_at, updated_at FROM entries WHERE 1=1",
+    let mut sql = format!(
+        "SELECT {} FROM entries WHERE deleted_at IS NULL",
+        META_COLUMNS
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
@@ -144,7 +211,8 @@ pub fn list_entries(
     }
 
     if let Some(query) = search {
-        sql.push_str(" AND title LIKE ?");
+        sql.push_str(" AND (title LIKE ? OR tags LIKE ?)");
+        param_values.push(Box::new(format!("%{}%", query)));
         param_values.push(Box::new(format!("%{}%", query)));
     }
 
@@ -154,26 +222,128 @@ pub fn list_entries(
         .prepare(&sql)
         .map_err(|e| format!("Error al preparar consulta de entradas: {}", e))?;
 
-    // Convertir los parámetros a referencias para rusqlite
     let params_refs: Vec<&dyn rusqlite::types::ToSql> =
         param_values.iter().map(|p| p.as_ref()).collect();
 
     let entries = stmt
-        .query_map(params_refs.as_slice(), |row| {
-            Ok(EntryMeta {
-                id: row.get(0)?,
-                category: row.get(1)?,
-                title: row.get(2)?,
-                favorite: row.get::<_, i32>(3)? != 0,
-                created_at: row.get(4)?,
-                updated_at: row.get(5)?,
-            })
-        })
+        .query_map(params_refs.as_slice(), row_to_meta)
         .map_err(|e| format!("Error al consultar entradas: {}", e))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| format!("Error al leer entradas: {}", e))?;
 
     Ok(entries)
+}
+
+/// Metadatos de una entrada por ID (incluida la papelera).
+pub fn get_entry_meta(conn: &Connection, id: &str) -> Result<EntryMeta, String> {
+    conn.query_row(
+        &format!("SELECT {} FROM entries WHERE id = ?1", META_COLUMNS),
+        params![id],
+        row_to_meta,
+    )
+    .map_err(|_| format!("Entrada con ID '{}' no encontrada", id))
+}
+
+/// Lista TODAS las entradas, incluidas las de la papelera.
+/// Se usa al cambiar la contraseña maestra: todo debe volver a cifrarse.
+pub fn list_entries_including_deleted(conn: &Connection) -> Result<Vec<EntryMeta>, String> {
+    let mut stmt = conn
+        .prepare(&format!("SELECT {} FROM entries", META_COLUMNS))
+        .map_err(|e| format!("Error al preparar consulta: {}", e))?;
+    let rows = stmt
+        .query_map([], row_to_meta)
+        .map_err(|e| format!("Error al consultar entradas: {}", e))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Error al leer entradas: {}", e))?;
+    Ok(rows)
+}
+
+/// Lista las entradas que están en la papelera.
+pub fn list_trash(conn: &Connection) -> Result<Vec<EntryMeta>, String> {
+    let mut stmt = conn
+        .prepare(&format!(
+            "SELECT {} FROM entries WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
+            META_COLUMNS
+        ))
+        .map_err(|e| format!("Error al preparar consulta: {}", e))?;
+    let rows = stmt
+        .query_map([], row_to_meta)
+        .map_err(|e| format!("Error al consultar la papelera: {}", e))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Error al leer la papelera: {}", e))?;
+    Ok(rows)
+}
+
+/// Envía una entrada a la papelera (borrado reversible).
+pub fn soft_delete_entry(conn: &Connection, id: &str, now: &str) -> Result<(), String> {
+    let rows = conn
+        .execute(
+            "UPDATE entries SET deleted_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
+            params![now, id],
+        )
+        .map_err(|e| format!("Error al mover a la papelera: {}", e))?;
+    if rows == 0 {
+        return Err(format!("Entrada con ID '{}' no encontrada", id));
+    }
+    Ok(())
+}
+
+/// Saca una entrada de la papelera.
+pub fn restore_entry(conn: &Connection, id: &str) -> Result<(), String> {
+    let rows = conn
+        .execute(
+            "UPDATE entries SET deleted_at = NULL WHERE id = ?1",
+            params![id],
+        )
+        .map_err(|e| format!("Error al restaurar: {}", e))?;
+    if rows == 0 {
+        return Err(format!("Entrada con ID '{}' no encontrada", id));
+    }
+    Ok(())
+}
+
+/// Borra definitivamente las entradas que llevan en la papelera desde antes de `before`.
+/// Con `before = None` vacía toda la papelera. Retorna cuántas se borraron.
+pub fn purge_trash(conn: &Connection, before: Option<&str>) -> Result<usize, String> {
+    match before {
+        Some(b) => conn.execute(
+            "DELETE FROM entries WHERE deleted_at IS NOT NULL AND deleted_at < ?1",
+            params![b],
+        ),
+        None => conn.execute("DELETE FROM entries WHERE deleted_at IS NOT NULL", []),
+    }
+    .map_err(|e| format!("Error al vaciar la papelera: {}", e))
+}
+
+/// Guarda las etiquetas de una entrada.
+pub fn set_tags(conn: &Connection, id: &str, tags: &[String]) -> Result<(), String> {
+    let json = serde_json::to_string(tags).map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE entries SET tags = ?1 WHERE id = ?2",
+        params![json, id],
+    )
+    .map_err(|e| format!("Error al guardar etiquetas: {}", e))?;
+    Ok(())
+}
+
+/// Guarda (o quita) la fecha de vencimiento de una entrada.
+pub fn set_expiry(conn: &Connection, id: &str, expires_at: Option<&str>) -> Result<(), String> {
+    conn.execute(
+        "UPDATE entries SET expires_at = ?1 WHERE id = ?2",
+        params![expires_at, id],
+    )
+    .map_err(|e| format!("Error al guardar vencimiento: {}", e))?;
+    Ok(())
+}
+
+/// Registra que una entrada se usó (copiar, escribir automáticamente).
+pub fn touch_usage(conn: &Connection, id: &str, now: &str) -> Result<(), String> {
+    conn.execute(
+        "UPDATE entries SET last_used_at = ?1, use_count = use_count + 1 WHERE id = ?2",
+        params![now, id],
+    )
+    .map_err(|e| format!("Error al registrar uso: {}", e))?;
+    Ok(())
 }
 
 /// Obtiene los datos raw de una entrada por su ID.
@@ -396,4 +566,58 @@ pub fn count_attachments(conn: &Connection, entry_id: &str) -> Result<u32, Strin
         .map_err(|e| format!("Error al contar adjuntos: {}", e))?;
 
     Ok(count as u32)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Base con el esquema de la versión 0.2.0 (sin columnas nuevas).
+    fn old_schema() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE entries (
+                id TEXT PRIMARY KEY, category TEXT NOT NULL, title TEXT NOT NULL,
+                encrypted_data BLOB NOT NULL, favorite INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+             INSERT INTO entries VALUES ('a','web','Banco',x'00',0,'2026-01-01','2026-01-01');",
+        )
+        .unwrap();
+        conn
+    }
+
+    #[test]
+    fn migra_esquema_anterior_sin_perder_datos() {
+        let conn = old_schema();
+        migrate(&conn).unwrap();
+        migrate(&conn).unwrap(); // idempotente
+        let list = list_entries(&conn, None, None).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].title, "Banco");
+        assert!(list[0].tags.is_empty());
+        assert_eq!(list[0].use_count, 0);
+    }
+
+    #[test]
+    fn papelera_etiquetas_y_uso() {
+        let conn = old_schema();
+        migrate(&conn).unwrap();
+        set_tags(&conn, "a", &["trabajo".into()]).unwrap();
+        assert_eq!(list_entries(&conn, None, Some("trab")).unwrap().len(), 1);
+        touch_usage(&conn, "a", "2026-10-08T00:00:00Z").unwrap();
+        assert_eq!(list_entries(&conn, None, None).unwrap()[0].use_count, 1);
+
+        soft_delete_entry(&conn, "a", "2026-10-08T00:00:00Z").unwrap();
+        assert!(list_entries(&conn, None, None).unwrap().is_empty());
+        assert_eq!(list_trash(&conn).unwrap().len(), 1);
+        // El cambio de contraseña debe ver también la papelera
+        assert_eq!(list_entries_including_deleted(&conn).unwrap().len(), 1);
+
+        restore_entry(&conn, "a").unwrap();
+        assert_eq!(list_entries(&conn, None, None).unwrap().len(), 1);
+
+        soft_delete_entry(&conn, "a", "2026-01-01T00:00:00Z").unwrap();
+        assert_eq!(purge_trash(&conn, Some("2026-02-01T00:00:00Z")).unwrap(), 1);
+        assert!(list_entries_including_deleted(&conn).unwrap().is_empty());
+    }
 }

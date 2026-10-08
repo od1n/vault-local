@@ -124,6 +124,7 @@ pub fn quick_copy(
             .ok_or_else(|| format!("Esta entrada no tiene {}", what_label(what)))?,
     );
     let status = copy_secret(&app, &value)?;
+    crate::commands::clipboard::mark_used(&state, &entry_id);
 
     // Preparar la copia en secuencia
     let mut seq = SEQUENCE.lock().unwrap_or_else(|e| e.into_inner());
@@ -273,6 +274,7 @@ pub fn quick_auto_type(
     let entry = read_entry(&state, &entry_id)?;
     let steps = parse_sequence(&seq, |w| resolve(&entry, w))?;
     drop(entry);
+    crate::commands::clipboard::mark_used(&state, &entry_id);
 
     // Ocultar la búsqueda rápida para devolver el foco a la ventana anterior
     crate::desktop::hide_quick(&app);
@@ -307,6 +309,7 @@ mod tests {
                 field("Contraseña", "s3creta", "password", true),
             ],
             notes: String::new(),
+            history: Vec::new(),
         }
     }
 

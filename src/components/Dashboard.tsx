@@ -22,6 +22,9 @@ import { useSettings } from '../hooks/useSettings';
 import { useAutoLock } from '../hooks/useAutoLock';
 import { useClipboard } from '../hooks/useClipboard';
 import { useToast } from './Toast';
+import { EntryExtras, daysUntil } from './extras/EntryExtras';
+import { TrashPanel } from './extras/TrashPanel';
+import { ShareDialog } from './extras/ShareDialog';
 import { BackupSettings } from './BackupSettings';
 import { Onboarding } from './Onboarding';
 import { SecurityAlert } from './SecurityAlert';
@@ -41,9 +44,10 @@ interface DashboardProps {
   toggleTheme: () => void;
 }
 
-type SidebarFilter = 'favorites' | 'recents' | null;
+/** Filtro de la barra lateral: favoritas, recientes, por vencer, papelera o una etiqueta ("tag:nombre") */
+type SidebarFilter = 'favorites' | 'recents' | 'expiring' | 'trash' | `tag:${string}` | null;
 
-const ALL_CATEGORIES: EntryCategory[] = ['web', 'bank', 'wallet', 'passkey', 'note', 'other'];
+const ALL_CATEGORIES: EntryCategory[] = ['web', 'bank', 'card', 'wallet', 'wifi', 'identity', 'passkey', 'note', 'other'];
 
 export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
   const {
@@ -62,6 +66,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
   const { license, isPremium, isPro, activate: activateLicense, deactivate: deactivateLicense } = useLicense();
   const { settings, pausedUntil, resumeLock, refresh: refreshSettings } = useSettings();
   const [showSettings, setShowSettings] = useState(false);
+  const [showShareImport, setShowShareImport] = useState(false);
   const { quickCopy } = useClipboard();
   const { showToast } = useToast();
   // Avisar si el atajo global no se pudo registrar
@@ -176,6 +181,22 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
 
   // Conteo de favoritos
   const favoritesCount = useMemo(() => allEntries.filter(e => e.favorite).length, [allEntries]);
+  const expiringCount = useMemo(
+    () => allEntries.filter((e) => { const d = daysUntil(e.expires_at); return d !== null && d <= 14; }).length,
+    [allEntries]
+  );
+  const tagCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of allEntries) for (const t of e.tags) m.set(t, (m.get(t) || 0) + 1);
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [allEntries]);
+
+  // Recargar todo después de un cambio en extras (etiquetas, vencimiento, duplicar, papelera)
+  const refreshAll = useCallback(async (selectId?: string) => {
+    await refreshCounts();
+    if (sidebarFilter === null) await loadEntries(selectedCategory || undefined, searchTerm || undefined);
+    if (selectId) await getEntry(selectId);
+  }, [refreshCounts, loadEntries, getEntry, sidebarFilter, selectedCategory, searchTerm]);
 
   // Entradas filtradas por sidebar filter
   const displayedEntries = useMemo(() => {
@@ -183,9 +204,18 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
       return allEntries.filter(e => e.favorite);
     }
     if (sidebarFilter === 'recents') {
-      return [...allEntries]
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-        .slice(0, 10);
+      // Por último uso (copiar, escribir automáticamente); si nunca se usó, por última edición
+      const when = (e: EntryMeta) => new Date(e.last_used_at || e.updated_at).getTime();
+      return [...allEntries].sort((a, b) => when(b) - when(a)).slice(0, 15);
+    }
+    if (sidebarFilter === 'expiring') {
+      return allEntries
+        .filter((e) => { const d = daysUntil(e.expires_at); return d !== null && d <= 14; })
+        .sort((a, b) => (a.expires_at || '').localeCompare(b.expires_at || ''));
+    }
+    if (sidebarFilter?.startsWith('tag:')) {
+      const tag = sidebarFilter.slice(4);
+      return allEntries.filter((e) => e.tags.includes(tag));
     }
     return entries;
   }, [sidebarFilter, allEntries, entries]);
@@ -392,6 +422,52 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
             </svg>
             <span className="category-item-label">{t('dashboard.recents')}</span>
           </button>
+          <button
+            className={`category-item ${sidebarFilter === 'expiring' ? 'active' : ''}`}
+            onClick={() => handleSidebarFilter('expiring')}
+            title="Entradas cuya fecha para cambiar la contraseña vence en 14 días o menos"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span className="category-item-label">Por vencer</span>
+            <span className="category-item-count" style={expiringCount > 0 ? { color: 'var(--warning)' } : undefined}>{expiringCount}</span>
+          </button>
+          <button
+            className={`category-item ${sidebarFilter === 'trash' ? 'active' : ''}`}
+            onClick={() => handleSidebarFilter('trash')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+              <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+            </svg>
+            <span className="category-item-label">Papelera</span>
+          </button>
+
+          {tagCounts.length > 0 && (
+            <>
+              <div className="sidebar-filter-divider" />
+              <div className="sidebar-section-label">Etiquetas</div>
+              {tagCounts.map(([tag, count]) => (
+                <button
+                  key={tag}
+                  className={`category-item ${sidebarFilter === `tag:${tag}` ? 'active' : ''}`}
+                  onClick={() => handleSidebarFilter(`tag:${tag}`)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                  <span className="category-item-label">{tag}</span>
+                  <span className="category-item-count">{count}</span>
+                </button>
+              ))}
+            </>
+          )}
 
           <div className="sidebar-filter-divider" />
 
@@ -422,6 +498,14 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
               {t('dashboard.export')}
             </button>
           </div>
+          <button className="sidebar-lock-btn" onClick={() => setShowShareImport(true)} title="Importar un archivo .vlshare que alguien compartió contigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+            Recibir entrada compartida
+          </button>
           <button className="sidebar-lock-btn" onClick={() => (isPro ? setShowSync(true) : setShowLicense(true))}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6" />
@@ -530,6 +614,8 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                 getEntry(entryId);
               }}
             />
+          ) : sidebarFilter === 'trash' ? (
+            <TrashPanel onChanged={() => refreshAll()} notify={showToast} />
           ) : (
             <>
               {/* Entry List */}
@@ -556,6 +642,16 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
                   onDelete={handleDelete}
                   onClose={clearSelected}
                   onToggleFavorite={toggleFavorite}
+                  extras={
+                    <EntryExtras
+                      entry={selectedEntry}
+                      isPremium={isPremium}
+                      onUpgrade={() => setShowLicense(true)}
+                      onChanged={() => refreshAll(selectedEntry.id)}
+                      onDuplicated={(id) => refreshAll(id)}
+                      notify={showToast}
+                    />
+                  }
                 />
               ) : (
                 <div className="no-selection">
@@ -628,6 +724,15 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
       {showBackup && (
         <BackupSettings
           onClose={() => setShowBackup(false)}
+        />
+      )}
+
+      {showShareImport && (
+        <ShareDialog
+          mode="import"
+          onClose={() => setShowShareImport(false)}
+          onImported={(id) => refreshAll(id)}
+          notify={showToast}
         />
       )}
 

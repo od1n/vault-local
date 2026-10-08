@@ -24,6 +24,17 @@ fn default_field_type() -> String {
     "text".to_string()
 }
 
+/// Valor anterior de un campo sensible (historial de contraseñas).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HistoryItem {
+    /// Nombre del campo (ej: "Contraseña")
+    pub field: String,
+    /// Valor que tenía antes del cambio
+    pub value: String,
+    /// Fecha en que se reemplazó (ISO 8601)
+    pub changed_at: String,
+}
+
 /// Datos internos de una entrada que se cifran antes de almacenar.
 /// Esta estructura se serializa a JSON y luego se cifra con XChaCha20-Poly1305.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +43,9 @@ pub struct EntryData {
     pub fields: Vec<EntryField>,
     /// Notas adicionales en texto libre
     pub notes: String,
+    /// Valores anteriores de los campos sensibles (cifrados junto con la entrada)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub history: Vec<HistoryItem>,
 }
 
 /// Metadatos de una entrada para la vista de lista (sin datos sensibles).
@@ -44,6 +58,21 @@ pub struct EntryMeta {
     pub favorite: bool,
     pub created_at: String,
     pub updated_at: String,
+    /// Etiquetas libres
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// Última vez que se copió o escribió algo de esta entrada
+    #[serde(default)]
+    pub last_used_at: Option<String>,
+    /// Veces que se ha usado
+    #[serde(default)]
+    pub use_count: u32,
+    /// Fecha sugerida para cambiar la contraseña (ISO 8601)
+    #[serde(default)]
+    pub expires_at: Option<String>,
+    /// Fecha en que se envió a la papelera (None = no está en la papelera)
+    #[serde(default)]
+    pub deleted_at: Option<String>,
 }
 
 /// Entrada completa con todos los campos descifrados.
@@ -58,6 +87,13 @@ pub struct Entry {
     pub favorite: bool,
     pub created_at: String,
     pub updated_at: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub expires_at: Option<String>,
+    /// Cantidad de valores anteriores guardados (el contenido requiere Premium)
+    #[serde(default)]
+    pub history_count: usize,
 }
 
 /// Datos para crear una nueva entrada.
@@ -68,6 +104,8 @@ pub struct NewEntry {
     pub fields: Vec<EntryField>,
     pub notes: Option<String>,
     pub favorite: Option<bool>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
 }
 
 /// Datos para actualizar una entrada existente.

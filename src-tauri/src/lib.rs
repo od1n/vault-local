@@ -189,6 +189,17 @@ pub fn run() {
             commands::vault::update_entry,
             commands::vault::delete_entry,
             commands::vault::toggle_favorite,
+            commands::vault::get_trash,
+            commands::vault::restore_entry,
+            commands::vault::delete_entry_permanently,
+            commands::vault::empty_trash,
+            commands::vault::set_entry_tags,
+            commands::vault::set_entry_expiry,
+            commands::vault::get_password_history,
+            commands::vault::duplicate_entry,
+            // Compartir una entrada cifrada
+            commands::share::export_share,
+            commands::share::import_share,
             // Portapapeles
             commands::clipboard::copy_to_clipboard,
             commands::clipboard::copy_field_to_clipboard,
@@ -199,6 +210,7 @@ pub fn run() {
             settings::get_settings,
             settings::update_settings,
             settings::request_lock_pause,
+            settings::get_vault_location,
             // Búsqueda rápida, copia en secuencia y escritura automática
             commands::quick::quick_copy,
             commands::quick::quick_auto_type,

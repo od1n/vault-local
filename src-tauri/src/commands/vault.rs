@@ -6,7 +6,9 @@ use secrecy::ExposeSecret;
 use uuid::Uuid;
 
 use crate::crypto::cipher;
-use crate::db::models::{Entry, EntryData, EntryMeta, NewEntry, UpdateEntry};
+use crate::db::models::{
+    Entry, EntryData, EntryField, EntryMeta, HistoryItem, NewEntry, UpdateEntry,
+};
 use crate::db::repository;
 use crate::state::AppState;
 
@@ -60,6 +62,8 @@ pub fn get_entry(state: tauri::State<'_, AppState>, id: String) -> Result<Entry,
     let entry_data: EntryData = serde_json::from_slice(&decrypted)
         .map_err(|e| format!("Error al deserializar datos de la entrada: {}", e))?;
 
+    let meta = repository::get_entry_meta(&vault.connection, &id)?;
+
     Ok(Entry {
         id,
         category,
@@ -69,6 +73,9 @@ pub fn get_entry(state: tauri::State<'_, AppState>, id: String) -> Result<Entry,
         favorite,
         created_at,
         updated_at,
+        tags: meta.tags,
+        expires_at: meta.expires_at,
+        history_count: entry_data.history.len(),
     })
 }
 
@@ -87,6 +94,7 @@ pub fn create_entry(state: tauri::State<'_, AppState>, entry: NewEntry) -> Resul
     let entry_data = EntryData {
         fields: entry.fields,
         notes: entry.notes.unwrap_or_default(),
+        history: Vec::new(),
     };
 
     // Serializar a JSON
@@ -112,6 +120,10 @@ pub fn create_entry(state: tauri::State<'_, AppState>, entry: NewEntry) -> Resul
         &now,
         &now,
     )?;
+
+    if let Some(tags) = entry.tags {
+        repository::set_tags(&vault.connection, &id, &normalize_tags(tags))?;
+    }
 
     Ok(id)
 }
@@ -143,6 +155,7 @@ pub fn update_entry(
     let new_favorite = entry.favorite.unwrap_or(current_favorite);
 
     if let Some(fields) = entry.fields {
+        record_history(&mut current_data, &fields, &Utc::now().to_rfc3339());
         current_data.fields = fields;
     }
     if let Some(notes) = entry.notes {
@@ -168,13 +181,237 @@ pub fn update_entry(
     )
 }
 
-/// Elimina una entrada del vault por su ID.
+/// Envía una entrada a la papelera. Se borra definitivamente a los 30 días.
 #[tauri::command]
 pub fn delete_entry(state: tauri::State<'_, AppState>, id: String) -> Result<(), String> {
     let guard = with_vault!(state);
     let vault = guard.as_ref().unwrap();
 
+    repository::soft_delete_entry(&vault.connection, &id, &Utc::now().to_rfc3339())
+}
+
+/// Días que una entrada permanece en la papelera antes de borrarse sola.
+pub const TRASH_DAYS: i64 = 30;
+
+/// Máximo de valores anteriores guardados por entrada.
+const HISTORY_LIMIT: usize = 20;
+
+/// Guarda en el historial los valores sensibles que cambiaron.
+fn record_history(data: &mut EntryData, new_fields: &[EntryField], now: &str) {
+    for old in data.fields.iter().filter(|f| {
+        (f.sensitive || f.field_type == "password") && f.field_type != "totp" && !f.value.is_empty()
+    }) {
+        let still_same = new_fields
+            .iter()
+            .any(|n| n.name == old.name && n.value == old.value);
+        if !still_same {
+            data.history.insert(
+                0,
+                HistoryItem {
+                    field: old.name.clone(),
+                    value: old.value.clone(),
+                    changed_at: now.to_string(),
+                },
+            );
+        }
+    }
+    data.history.truncate(HISTORY_LIMIT);
+}
+
+/// Limpia etiquetas: sin espacios sobrantes, sin vacías, sin duplicados, máximo 20.
+fn normalize_tags(tags: Vec<String>) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for t in tags {
+        let t = t.trim().chars().take(40).collect::<String>();
+        if !t.is_empty() && !out.iter().any(|o| o.eq_ignore_ascii_case(&t)) {
+            out.push(t);
+        }
+    }
+    out.truncate(20);
+    out
+}
+
+/// Lista las entradas de la papelera y borra las que superan los 30 días.
+#[tauri::command]
+pub fn get_trash(state: tauri::State<'_, AppState>) -> Result<Vec<EntryMeta>, String> {
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    let limit = (Utc::now() - chrono::Duration::days(TRASH_DAYS)).to_rfc3339();
+    repository::purge_trash(&vault.connection, Some(&limit))?;
+    repository::list_trash(&vault.connection)
+}
+
+#[tauri::command]
+pub fn restore_entry(state: tauri::State<'_, AppState>, id: String) -> Result<(), String> {
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    repository::restore_entry(&vault.connection, &id)
+}
+
+/// Borra definitivamente una entrada que está en la papelera.
+#[tauri::command]
+pub fn delete_entry_permanently(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<(), String> {
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    let in_trash = repository::list_trash(&vault.connection)?
+        .iter()
+        .any(|e| e.id == id);
+    if !in_trash {
+        return Err("Solo se pueden borrar definitivamente entradas de la papelera".to_string());
+    }
     repository::delete_entry(&vault.connection, &id)
+}
+
+#[tauri::command]
+pub fn empty_trash(state: tauri::State<'_, AppState>) -> Result<usize, String> {
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    repository::purge_trash(&vault.connection, None)
+}
+
+/// Cambia las etiquetas de una entrada (gratis).
+#[tauri::command]
+pub fn set_entry_tags(
+    state: tauri::State<'_, AppState>,
+    id: String,
+    tags: Vec<String>,
+) -> Result<Vec<String>, String> {
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    let tags = normalize_tags(tags);
+    repository::set_tags(&vault.connection, &id, &tags)?;
+    Ok(tags)
+}
+
+/// Define o quita la fecha para cambiar la contraseña (Premium).
+#[tauri::command]
+pub fn set_entry_expiry(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    id: String,
+    expires_at: Option<String>,
+) -> Result<(), String> {
+    if expires_at.is_some() {
+        crate::commands::license::require_tier(&app, crate::commands::license::Tier::Premium)?;
+    }
+    let expires_at = match expires_at {
+        Some(d) => Some(
+            chrono::DateTime::parse_from_rfc3339(&d)
+                .map_err(|_| "Fecha de vencimiento inválida".to_string())?
+                .to_rfc3339(),
+        ),
+        None => None,
+    };
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    repository::set_expiry(&vault.connection, &id, expires_at.as_deref())
+}
+
+/// Historial de valores anteriores de los campos sensibles (Premium).
+#[tauri::command]
+pub fn get_password_history(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<Vec<HistoryItem>, String> {
+    crate::commands::license::require_tier(&app, crate::commands::license::Tier::Premium)?;
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    let (_, _, encrypted, _, _, _) = repository::get_entry_raw(&vault.connection, &id)?;
+    let decrypted = cipher::decrypt(&vault.enc_key.expose_secret().0, &encrypted)?;
+    let data: EntryData =
+        serde_json::from_slice(&decrypted).map_err(|e| format!("Error al deserializar: {}", e))?;
+    Ok(data.history)
+}
+
+/// Crea una copia de una entrada (sin historial) y retorna el ID nuevo.
+#[tauri::command]
+pub fn duplicate_entry(state: tauri::State<'_, AppState>, id: String) -> Result<String, String> {
+    let guard = with_vault!(state);
+    let vault = guard.as_ref().unwrap();
+    let enc_key = &vault.enc_key.expose_secret().0;
+    let (category, title, encrypted, _, _, _) = repository::get_entry_raw(&vault.connection, &id)?;
+    let mut data: EntryData = serde_json::from_slice(&cipher::decrypt(enc_key, &encrypted)?)
+        .map_err(|e| format!("Error al deserializar: {}", e))?;
+    data.history.clear();
+    let json = serde_json::to_vec(&data).map_err(|e| e.to_string())?;
+    let new_id = Uuid::new_v4().to_string();
+    let now = Utc::now().to_rfc3339();
+    repository::insert_entry(
+        &vault.connection,
+        &new_id,
+        &category,
+        &format!("{} (copia)", title),
+        &cipher::encrypt(enc_key, &json)?,
+        false,
+        &now,
+        &now,
+    )?;
+    let tags = repository::get_entry_meta(&vault.connection, &id)?.tags;
+    repository::set_tags(&vault.connection, &new_id, &tags)?;
+    Ok(new_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn f(name: &str, value: &str, t: &str, sensitive: bool) -> EntryField {
+        EntryField {
+            name: name.into(),
+            value: value.into(),
+            sensitive,
+            field_type: t.into(),
+        }
+    }
+
+    #[test]
+    fn historial_guarda_solo_cambios_sensibles() {
+        let mut data = EntryData {
+            fields: vec![
+                f("Usuario", "yo", "text", false),
+                f("Contraseña", "vieja", "password", true),
+            ],
+            notes: String::new(),
+            history: Vec::new(),
+        };
+        record_history(
+            &mut data,
+            &[
+                f("Usuario", "otro", "text", false),
+                f("Contraseña", "vieja", "password", true),
+            ],
+            "t1",
+        );
+        assert!(
+            data.history.is_empty(),
+            "cambiar el usuario no guarda historial"
+        );
+        record_history(
+            &mut data,
+            &[
+                f("Usuario", "otro", "text", false),
+                f("Contraseña", "nueva", "password", true),
+            ],
+            "t2",
+        );
+        assert_eq!(data.history.len(), 1);
+        assert_eq!(data.history[0].value, "vieja");
+    }
+
+    #[test]
+    fn etiquetas_normalizadas() {
+        let t = normalize_tags(vec![
+            " trabajo ".into(),
+            "Trabajo".into(),
+            "".into(),
+            "banco".into(),
+        ]);
+        assert_eq!(t, vec!["trabajo".to_string(), "banco".to_string()]);
+    }
 }
 
 /// Alterna el estado de favorito de una entrada.

@@ -692,6 +692,7 @@ pub fn import_entries(
         let entry_data = EntryData {
             fields: entry.fields,
             notes: entry.notes,
+            history: Vec::new(),
         };
 
         // Serializar a JSON
@@ -1089,6 +1090,7 @@ pub fn import_kdbx(
         let entry_data = EntryData {
             fields: entry.fields,
             notes: entry.notes,
+            history: Vec::new(),
         };
 
         // Serializar a JSON
