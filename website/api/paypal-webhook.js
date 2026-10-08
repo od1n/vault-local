@@ -97,7 +97,10 @@ export default async function handler(req, res) {
     // Respaldo en los registros de Vercel por si el correo falla
     console.log(`LICENCIA ${plan.tier} | ${email} | orden ${orderId} | ${licenseKey}`);
 
-    const sent = await sendLicenseEmail({ to: email, planName: plan.name, licenseKey, expiresAt: exp });
+    // Idioma del correo según la descripción de la orden (la página en español dice "año"/"anual")
+    const desc = String(order.purchase_units?.[0]?.description || '').toLowerCase();
+    const lang = /año|anual/.test(desc) ? 'es' : 'en';
+    const sent = await sendLicenseEmail({ to: email, lang, planName: plan.name, licenseKey, expiresAt: exp });
     return res.status(200).json({ status: 'success', email_sent: sent });
   } catch (err) {
     console.error('Error en webhook:', err);
