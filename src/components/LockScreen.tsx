@@ -1,3 +1,4 @@
+import { BrandMark } from './BrandMark';
 import { useState, useCallback, type FormEvent, type KeyboardEvent } from 'react';
 import { useI18n, useTr } from '../i18n';
 
@@ -76,23 +77,7 @@ export function LockScreen({ mode, onUnlock, onSetup, error, processing, quickPa
     <div className="lock-screen">
       <div className="lock-card">
         <div className="lock-logo">
-          <svg className="lock-logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
-              fill="currentColor"
-              opacity="0.15"
-            />
-            <path
-              d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-              fill="none"
-            />
-            <rect x="9.5" y="10" width="5" height="4.5" rx="0.5" stroke="currentColor" strokeWidth="1.3" fill="none" />
-            <path d="M10.5 10V8.5a1.5 1.5 0 013 0V10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" fill="none" />
-            <circle cx="12" cy="12" r="0.7" fill="currentColor" />
-          </svg>
+          <BrandMark className="lock-logo-icon" size={64} detailed />
           <span className="lock-logo-title">{t('lock.title')}</span>
           <span className="lock-logo-subtitle">
             {mode === 'setup'

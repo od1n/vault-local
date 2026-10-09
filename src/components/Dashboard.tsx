@@ -1,3 +1,4 @@
+import { BrandMark } from './BrandMark';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -369,20 +370,7 @@ export function Dashboard({ onLock, theme, toggleTheme }: DashboardProps) {
       {/* Sidebar */}
       <div className="sidebar">
         <div className="sidebar-header">
-          <svg className="sidebar-header-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
-              fill="currentColor"
-              opacity="0.15"
-            />
-            <path
-              d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
+          <BrandMark className="sidebar-header-icon" size={28} />
           <span className="sidebar-header-title" title={session?.name}>
             Vault Local
             {session && (session.vault_count > 1 || session.read_only) && (
