@@ -326,11 +326,14 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 | Pro | $39/año | Premium + sincronización cifrada + bóvedas múltiples |
 | Owner | — | Todo, sin vencimiento (solo para el autor) |
 
-### Pendiente: Binance Pay
-- Investigación completa en `BINANCE_PAY_RESEARCH.md`
-- 0% fees recibiendo, 0.80% retirando
-- Individual merchant soportado
-- Falta: aplicar como merchant en https://merchant.binance.com, implementar webhook
+### Binance Pay (en pausa: código listo, tarjeta oculta en el sitio)
+- Binance eliminó las cuentas de comerciante individual: exige cuenta de entidad (empresa con verificación KYB). Usar El Hato Pascher C.A. no encaja con su objeto social; queda en pausa hasta tener empresa propia para Vault Local
+- Para reactivar: en las 4 páginas quitar `style="display:none"` de la tarjeta "Crypto / Binance Pay" y la clase `one` de `payment-grid`
+- Investigación en `BINANCE_PAY_RESEARCH.md` (0% al recibir; lo de comerciante individual ya no aplica)
+- `website/api/binance-create-order.js` crea la orden en USDT (15/39) con correo, plan e idioma en `passThroughInfo`
+- `website/api/binance-webhook.js` consulta la orden a Binance (estado PAID + monto + USDT) y envía la licencia (id `bn-<orden>`)
+- Formulario de plan + correo en las 4 páginas (oculto); responde "todavía no disponible" mientras falten `BINANCE_PAY_API_KEY` y `BINANCE_PAY_SECRET` en Vercel
+- Falta: cuenta de entidad aprobada en https://merchant.binance.com y cargar las dos variables
 
 ---
 
@@ -355,7 +358,7 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 - [ ] Verificar aprobación Firefox AMO
 
 ### Monetización
-- [ ] Aplicar como merchant en Binance Pay y crear su webhook (mismo patrón que PayPal, usando `_license.js`)
+- [ ] (En pausa, requiere empresa) Cuenta de entidad en Binance Pay y cargar `BINANCE_PAY_API_KEY` / `BINANCE_PAY_SECRET` en Vercel (el código ya está)
 
 ### Promoción
 - [ ] Ejecutar plan de 4 semanas de `COMUNIDADES_PROMOCION.md`

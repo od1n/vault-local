@@ -1401,6 +1401,10 @@
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              TOTP-Codes
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               Importieren / Exportieren
             </li>
             <li>
@@ -1437,10 +1441,6 @@
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               HIBP-Prüfung
-            </li>
-            <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              TOTP-Codes
             </li>
             <li>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1499,7 +1499,7 @@
     <div class="container">
       <h2 class="section-title fade-in">Zahlungsmethoden</h2>
       <p class="section-subtitle fade-in">Wähle deine bevorzugte Zahlungsart. Sicher, schnell und unkompliziert.</p>
-      <div class="payment-grid">
+      <div class="payment-grid one">
 
         <!-- PayPal -->
         <div class="payment-card fade-in">
@@ -1516,8 +1516,8 @@
           <div id="paypal-button-container-pro"></div>
         </div>
 
-        <!-- Crypto / Binance Pay -->
-        <div class="payment-card fade-in">
+        <!-- Crypto / Binance Pay: oculto hasta tener cuenta de comerciante (entidad). Para reactivarlo quita style="display:none" aquí y la clase "one" del contenedor -->
+        <div class="payment-card fade-in" style="display:none">
           <div class="payment-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -1525,16 +1525,27 @@
             </svg>
           </div>
           <h3>Kryptowährungen</h3>
-          <p>Bezahle mit Bitcoin, Ethereum, BNB oder anderen Kryptowährungen über Binance Pay.</p>
-          <a href="#" class="crypto-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v2m0 8v2"/>
-              <path d="M8.5 8.5L12 12l3.5-3.5"/>
-              <path d="M8.5 15.5L12 12l3.5 3.5"/>
-            </svg>
-            Mit Krypto bezahlen
-          </a>
+          <p>Bezahle mit USDT, BTC, BNB oder anderen Kryptowährungen über dein Binance-Konto (Binance Pay). Ein Binance-Konto ist erforderlich.</p>
+          <form id="binance-form" class="binance-form" novalidate>
+            <fieldset class="bn-plans">
+              <legend>Plan</legend>
+              <label><input type="radio" name="plan" value="premium" checked> Premium · 15 USDT pro Jahr</label>
+              <label><input type="radio" name="plan" value="pro"> Pro · 39 USDT pro Jahr</label>
+            </fieldset>
+            <label class="bn-email">E-Mail für deine Lizenz
+              <input type="email" name="email" required autocomplete="email" placeholder="du@email.de">
+            </label>
+            <button type="submit" class="crypto-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v2m0 8v2"/>
+                <path d="M8.5 8.5L12 12l3.5-3.5"/>
+                <path d="M8.5 15.5L12 12l3.5 3.5"/>
+              </svg>
+              <span>Mit Binance Pay bezahlen</span>
+            </button>
+            <p class="bn-msg" role="status" aria-live="polite"></p>
+          </form>
         </div>
 
       </div>
@@ -1853,6 +1864,44 @@
         });
       })
       .catch(function(){});
+  })();
+</script>
+<style>
+  .payment-grid.one{grid-template-columns:1fr;max-width:440px}
+  .binance-form{display:flex;flex-direction:column;gap:12px;text-align:left;margin-top:16px}
+  .bn-plans{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+  .bn-plans legend{font-weight:600;font-size:15px;color:#e8eaed;margin-bottom:6px}
+  .bn-plans label{display:flex;align-items:center;gap:8px;cursor:pointer;color:#cfd3da;font-size:15px}
+  .bn-email{display:flex;flex-direction:column;gap:6px;font-size:14px;color:#cfd3da}
+  .bn-email input{padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:#e8eaed;font-size:15px}
+  .bn-email input:focus{outline:2px solid #4c8dff;outline-offset:1px}
+  .binance-form .crypto-btn[disabled]{opacity:.6;cursor:wait;transform:none}
+  .bn-msg{margin:0;font-size:14px;min-height:1em;color:#cfd3da}
+  .bn-msg.err{color:#ff8a80}.bn-msg.ok{color:#4caf50}
+</style>
+<script>
+  /* Binance Pay: pide plan y correo, crea la orden en el servidor y lleva a la página de pago */
+  (function(){
+    var M={"btn": "Mit Binance Pay bezahlen", "wait": "Bestellung wird erstellt…", "bademail": "Bitte gib eine gültige E-Mail ein.", "na": "Krypto-Zahlung ist noch nicht verfügbar. Bitte nutze vorerst PayPal.", "err": "Die Bestellung konnte nicht erstellt werden. Bitte versuche es in ein paar Minuten erneut.", "ok": "Zahlung erhalten. Dein Lizenzschlüssel kommt in wenigen Minuten per E-Mail (prüfe auch den Spam-Ordner). Die E-Mail ist auf Englisch.", "cancel": "Zahlung abgebrochen. Es wurde nichts abgebucht."}, LANG="de";
+    var f=document.getElementById('binance-form'); if(!f) return;
+    var msg=f.querySelector('.bn-msg'), btn=f.querySelector('button'), label=btn.querySelector('span');
+    function show(t,c){msg.textContent=t;msg.className='bn-msg'+(c?' '+c:'');}
+    var q=new URLSearchParams(location.search).get('binance');
+    if(q==='ok') show(M.ok,'ok'); else if(q==='cancel') show(M.cancel,'err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var email=f.email.value.trim(), plan=f.plan.value;
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){show(M.bademail,'err');f.email.focus();return;}
+      btn.disabled=true;label.textContent=M.wait;show('');
+      fetch('/api/binance-create-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,plan:plan,lang:LANG})})
+        .then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {s:r.status,j:j};});})
+        .then(function(x){
+          if(x.s===200&&x.j.checkoutUrl){location.href=x.j.checkoutUrl;return;}
+          show(x.s===503?M.na:(x.s===400&&x.j.error==='invalid_email'?M.bademail:M.err),'err');
+          btn.disabled=false;label.textContent=M.btn;
+        })
+        .catch(function(){show(M.err,'err');btn.disabled=false;label.textContent=M.btn;});
+    });
   })();
 </script>
 </body>
