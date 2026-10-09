@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Vault Local",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Autocompletado seguro para Vault Local — gestor de contraseñas local y zero-knowledge",
   "permissions": [
     "nativeMessaging",

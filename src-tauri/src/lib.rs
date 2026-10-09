@@ -8,6 +8,7 @@ mod desktop;
 mod emergency;
 pub mod ipc_server;
 mod lockout;
+pub mod native_host;
 mod quick_unlock;
 pub mod security;
 mod settings;
@@ -152,6 +153,10 @@ pub fn run() {
 
             // Mostrar la ventana (estaba oculta para evitar flash)
             let _ = window.show();
+
+            // Registrar la app como puente de la extensión del navegador (sin instalar nada aparte)
+            let handle = app.handle().clone();
+            std::thread::spawn(move || native_host::register(&handle));
 
             // Vigilar suspensión y bloqueo de sesión; aplicar bandeja y atajo global
             desktop::start_watcher(app.handle().clone());

@@ -303,8 +303,8 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 
 | Canal | Estado | Fecha |
 |-------|--------|-------|
-| Chrome Web Store | Enviado, pendiente revisión | ~Jun 2026 |
-| Firefox AMO | Enviado (v0.2.0), pendiente revisión | ~Jun 2026 |
+| Chrome Web Store (ID honffihiebfeephklbgnolejabdfocnp) | Rechazada 2026-06-06 por "Keyword Spam" (lista de navegadores en la descripción). Corregida en STORE_LISTING.md; reenviar v0.3.0 | Oct 2026 |
+| Firefox AMO (vault-local@vaultlocal.com) | Aprobada y publicada 2026-06-08: https://addons.mozilla.org/addon/vault-local/ ; subir v0.3.0 (logo nuevo) | Oct 2026 |
 | Dev.to artículo 1 | Publicado | Jun 2026 |
 | Dev.to artículo 2 (doble cifrado) | Publicado | Jun 2026 |
 
@@ -410,6 +410,8 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 | v0.1.1 | Correcciones, PayPal integration, promo codes |
 | v0.1.3 | i18n, CI multiplataforma, Vercel analytics |
 | v0.2.0 (no publicar) | Auto-backup, alertas seguridad, landings EN/PT/DE, fixes clippy/fmt/audit, Node 24 |
+| v0.6.0 | La app hace de puente de la extensión (native messaging) y se registra sola en Chrome, Edge, Brave, Chromium y Firefox; ya no hace falta Node.js ni install.ps1 |
+| v0.5.1 | Logo nuevo (dial de bóveda) |
 | v0.5.0 | Actualizaciones automáticas firmadas, lista de Primeros pasos, folleto PDF |
 | v0.4.0 | Bóvedas múltiples (Pro), acceso de emergencia 2 de 3, interfaz en inglés, cambio de contraseña atómico, etiquetas en sync/exportación |
 | v0.3.0 | Licencias Ed25519 + planes anuales, tiempos configurables, portapapeles seguro, bandeja, búsqueda rápida, escritura automática, papelera, etiquetas, historial, compartir, desbloqueo rápido |

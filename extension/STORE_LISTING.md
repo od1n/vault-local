@@ -4,32 +4,28 @@
 Vault Local — Password Manager
 
 ## Short Description (132 chars max)
-Autocompletado seguro para Vault Local. Gestor de contrasenas local, zero-knowledge, cifrado de grado militar. 100% offline.
+Autocompletado para Vault Local, el gestor de contraseñas que guarda todo cifrado en tu computadora. Sin nube, sin cuentas.
 
 ## Detailed Description
-Vault Local es un gestor de contrasenas local y zero-knowledge. Esta extension conecta tu navegador con la aplicacion de escritorio Vault Local para autocompletar credenciales de forma segura.
+Vault Local es un gestor de contraseñas que guarda tus datos cifrados en tu propia computadora, sin nube y sin cuentas. Esta extensión conecta el navegador con la aplicación de escritorio Vault Local para rellenar usuario y contraseña en las páginas de inicio de sesión.
 
-CARACTERISTICAS:
-- Autocompletado de usuario y contrasena en formularios de login
-- Busqueda rapida de credenciales desde el popup
-- Deteccion automatica del sitio web actual
-- Copia de credenciales al portapapeles con limpieza automatica
+QUÉ HACE
+- Rellena usuario y contraseña en los formularios de inicio de sesión
+- Busca credenciales desde la ventana de la extensión
+- Detecta el sitio web abierto y sugiere la cuenta que corresponde
+- Copia credenciales con borrado automático del portapapeles
 
-SEGURIDAD:
-- Cifrado de grado militar (XChaCha20-Poly1305 + SQLCipher)
-- Zero-knowledge: tus datos nunca salen de tu computadora
-- La extension NO almacena ninguna contrasena — solo comunica con la app local
-- Comunicacion exclusivamente via localhost (127.0.0.1)
-- Token de autenticacion regenerado en cada sesion
+SEGURIDAD
+- La extensión no guarda ninguna contraseña: solo se comunica con la aplicación de escritorio en tu equipo
+- La comunicación es local (127.0.0.1) y usa un token que cambia en cada sesión
+- La bóveda está cifrada con SQLCipher (AES-256) y XChaCha20-Poly1305
 
-REQUISITOS:
-- Aplicacion de escritorio Vault Local instalada (descarga gratis en vault-local.vercel.app)
-- Node.js instalado (para el puente de comunicacion)
+REQUISITOS
+- La aplicación de escritorio Vault Local 0.6 o posterior, instalada y desbloqueada. Descarga gratis en https://vault-local.vercel.app
+- No hace falta instalar nada más: la aplicación configura la conexión con el navegador al abrirse.
 
-CODIGO ABIERTO:
-Todo el codigo fuente esta disponible en GitHub: github.com/od1n/vault-local
-
-Compatible con Chrome, Edge, Brave, Opera, Vivaldi y Arc.
+CÓDIGO ABIERTO
+El código fuente está en https://github.com/od1n/vault-local
 
 ## Category
 Productivity
