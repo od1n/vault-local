@@ -53,5 +53,4 @@ Required to detect the current website URL for matching stored credentials, and 
 ### scripting
 Required to programmatically fill username and password fields in login forms on the active tab.
 
-### host_permissions: <all_urls>
-Required because login forms exist on any website. The content script needs to detect and fill forms across all domains.
+(Desde 0.3.0 ya no pide permiso sobre todos los sitios: el script de relleno se inyecta con activeTab + scripting solo en la pestaña activa, cuando el usuario lo pide.)

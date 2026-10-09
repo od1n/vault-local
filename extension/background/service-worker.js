@@ -116,8 +116,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === 'fill_credentials_from_popup') {
     // El popup solicita rellenar credenciales en la pestaña activa
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (tabs[0]) {
+        // Chrome: sin permisos sobre todos los sitios. El script de relleno se inyecta solo
+        // en la pestaña activa y solo cuando el usuario lo pide desde la extensión (activeTab).
+        // Firefox lo declara en el manifiesto; el script evita inyectarse dos veces.
+        if (chrome.scripting && chrome.scripting.executeScript) {
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              files: ['content/autofill.js'],
+            });
+          } catch (e) {
+            sendResponse({ success: false, error: 'No se puede rellenar en esta página' });
+            return;
+          }
+        }
         chrome.tabs.sendMessage(
           tabs[0].id,
           {
