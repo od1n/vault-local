@@ -303,8 +303,8 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 
 | Canal | Estado | Fecha |
 |-------|--------|-------|
-| Chrome Web Store (ID honffihiebfeephklbgnolejabdfocnp) | Rechazada 2026-06-06 por "Keyword Spam" (lista de navegadores en la descripción). Corregida en STORE_LISTING.md; reenviar v0.3.0 | Oct 2026 |
-| Firefox AMO (vault-local@vaultlocal.com) | Aprobada y publicada 2026-06-08: https://addons.mozilla.org/addon/vault-local/ ; subir v0.3.0 (logo nuevo) | Oct 2026 |
+| Chrome Web Store (ID honffihiebfeephklbgnolejabdfocnp) | Publicada 2026-10-15 (v0.3.1): https://chromewebstore.google.com/detail/honffihiebfeephklbgnolejabdfocnp . Rechazos previos: "Keyword Spam" (jun) y permiso `scripting` sin usar (0.3.0, paquete viejo) | Oct 2026 |
+| Firefox AMO (vault-local@vaultlocal.com) | Aprobada y publicada 2026-06-08: https://addons.mozilla.org/addon/vault-local/ ; v0.3.0 (logo nuevo) publicada | Oct 2026 |
 | Dev.to artículo 1 | Publicado | Jun 2026 |
 | Dev.to artículo 2 (doble cifrado) | Publicado | Jun 2026 |
 
@@ -354,8 +354,9 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 - [ ] Firma de código (diferido hasta tener ingresos; ~$200-400/año)
 
 ### Extensiones
-- [ ] Verificar aprobación Chrome Web Store
-- [ ] Verificar aprobación Firefox AMO
+- [x] Chrome Web Store publicada (v0.3.1)
+- [x] Firefox AMO publicada (v0.3.0)
+- [x] Botones de las tiendas en Descargas de las 4 páginas
 
 ### Monetización
 - [ ] (En pausa, requiere empresa) Cuenta de entidad en Binance Pay y cargar `BINANCE_PAY_API_KEY` / `BINANCE_PAY_SECRET` en Vercel (el código ya está)
