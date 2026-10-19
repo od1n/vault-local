@@ -1,0 +1,12 @@
+# Configuración de cargo-audit (la usa el paso "Auditar dependencias de Rust" del CI).
+#
+# Avisos ignorados a propósito. Revisar cada vez que salga una versión nueva de
+# tauri-plugin-updater: en cuanto use zip >= 9.0.0, borrar estas líneas.
+#
+# RUSTSEC-2026-0367, RUSTSEC-2026-0368, RUSTSEC-2026-0369 (zip 4.6.1):
+#   fallos al extraer archivos .zip con enlaces simbólicos o permisos SUID manipulados.
+#   zip solo llega a través de tauri-plugin-updater (2.14.0 es la última y sigue usando zip 4),
+#   y el actualizador solo extrae paquetes cuya firma minisign corresponde a nuestra clave
+#   (updater.key). Un atacante no puede hacer que la app abra un .zip suyo.
+[advisories]
+ignore = ["RUSTSEC-2026-0367", "RUSTSEC-2026-0368", "RUSTSEC-2026-0369"]
