@@ -97,6 +97,20 @@ struct LicenseFile {
     last_seen: i64,
 }
 
+/// Cada cuánto se actualiza `last_seen` en disco.
+const LAST_SEEN_EVERY_SECS: i64 = 3600;
+
+/// Escribe en un archivo temporal y lo renombra: quien lea nunca ve el archivo a medias,
+/// y un corte de luz deja el archivo anterior intacto.
+fn write_atomic(path: &std::path::Path, contenido: &str) -> std::io::Result<()> {
+    // Nombre único por llamada: dos hilos escribiendo a la vez no comparten el temporal
+    static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = N.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = path.with_extension(format!("json.{}.{}.tmp", std::process::id(), n));
+    fs::write(&tmp, contenido)?;
+    fs::rename(&tmp, path)
+}
+
 fn get_license_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
     let dir = app
         .path()
@@ -207,10 +221,13 @@ fn load_license(app: &tauri::AppHandle) -> LicenseInfo {
     // Si el reloj del sistema va por detrás de lo ya observado, usar lo observado.
     let real_now = Utc::now().timestamp();
     let now = real_now.max(datos.last_seen);
-    if real_now > datos.last_seen {
+    // Se guarda como mucho una vez por hora: esta función se llama en cada comando de pago,
+    // a veces desde varios hilos a la vez, y reescribir el archivo cada segundo hacía que una
+    // lectura simultánea encontrara el archivo a medio escribir y mostrara "no válida".
+    if real_now > datos.last_seen + LAST_SEEN_EVERY_SECS {
         datos.last_seen = real_now;
         if let Ok(json) = serde_json::to_string_pretty(&datos) {
-            let _ = fs::write(&path, json);
+            let _ = write_atomic(&path, &json);
         }
     }
 
@@ -268,7 +285,7 @@ pub fn activate_license(app: tauri::AppHandle, license_key: String) -> Result<Li
     };
     let json = serde_json::to_string_pretty(&datos)
         .map_err(|e| format!("Error al serializar licencia: {}", e))?;
-    fs::write(&path, json).map_err(|e| format!("Error al guardar licencia: {}", e))?;
+    write_atomic(&path, &json).map_err(|e| format!("Error al guardar licencia: {}", e))?;
 
     Ok(build_info(&payload, &clave, &activated_at, now))
 }
