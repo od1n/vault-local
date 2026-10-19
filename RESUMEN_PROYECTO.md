@@ -414,6 +414,7 @@ El sandbox Linux de Claude (bash) y el disco real (Read/Write/Edit) son filesyst
 | v0.1.1 | Correcciones, PayPal integration, promo codes |
 | v0.1.3 | i18n, CI multiplataforma, Vercel analytics |
 | v0.2.0 (no publicar) | Auto-backup, alertas seguridad, landings EN/PT/DE, fixes clippy/fmt/audit, Node 24 |
+| v0.6.2 | rustls 0.23.46 (avisos RUSTSEC-2026-0346 a 0349), tauri-plugin-updater 2.14.0 |
 | v0.6.1 | Licencia: escritura atómica de license.json (una lectura simultánea podía dejarlo vacío y mostrar "no válida") |
 | v0.6.0 | La app hace de puente de la extensión (native messaging) y se registra sola en Chrome, Edge, Brave, Chromium y Firefox; ya no hace falta Node.js ni install.ps1 |
 | v0.5.1 | Logo nuevo (dial de bóveda) |
